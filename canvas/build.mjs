@@ -332,6 +332,45 @@ for (const full of imageFiles) {
   added.push({ rel, desc: `image, ${(bytes / 1024).toFixed(1)} KB` });
 }
 
+// ---- Virtual screens (SPA states) ----
+// canvas-screens.json defines page/popup states of index.html. They are
+// rendered as index.html?canvas=<id> so the viewer can inspect each state.
+let canvasScreens = [];
+try {
+  const raw = JSON.parse(readFileSync(join(root, "canvas-screens.json"), "utf8"));
+  canvasScreens = Array.isArray(raw) ? raw : raw.screens || [];
+} catch {}
+
+for (const def of canvasScreens) {
+  if (!def || !def.id) continue;
+  const id = String(def.id);
+  if (seen.has(id)) {
+    console.warn(`! duplicate virtual screen skipped: ${id}`);
+    continue;
+  }
+  seen.add(id);
+  const existing = prevById.get(id) || {};
+  const group = def.group || "root";
+  const screen = {
+    ...existing,
+    id,
+    name: def.name || id,
+    src: `index.html?canvas=${encodeURIComponent(id)}`,
+    group,
+    virtual: true,
+    w: def.w || cfg.defaultWidth || 1440,
+  };
+  // Let the viewer measure the real page height unless the definition pins one.
+  delete screen.h;
+  if (def.h != null) screen.h = def.h;
+  screens.push(screen);
+  neededGroupIds.add(group);
+  if (!groupNameById.has(group)) {
+    groupNameById.set(group, def.groupName || prettify(group));
+  }
+  added.push({ rel: screen.src, desc: `${screen.w}px wide, virtual screen` });
+}
+
 const removed = prevScreens.filter((s) => !seen.has(s.id)).map((s) => s.src);
 
 // Order: preserved screens keep their order; new screens are naturally sorted
@@ -355,6 +394,27 @@ for (const gid of [...neededGroupIds].sort(natural)) {
   if (groups.some((g) => g.id === gid)) continue;
   groups.push({ id: gid, name: groupNameById.get(gid) || prettify(gid) });
 }
+
+// Present modules in workflow order instead of raw id order.
+const GROUP_ORDER = ["root", "penjualan", "logistik", "pembelian", "keuangan", "pengguna", "auth", "assets"];
+const groupRank = (gid) => {
+  const index = GROUP_ORDER.indexOf(gid);
+  return index === -1 ? GROUP_ORDER.length : index;
+};
+groups.sort((a, b) => groupRank(a.id) - groupRank(b.id) || natural(a.id, b.id));
+
+// Keep the curated order from canvas-screens.json inside each module.
+const screenDefIndex = new Map(canvasScreens.map((d, i) => [String(d.id), i]));
+orderedScreens.sort((a, b) => {
+  const diff = groupRank(a.group) - groupRank(b.group);
+  if (diff) return diff;
+  const ia = screenDefIndex.has(a.id) ? screenDefIndex.get(a.id) : -1;
+  const ib = screenDefIndex.has(b.id) ? screenDefIndex.get(b.id) : -1;
+  if (ia !== ib) return ia - ib;
+  const pa = prevOrder.has(a.id) ? prevOrder.get(a.id) : Number.MAX_SAFE_INTEGER;
+  const pb = prevOrder.has(b.id) ? prevOrder.get(b.id) : Number.MAX_SAFE_INTEGER;
+  return pa - pb;
+});
 
 const RESERVED = ["title", "defaultWidth", "rowWidth", "ignore", "canvasVersion", "assets", "bundleFiles", "groups", "screens", "links"];
 const extras = {};

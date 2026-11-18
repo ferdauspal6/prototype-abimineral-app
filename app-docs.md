@@ -1835,6 +1835,34 @@ Bagian ini penting agar prototype tidak "memperbaiki" hal yang justru menjadi ci
 
 ---
 
+## 18. Design Canvas (katalog seluruh layar)
+
+Prototype ini adalah SPA satu file, sehingga halaman, sub-tab, dan popup tidak
+muncul sebagai file HTML terpisah. Untuk inspeksi desain, seluruh state SPA
+didaftarkan di `canvas-screens.json` dan dirender sebagai:
+
+```text
+index.html?canvas=<id>
+```
+
+Alur kerjanya:
+
+1. `node canvas/build.mjs` membaca `canvas-screens.json` dan menambahkan virtual
+   screen ke `screens.json` berdasarkan modul.
+2. Buka `http://localhost:8123/canvas/` untuk melihat katalog.
+3. Setiap frame dimuat saat diklik, dipilih dari menu **Jump**, atau lewat
+   tombol **Muat Semua**. Placeholder menampilkan nama layar.
+4. Saat `?canvas=` aktif, aplikasi berjalan **read-only**: `persist()` dan
+   `saveStore()` tidak menulis ke localStorage. Jika data transaksi kosong,
+   data dummy dibuat di memori agar layar detail dan popup tetap terisi.
+5. `state` di manifest mengatur tab, dan `setup` membuka halaman detail, modal,
+   preview, atau action menu yang sesuai.
+
+Cakupan saat ini: 105 layar virtual (halaman, sub-tab, form, detail, preview,
+dan popup) di grup Penjualan, Logistik, Pembelian, Keuangan, Pengguna, dan Auth.
+
+---
+
 ### Penutup
 
 Dokumen ini cukup untuk membangun prototype UI yang merepresentasikan seluruh modul ABI Mineral App. Fokuskan prototype pada **alur order → delivery → piutang → return** karena itu adalah inti nilai produk, lalu lengkapi master data dan keuangan. Pertahankan konsistensi visual dan status badge agar prototype terasa seperti aplikasi nyata, bukan sekadar kumpulan layar.

@@ -20,6 +20,7 @@
   #app{display:flex;flex-direction:column;height:100%}
   #topbar{height:44px;flex:0 0 44px;display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--chrome);border-bottom:1px solid var(--line)}
   #title{font-weight:600;font-size:13px;margin-right:4px;white-space:nowrap}
+  #loadStatus{font-size:11px;color:#64748b;white-space:nowrap}
   .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .seg button{border:0;border-radius:0;background:transparent;padding:4px 10px}
   .seg button.active{background:var(--accent);color:#fff}
@@ -52,6 +53,12 @@
     background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
   .frame .asset-img{display:block;width:100%;height:auto;pointer-events:none}
   .frame iframe{display:block;width:100%;height:100%;border:0;pointer-events:none;background:#fff}
+  .frame-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    padding:24px;text-align:center;background:#f8fafc;border:1px dashed #cbd5e1;color:#334155;
+    font:600 22px/1.35 system-ui,sans-serif;pointer-events:auto;cursor:pointer}
+  .frame-placeholder span{max-width:85%}
+  .frame-placeholder small{font-weight:500;font-size:14px;color:#64748b}
+  .frame-placeholder:hover{background:#eef2ff;border-color:#6366f1;color:#1e293b}
   .frame-label{position:absolute;left:0;bottom:100%;margin-bottom:6px;white-space:nowrap;pointer-events:auto;cursor:pointer;
     font-weight:600;color:#dcdcdc;transform:scale(var(--inv,1));transform-origin:bottom left}
   .frame-label .dims{color:var(--muted);font-weight:400;margin-left:6px}
@@ -116,6 +123,7 @@
 <div id="app">
   <header id="topbar">
     <div id="title">Screen Canvas</div>
+    <span id="loadStatus"></span>
     <div class="seg" id="modeToggle">
       <button data-mode="inspect" class="active">Inspect</button>
       <button data-mode="preview">Preview</button>
@@ -131,6 +139,7 @@
     <button id="resetBtn" hidden>Reset</button>
     <button id="flowBtn" class="active">Flow</button>
     <button id="reloadBtn" title="Reload all frames (bypass cache)">Reload</button>
+    <button id="loadAllBtn" title="Muat semua halaman">Muat Semua</button>
     <button id="exportBtn" title="Download source files (client-ready) as a ZIP">Export ZIP</button>
     <select id="jump" title="Jump to screen"></select>
     <div class="spacer"></div>
@@ -145,7 +154,7 @@
     <div id="stage">
       <div id="world"></div>
       <svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
-      <div id="hint">Scroll or Space/middle-drag = pan &middot; Ctrl/&#8984; + scroll or pinch = zoom &middot; Alt = measure &middot; &uarr;&darr; = parent/child &middot; 0 = fit</div>
+      <div id="hint">Klik placeholder = muat halaman &middot; Scroll/Space = pan &middot; Ctrl/&#8984; + scroll = zoom &middot; Alt = measure &middot; 0 = fit</div>
       <div id="toast"></div>
       <div id="ctxMenu" hidden></div>
       <div id="warning" hidden></div>
@@ -380,6 +389,7 @@ function normalizeScreen(s){
   var isAsset = s.type === 'asset';
   return {
     id: s.id, name: s.name || s.id, src: s.src, group: s.group, type: s.type || 'page',
+    virtual: !!s.virtual,
     bytes: s.bytes || 0,
     w: s.w || (isAsset ? ((cfg.assets && cfg.assets.displayWidth) || 260) : (cfg.defaultWidth || 1440)),
     h: (s.h != null ? s.h : null),
@@ -433,10 +443,21 @@ function buildWorld(){
       iframe.setAttribute('scrolling','no');
       iframe.setAttribute('title', screen.name);
       iframe.setAttribute('loading','eager');
-      iframe.src = frameUrl(screen);
+      iframe.dataset.src = frameUrl(screen);
       wrap.appendChild(iframe);
       frame.iframe = iframe;
       iframe.addEventListener('load', function(){ onFrameLoad(frame); });
+      var placeholder = document.createElement('button');
+      placeholder.className = 'frame-placeholder';
+      placeholder.type = 'button';
+      placeholder.innerHTML = '<span></span><small>Klik untuk memuat</small>';
+      placeholder.querySelector('span').textContent = screen.name;
+      placeholder.addEventListener('click', function(event){
+        event.stopPropagation();
+        loadFrame(frame);
+      });
+      wrap.appendChild(placeholder);
+      frame.placeholderEl = placeholder;
     }
     el.appendChild(label);
     el.appendChild(wrap);
@@ -448,6 +469,7 @@ function buildWorld(){
   totalFrames = frames.length;
   buildJump();
   renderEmptyPanel();
+  updateLoadStatus();
 }
 
 function startLoading(){
@@ -459,6 +481,43 @@ function startLoading(){
     if (node) node.addEventListener('load', check);
   });
   if (totalFrames === 0){ clearTimeout(timer); finishLoading(); }
+}
+
+var loadQueue = [], activeLoads = 0, MAX_LOADS = 6;
+
+function loadFrame(frame){
+  if (!frame || !frame.iframe || frame.iframe.src || frame._queued) return;
+  frame._queued = true;
+  loadQueue.push(frame);
+  pumpLoadQueue();
+}
+
+function pumpLoadQueue(){
+  while (activeLoads < MAX_LOADS && loadQueue.length){
+    var frame = loadQueue.shift();
+    if (!frame.iframe || frame.iframe.src){ frame._queued = false; continue; }
+    activeLoads++;
+    var released = false;
+    var release = function(){
+      if (released) return;
+      released = true;
+      activeLoads--;
+      updateLoadStatus();
+      pumpLoadQueue();
+    };
+    frame.iframe.addEventListener('load', release, { once:true });
+    setTimeout(release, 8000);
+    frame.iframe.src = frame.iframe.dataset.src;
+    updateLoadStatus();
+  }
+}
+
+function updateLoadStatus(){
+  var status = document.getElementById('loadStatus');
+  if (!status) return;
+  var loaded = frames.filter(function(f){ return f.screen.type === 'asset' || f._loaded; }).length;
+  status.textContent = loaded + '/' + frames.length + ' dimuat';
+  status.hidden = loaded >= frames.length;
 }
 
 function finishLoading(){
@@ -474,8 +533,10 @@ function finishLoading(){
 }
 
 function onFrameLoad(frame){
-  frame._loaded = true;
-  loadedCount++;
+  var doc = getDoc(frame.iframe);
+  if (!frame.iframe.src || (doc && doc.URL === 'about:blank')) return;
+  if (frame.placeholderEl) frame.placeholderEl.style.display = 'none';
+  if (!frame._loaded){ frame._loaded = true; loadedCount++; }
   colorsCache.delete('f:' + frame.screen.id);
   colorsCache.delete('global');
   setupMeasure(frame);
@@ -483,20 +544,19 @@ function onFrameLoad(frame){
     showWarning('Could not access a page inside its frame.<br><br>' +
       'Open this page through an HTTP server (e.g. <code>python3 -m http.server 8000</code>), not by double-clicking the file.');
   }
-  [300, 900, 1800].forEach(function(d){ setTimeout(function(){ measure(frame); }, d); });
+  [300, 900, 1800, 4000, 8000].forEach(function(d){ setTimeout(function(){ measure(frame); }, d); });
+  if (frame.screen.virtual){
+    [700, 1600, 3200, 6000, 10000, 16000].forEach(function(d){
+      setTimeout(function(){ measureVirtual(frame); }, d);
+    });
+  }
 }
 
 function setupMeasure(frame){
+  if (frame.screen.virtual) return;
   var doc = getDoc(frame.iframe);
   if (!doc || !doc.body) return;
   measure(frame);
-  if (window.ResizeObserver){
-    try {
-      if (frame._ro) frame._ro.disconnect();
-      frame._ro = new ResizeObserver(function(){ measure(frame); });
-      frame._ro.observe(doc.body);
-    } catch(e){}
-  }
 }
 
 function onAssetLoad(frame){
@@ -519,23 +579,50 @@ function onAssetLoad(frame){
 }
 
 function measure(frame){
+  if (frame.screen.virtual) return;
+  if (frame._measuring) return;
   var doc = getDoc(frame.iframe);
   if (!doc || !doc.body) return;
-  var body = doc.body;
-  var r = body.getBoundingClientRect();
-  var c = doc.defaultView.getComputedStyle(body);
-  var mt = parseFloat(c.marginTop)||0, mb = parseFloat(c.marginBottom)||0;
-  var h = r.height + mt + mb;
-  if (!h || h < 1) h = doc.documentElement ? doc.documentElement.scrollHeight : 0;
-  h = Math.round(h);
-  if (h < 1) return;
   if (frame.screen.h != null) return;
-  if (Math.abs(h - frame.hEff) > 1){
+  // Measure the natural content height: shrink the viewport first so
+  // min-height:100vh styles inside the page don't inflate the result.
+  frame._measuring = true;
+  var prev = frame.wrapEl.style.height;
+  frame.wrapEl.style.height = '1px';
+  var h = doc.documentElement ? doc.documentElement.scrollHeight : 0;
+  frame.wrapEl.style.height = prev;
+  frame._measuring = false;
+  if (!h || h < 1) return;
+  h = Math.min(Math.round(h), 6000);
+  if (h > frame.hEff + 1){
     frame.hEff = h;
     frame.wrapEl.style.height = h + 'px';
     scheduleLayout();
   }
 }
+function setFrameHeight(frame, height){
+  var h = Math.max(320, Math.min(Math.round(Number(height) || 0), 6000));
+  // Grow-only: pages containing min-height:100vh reflow to the current frame
+  // height, so shrinking would start a downward feedback loop and clip content.
+  if (h > frame.hEff + 1){
+    frame.hEff = h;
+    frame.wrapEl.style.height = h + 'px';
+    updateFrameLabel(frame);
+    scheduleLayout();
+  }
+}
+
+function measureVirtual(frame){
+  var doc = getDoc(frame.iframe);
+  if (!doc || !doc.body) return;
+  var html = doc.documentElement;
+  html.classList.add('canvas-measuring');
+  var root = doc.querySelector('.min-h-screen') || doc.body;
+  var h = Math.round(root.getBoundingClientRect().height);
+  html.classList.remove('canvas-measuring');
+  if (h > 0) setFrameHeight(frame, h);
+}
+
 function updateFrameLabel(frame){
   frame.labelEl.querySelector('.name').textContent = frame.screen.name;
   frame.labelEl.querySelector('.dims').textContent = frame.w + ' \u00d7 ' + Math.round(frame.hEff);
@@ -623,6 +710,7 @@ function fitAll(){
 function zoomToFrame(id, setHash){
   var f = frameById.get(id);
   if (!f) return;
+  if (f.iframe) loadFrame(f);
   fitBoxes({x:f.x, y:f.y - 30, w:f.w, h:f.hEff + 30}, 80);
   if (setHash !== false) history.replaceState(null, '', '#' + id);
 }
@@ -654,6 +742,23 @@ function render(){
   overlay.setAttribute('height', stage.clientHeight);
   drawFlows();
   drawOverlay();
+  loadVisibleFrames();
+}
+
+var lastLoadScan = 0;
+function loadVisibleFrames(){
+  if (scale < 0.18) return;
+  var now = Date.now();
+  if (now - lastLoadScan < 350) return;
+  lastLoadScan = now;
+  var vw = stage.clientWidth, vh = stage.clientHeight;
+  frames.forEach(function(frame){
+    if (frame.screen.type === 'asset' || (frame.iframe && frame.iframe.src)) return;
+    var sx = frame.x*scale + tx, sy = frame.y*scale + ty;
+    var sw = frame.w*scale, sh = frame.hEff*scale;
+    if (sx + sw < -160 || sy + sh < -160 || sx > vw + 160 || sy > vh + 160) return;
+    loadFrame(frame);
+  });
 }
 function zoomAt(mx, my, newScale){
   newScale = clamp(newScale, ZOOM_MIN, ZOOM_MAX);
@@ -982,6 +1087,10 @@ function bindControls(){
   document.getElementById('flowBtn').addEventListener('click', toggleFlow);
   document.getElementById('resetBtn').addEventListener('click', resetFrames);
   document.getElementById('reloadBtn').addEventListener('click', reloadFrames);
+  document.getElementById('loadAllBtn').addEventListener('click', function(){
+    frames.forEach(function(frame){ if (frame.screen.type !== 'asset') loadFrame(frame); });
+    toast('Memuat ' + frames.length + ' halaman...');
+  });
   document.getElementById('exportBtn').addEventListener('click', exportZip);
   document.getElementById('zoomIn').addEventListener('click', function(){ zoomCenter(1.2); });
   document.getElementById('zoomOut').addEventListener('click', function(){ zoomCenter(1/1.2); });

@@ -70,23 +70,39 @@
   },
   "groups": [
     {
-      "id": "assets",
-      "name": "Assets"
-    },
-    {
       "id": "root",
       "name": "Root"
+    },
+    {
+      "id": "penjualan",
+      "name": "Penjualan"
+    },
+    {
+      "id": "logistik",
+      "name": "Logistik"
+    },
+    {
+      "id": "pembelian",
+      "name": "Pembelian"
+    },
+    {
+      "id": "keuangan",
+      "name": "Keuangan"
+    },
+    {
+      "id": "pengguna",
+      "name": "Pengguna"
+    },
+    {
+      "id": "auth",
+      "name": "Auth"
+    },
+    {
+      "id": "assets",
+      "name": "Assets"
     }
   ],
   "screens": [
-    {
-      "id": "assets-logo",
-      "name": "logo",
-      "src": "assets/logo.png",
-      "group": "assets",
-      "type": "asset",
-      "bytes": 48269
-    },
     {
       "id": "flow",
       "name": "Alur Operasional",
@@ -99,6 +115,854 @@
       "src": "index.html",
       "group": "root",
       "w": 1440
+    },
+    {
+      "id": "dashboard",
+      "name": "Dashboard",
+      "src": "index.html?canvas=dashboard",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "dashboard-recap-cash",
+      "name": "Dashboard — Uang Masuk",
+      "src": "index.html?canvas=dashboard-recap-cash",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "dashboard-stock-popular",
+      "name": "Dashboard — Stok Populer",
+      "src": "index.html?canvas=dashboard-stock-popular",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "dashboard-stock-holding",
+      "name": "Dashboard — Stok Ditahan",
+      "src": "index.html?canvas=dashboard-stock-holding",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "customers",
+      "name": "Master Pelanggan",
+      "src": "index.html?canvas=customers",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "customer-modal",
+      "name": "Modal Pelanggan",
+      "src": "index.html?canvas=customer-modal",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "promos",
+      "name": "Master Promo",
+      "src": "index.html?canvas=promos",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "promo-modal",
+      "name": "Modal Promo",
+      "src": "index.html?canvas=promo-modal",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-customer",
+      "name": "Pilih Pelanggan",
+      "src": "index.html?canvas=order-customer",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-customer-schedule",
+      "name": "Pilih Pelanggan — Jadwal",
+      "src": "index.html?canvas=order-customer-schedule",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-create",
+      "name": "Buat Order",
+      "src": "index.html?canvas=order-create",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-create-history",
+      "name": "Buat Order — Riwayat",
+      "src": "index.html?canvas=order-create-history",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "orders",
+      "name": "Order List",
+      "src": "index.html?canvas=orders",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-detail",
+      "name": "Order Detail",
+      "src": "index.html?canvas=order-detail",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "invoice",
+      "name": "Invoice",
+      "src": "index.html?canvas=invoice",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "bulk-invoice",
+      "name": "Bulk Invoice",
+      "src": "index.html?canvas=bulk-invoice",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-success",
+      "name": "Order Sukses",
+      "src": "index.html?canvas=order-success",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "deliveries",
+      "name": "Surat Jalan",
+      "src": "index.html?canvas=deliveries",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "delivery-create",
+      "name": "Buat Surat Jalan",
+      "src": "index.html?canvas=delivery-create",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "delivery-check",
+      "name": "Konfirmasi Surat Jalan",
+      "src": "index.html?canvas=delivery-check",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "delivery-detail",
+      "name": "Detail Surat Jalan",
+      "src": "index.html?canvas=delivery-detail",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "delivery-invoice",
+      "name": "Preview Delivery",
+      "src": "index.html?canvas=delivery-invoice",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "returns",
+      "name": "Return Penjualan",
+      "src": "index.html?canvas=returns",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "return-modal",
+      "name": "Modal Return",
+      "src": "index.html?canvas=return-modal",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-preview",
+      "name": "Preview Order",
+      "src": "index.html?canvas=order-preview",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "delivery-preview",
+      "name": "Preview Buat Surat Jalan",
+      "src": "index.html?canvas=delivery-preview",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "collection-preview",
+      "name": "Preview Penagihan",
+      "src": "index.html?canvas=collection-preview",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "report-modal",
+      "name": "Modal Laporan",
+      "src": "index.html?canvas=report-modal",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "camera-modal",
+      "name": "Modal Kamera",
+      "src": "index.html?canvas=camera-modal",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "confirm-modal",
+      "name": "Modal Konfirmasi",
+      "src": "index.html?canvas=confirm-modal",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "action-menu",
+      "name": "Action Menu",
+      "src": "index.html?canvas=action-menu",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "warehouses",
+      "name": "Master Gudang",
+      "src": "index.html?canvas=warehouses",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "warehouse-modal",
+      "name": "Modal Gudang",
+      "src": "index.html?canvas=warehouse-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "products",
+      "name": "Master Produk",
+      "src": "index.html?canvas=products",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "product-categories",
+      "name": "Kategori Produk",
+      "src": "index.html?canvas=product-categories",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "product-form",
+      "name": "Form Produk",
+      "src": "index.html?canvas=product-form",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "recipe-preview",
+      "name": "Preview Resep",
+      "src": "index.html?canvas=recipe-preview",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "product-category-modal",
+      "name": "Modal Kategori Produk",
+      "src": "index.html?canvas=product-category-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "materials",
+      "name": "Master Barang",
+      "src": "index.html?canvas=materials",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "material-categories",
+      "name": "Kategori Barang",
+      "src": "index.html?canvas=material-categories",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "material-modal",
+      "name": "Modal Barang",
+      "src": "index.html?canvas=material-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "material-category-modal",
+      "name": "Modal Kategori Barang",
+      "src": "index.html?canvas=material-category-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-modal",
+      "name": "Modal Stock Masuk",
+      "src": "index.html?canvas=stock-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "opname-modal",
+      "name": "Modal Stock Opname",
+      "src": "index.html?canvas=opname-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-active",
+      "name": "Stock Aktif",
+      "src": "index.html?canvas=stock-active",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-production",
+      "name": "Produksi",
+      "src": "index.html?canvas=stock-production",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-history",
+      "name": "Riwayat Stock",
+      "src": "index.html?canvas=stock-history",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-opname",
+      "name": "Stock Opname",
+      "src": "index.html?canvas=stock-opname",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-material",
+      "name": "Stock Barang",
+      "src": "index.html?canvas=stock-material",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "stock-material-history",
+      "name": "Riwayat Barang",
+      "src": "index.html?canvas=stock-material-history",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "production-modal",
+      "name": "Buat Produksi",
+      "src": "index.html?canvas=production-modal",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "production-detail",
+      "name": "Detail Produksi",
+      "src": "index.html?canvas=production-detail",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "production-detail-logs",
+      "name": "Detail Produksi — Riwayat",
+      "src": "index.html?canvas=production-detail-logs",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "production-correction",
+      "name": "Koreksi Produksi",
+      "src": "index.html?canvas=production-correction",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "suppliers",
+      "name": "Supplier",
+      "src": "index.html?canvas=suppliers",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "supplier-modal",
+      "name": "Modal Supplier",
+      "src": "index.html?canvas=supplier-modal",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-requests",
+      "name": "Purchase Request",
+      "src": "index.html?canvas=purchase-requests",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-request-create",
+      "name": "Buat Purchase Request",
+      "src": "index.html?canvas=purchase-request-create",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-request-preview",
+      "name": "Preview Purchase Request",
+      "src": "index.html?canvas=purchase-request-preview",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-request-detail",
+      "name": "Detail Purchase Request",
+      "src": "index.html?canvas=purchase-request-detail",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-request-reject",
+      "name": "Tolak Purchase Request",
+      "src": "index.html?canvas=purchase-request-reject",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-orders",
+      "name": "Purchase Order",
+      "src": "index.html?canvas=purchase-orders",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-order-create",
+      "name": "Buat Purchase Order",
+      "src": "index.html?canvas=purchase-order-create",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-order-preview",
+      "name": "Preview Purchase Order",
+      "src": "index.html?canvas=purchase-order-preview",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-order-detail",
+      "name": "Detail Purchase Order",
+      "src": "index.html?canvas=purchase-order-detail",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-order-reject",
+      "name": "Tolak Purchase Order",
+      "src": "index.html?canvas=purchase-order-reject",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receipts",
+      "name": "Penerimaan Barang",
+      "src": "index.html?canvas=receipts",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receipt-create",
+      "name": "Buat Penerimaan",
+      "src": "index.html?canvas=receipt-create",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receipt-preview",
+      "name": "Preview Penerimaan",
+      "src": "index.html?canvas=receipt-preview",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receipt-detail",
+      "name": "Detail Penerimaan",
+      "src": "index.html?canvas=receipt-detail",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receipt-history",
+      "name": "Riwayat Penerimaan",
+      "src": "index.html?canvas=receipt-history",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-returns",
+      "name": "Return Pembelian",
+      "src": "index.html?canvas=purchase-returns",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-return-create",
+      "name": "Buat Return Pembelian",
+      "src": "index.html?canvas=purchase-return-create",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "purchase-return-detail",
+      "name": "Detail Return Pembelian",
+      "src": "index.html?canvas=purchase-return-detail",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "coa",
+      "name": "Chart of Accounts",
+      "src": "index.html?canvas=coa",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "account-modal",
+      "name": "Modal Akun",
+      "src": "index.html?canvas=account-modal",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "journals",
+      "name": "Jurnal Umum",
+      "src": "index.html?canvas=journals",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "journal-create",
+      "name": "Buat Jurnal",
+      "src": "index.html?canvas=journal-create",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "journal-detail",
+      "name": "Detail Jurnal",
+      "src": "index.html?canvas=journal-detail",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "journal-void",
+      "name": "Void Jurnal",
+      "src": "index.html?canvas=journal-void",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "ledger",
+      "name": "Buku Besar",
+      "src": "index.html?canvas=ledger",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "trial-balance",
+      "name": "Neraca Saldo",
+      "src": "index.html?canvas=trial-balance",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "payables",
+      "name": "Utang",
+      "src": "index.html?canvas=payables",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "payable-detail",
+      "name": "Detail Utang",
+      "src": "index.html?canvas=payable-detail",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "payable-payment",
+      "name": "Pembayaran Utang",
+      "src": "index.html?canvas=payable-payment",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "finance-income",
+      "name": "Pendapatan Lainnya",
+      "src": "index.html?canvas=finance-income",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "finance-expense",
+      "name": "Pengeluaran Lainnya",
+      "src": "index.html?canvas=finance-expense",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "finance-modal",
+      "name": "Modal Transaksi Keuangan",
+      "src": "index.html?canvas=finance-modal",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receivables-active",
+      "name": "Piutang Aktif",
+      "src": "index.html?canvas=receivables-active",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receivables-collections",
+      "name": "Penagihan",
+      "src": "index.html?canvas=receivables-collections",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receivables-paid",
+      "name": "Piutang Lunas",
+      "src": "index.html?canvas=receivables-paid",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receivables-payments",
+      "name": "Riwayat Pembayaran",
+      "src": "index.html?canvas=receivables-payments",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "collection-create",
+      "name": "Buat Penagihan",
+      "src": "index.html?canvas=collection-create",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "receivable-payment-modal",
+      "name": "Modal Pembayaran Piutang",
+      "src": "index.html?canvas=receivable-payment-modal",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "collection-confirm",
+      "name": "Konfirmasi Penagihan",
+      "src": "index.html?canvas=collection-confirm",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "users",
+      "name": "Pengguna",
+      "src": "index.html?canvas=users",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "user-modal",
+      "name": "Modal Pengguna",
+      "src": "index.html?canvas=user-modal",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "roles",
+      "name": "Role",
+      "src": "index.html?canvas=roles",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "role-modal",
+      "name": "Modal Role",
+      "src": "index.html?canvas=role-modal",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "settings-profile",
+      "name": "Pengaturan Profil",
+      "src": "index.html?canvas=settings-profile",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "settings-password",
+      "name": "Pengaturan Kata Sandi",
+      "src": "index.html?canvas=settings-password",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "settings-2fa",
+      "name": "Pengaturan 2FA",
+      "src": "index.html?canvas=settings-2fa",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "settings-appearance",
+      "name": "Pengaturan Tampilan",
+      "src": "index.html?canvas=settings-appearance",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "settings-data",
+      "name": "Pengaturan Data Demo",
+      "src": "index.html?canvas=settings-data",
+      "group": "pengguna",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "login",
+      "name": "Login",
+      "src": "index.html?canvas=login",
+      "group": "auth",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "assets-logo",
+      "name": "logo",
+      "src": "assets/logo.png",
+      "group": "assets",
+      "type": "asset",
+      "bytes": 48269
     }
   ],
   "links": []

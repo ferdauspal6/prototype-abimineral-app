@@ -32,6 +32,12 @@ body { background: #f8fafc; color: #0f172a; margin: 0; }
 
 /* Layout */
 .app-shell { min-height: 100vh; }
+/* Canvas frames report their natural content height to the viewer. */
+html.canvas-measuring .min-h-screen,
+html.canvas-measuring .app-shell { min-height: 0 !important; }
+html.canvas-measuring *,
+html.canvas-measuring *::before,
+html.canvas-measuring *::after { transition: none !important; animation: none !important; }
 .sidebar { background: var(--navy); color: #fff; transition: width .22s ease; }
 .sidebar-label { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #94a3b8; padding: 0 .55rem; margin-bottom: .2rem; }
 .nav-link { display: flex; align-items: center; gap: .5rem; min-height: 34px; padding: .3rem .55rem; border-radius: .5rem; color: #cbd5e1; font-size: .8125rem; font-weight: 500; transition: background .15s, color .15s; text-decoration: none; }

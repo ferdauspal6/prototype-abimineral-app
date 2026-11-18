@@ -19,6 +19,28 @@ The viewer **must be served over HTTP** — opening `canvas/index.html` by
 double-clicking (`file://`) cannot load `screens.json` or inspect frames, and
 will show a warning.
 
+## SPA state catalog (virtual screens)
+
+A single-page app has one HTML file but many pages, tabs, and popups. This
+project therefore keeps a catalog in `canvas-screens.json`:
+
+```json
+{ "id": "purchase-order-detail", "name": "Detail Purchase Order",
+  "group": "pembelian", "groupName": "Pembelian",
+  "page": "purchase-orders", "setup": "purchase-order-detail" }
+```
+
+`node canvas/build.mjs` turns each entry into a virtual screen named
+`index.html?canvas=<id>`, grouped under its module in `screens.json`. The app
+reads `?canvas=` on boot and applies `page`, tabs (`state`), and the popup
+named by `setup`.
+
+- Frames load **on demand**: the overview shows a placeholder per screen.
+  Click a placeholder, use the **Jump** menu, or click a module title.
+- **Muat Semua** loads every screen (heavy for large catalogs).
+- The viewer measures each page's natural height so long tables are not cut.
+- Add or edit screens in `canvas-screens.json`, then rerun the build.
+
 ## Use in another project
 
 ```bash

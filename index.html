@@ -16,9 +16,9 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="assets/app.css?v=20261119d">
+  <link rel="stylesheet" href="assets/app.css?v=20261120b">
 </head>
-<body x-data="app()" x-init="init()" @keydown.escape.window="closeModals()" class="bg-slate-50 text-slate-900 antialiased">
+<body x-data="app()" x-init="initCanvas()" @keydown.escape.window="closeModals()" class="bg-slate-50 text-slate-900 antialiased">
 
 <!-- ICON SPRITE -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -3697,7 +3697,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261119r"></script>
+<script src="assets/app.js?v=20261120q"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

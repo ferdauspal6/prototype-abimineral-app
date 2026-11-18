@@ -291,6 +291,7 @@ function app() {
     sessionPage: null,
     loginError: '',
     storeError: '',
+    canvasMode: false, canvasScreenId: null, canvasDefinition: null,
     savedAt: null,
     persistTimer: null,
     pendingImport: null,
@@ -347,6 +348,7 @@ function app() {
       this.permissions = fresh.permissions;
     },
     saveStore() {
+      if (this.canvasMode) return;
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify({
           version: STORE_VERSION,
@@ -369,6 +371,7 @@ function app() {
       }
     },
     persist() {
+      if (this.canvasMode) return;
       clearTimeout(this.persistTimer);
       this.persistTimer = setTimeout(() => this.saveStore(), 180);
     },
@@ -1266,8 +1269,320 @@ function app() {
       this.persist();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
+    ensureCanvasData() {
+      if (!this.canvasMode) return;
+      const hasTransactions = this.orders.length || this.purchaseRequests.length || this.purchaseOrders.length;
+      if (hasTransactions) return;
+      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-b';
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const data = JSON.parse(cached);
+          DOMAIN_KEYS.forEach(key => {
+            if (data[key] !== undefined) this[key] = data[key];
+          });
+          if (data.permissions) this.permissions = data.permissions;
+          return;
+        }
+      } catch (error) {}
+      try {
+        this.seedDummyData();
+        this.toast.show = false;
+        sessionStorage.setItem(cacheKey, JSON.stringify(Object.assign({}, this.snapshot(), { permissions:this.permissions })));
+      } catch (error) {
+        console.warn('Canvas dummy data gagal disiapkan:', error);
+      }
+    },
+    initCanvas() {
+      if (!new URLSearchParams(location.search).has('canvas')) return;
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        setTimeout(() => this.initCanvasScreen(), 80);
+      };
+      if (document.readyState === 'complete') start();
+      else window.addEventListener('load', start, { once:true });
+      setTimeout(start, 2500);
+    },
+    async initCanvasScreen() {
+      this.ensureCanvasData();
+      try {
+        let response = await fetch('canvas-screens.json', { cache:'no-store' });
+        if (!response.ok) response = await fetch('canvas-screens.json', { cache:'reload' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const screens = Array.isArray(data) ? data : (data.screens || []);
+        const definition = screens.find(item => item.id === this.canvasScreenId);
+        if (!definition) return;
+        this.canvasDefinition = definition;
+        if (definition.role) this.role = definition.role;
+        if (definition.state) {
+          Object.keys(definition.state).forEach(key => { this[key] = definition.state[key]; });
+        }
+        if (definition.page) this.page = definition.page;
+        this.applyCanvasSetup(definition);
+        this.sessionPage = this.page;
+      } catch (error) {
+        console.warn('Canvas screen setup gagal:', error);
+      }
+    },
+    applyCanvasSetup(definition) {
+      const first = list => (list || [])[0] || null;
+      const page = definition.page;
+      switch (definition.setup) {
+        case 'order-detail': {
+          const row = first(this.orders);
+          if (row) { this.selectedOrderId = row.id; this.page = 'order-detail'; }
+          break;
+        }
+        case 'invoice': {
+          const row = first(this.orders);
+          if (row) { this.selectedOrderId = row.id; this.page = 'invoice'; }
+          break;
+        }
+        case 'bulk-invoice': {
+          this.selectedOrderIds = this.orders.slice(0, 3).map(row => row.id);
+          this.bulkOrderIds = [...this.selectedOrderIds];
+          this.page = 'bulk-invoice';
+          break;
+        }
+        case 'delivery-check': {
+          const row = first(this.deliveries);
+          if (row) this.startDeliveryCheck(row, false);
+          break;
+        }
+        case 'delivery-detail': {
+          const row = first(this.deliveries);
+          if (row) this.startDeliveryCheck(row, true);
+          break;
+        }
+        case 'delivery-invoice': {
+          const row = first(this.deliveries);
+          if (row) { this.selectedDeliveryId = row.id; this.page = 'delivery-invoice'; }
+          break;
+        }
+        case 'customer-modal': this.openCustomer(first(this.customers)); break;
+        case 'promo-modal': this.openPromo(first(this.promos)); break;
+        case 'return-modal': {
+          const row = this.orders.find(item => (item.items || []).length);
+          if (row) { this.page = 'returns'; this.openReturn(row); }
+          break;
+        }
+        case 'order-preview': {
+          const customer = first(this.customers);
+          const product = first(this.products);
+          if (customer && product) {
+            this.selectedCustomerId = customer.id;
+            this.cart = { [product.id]: 2 };
+            this.paymentMethod = 'Tunai';
+            this.page = 'order-create';
+            this.orderPreviewOpen = true;
+          }
+          break;
+        }
+        case 'delivery-preview': {
+          const rows = this.orders.filter(item => ['already','holding','partial'].includes(item.status)).slice(0, 2);
+          this.deliveryDraft = {
+            orderIds: rows.map(row => row.id),
+            driver:'Budi Santoso',
+            car:'L300 - DD 1234 AB',
+            warehouseId:'wh1',
+            start:todayISO(),
+            end:shiftISO(todayISO(), 13)
+          };
+          this.page = 'delivery-create';
+          this.deliveryPreviewOpen = true;
+          break;
+        }
+        case 'collection-preview': {
+          const rows = this.activeReceivables.slice(0, 2);
+          this.collectionSales = rows[0] ? rows[0].sales : 'Fahri';
+          this.collectionIds = rows.map(row => row.id);
+          this.page = 'collection-create';
+          this.collectionPreviewOpen = true;
+          break;
+        }
+        case 'report-modal': this.reportOpen = true; break;
+        case 'camera-modal': this.openCamera(first(this.customers)); break;
+        case 'confirm-modal': this.askConfirm('canvas-confirm', null, 'Konfirmasi', 'Pastikan data sudah benar.', false); break;
+        case 'action-menu': {
+          this.page = 'orders';
+          setTimeout(() => {
+            const visible = [...document.querySelectorAll('main > section')].find(section => getComputedStyle(section).display !== 'none');
+            const trigger = visible && visible.querySelector('tbody td.actions button');
+            if (trigger) trigger.click();
+          }, 350);
+          break;
+        }
+        case 'warehouse-modal': this.openWarehouse(first(this.warehouses)); break;
+        case 'product-form': this.openProduct(first(this.products)); break;
+        case 'recipe-preview': this.openRecipePreview(first(this.products)); break;
+        case 'product-category-modal': this.openCategory('product', first(this.productCategories)); break;
+        case 'material-modal': this.openMaterial(first(this.materials)); break;
+        case 'material-category-modal': this.openCategory('material', first(this.materialCategories)); break;
+        case 'production-modal': this.openProduction(); break;
+        case 'production-detail': {
+          const row = first(this.productions);
+          if (row) this.viewProduction(row);
+          break;
+        }
+        case 'production-detail-logs': {
+          const row = first(this.productions);
+          if (row) {
+            this.viewProduction(row);
+            this.productionDetailTab = 'logs';
+          }
+          break;
+        }
+        case 'stock-modal': {
+          this.page = 'stock';
+          this.stockView = 'product';
+          this.openStock();
+          break;
+        }
+        case 'opname-modal': {
+          this.page = 'stock';
+          this.stockView = 'product';
+          this.openOpname();
+          break;
+        }
+        case 'production-correction': {
+          const row = first(this.productions);
+          if (row) this.openProductionCorrection(row);
+          break;
+        }
+        case 'supplier-modal': this.openSupplier(first(this.suppliers)); break;
+        case 'purchase-request-create': this.startPRCreate(); break;
+        case 'purchase-request-preview': {
+          const row = first(this.purchaseRequests);
+          if (row) { this.selectedPRId = row.id; this.page = 'purchase-request-preview'; }
+          break;
+        }
+        case 'purchase-request-detail': {
+          const row = first(this.purchaseRequests);
+          if (row) this.viewPR(row);
+          break;
+        }
+        case 'purchase-request-reject': {
+          this.role = 'Manager';
+          const row = this.purchaseRequests.find(item => item.status === 'submitted' && item.requesterId !== this.currentUserId)
+            || this.purchaseRequests.find(item => item.status === 'submitted');
+          if (row) {
+            if (row.requesterId === this.currentUserId) {
+              const manager = this.users.find(user => user.id !== row.requesterId && (user.roles || []).includes('Manager'));
+              if (manager) this.currentUserId = manager.id;
+            }
+            this.openRejectPR(row);
+          }
+          break;
+        }
+        case 'purchase-order-create': this.openPOCreate(); break;
+        case 'purchase-order-preview': {
+          const row = first(this.purchaseOrders);
+          if (row) { this.selectedPOId = row.id; this.page = 'purchase-order-preview'; }
+          break;
+        }
+        case 'purchase-order-detail': {
+          const row = first(this.purchaseOrders);
+          if (row) this.viewPO(row);
+          break;
+        }
+        case 'purchase-order-reject': {
+          this.role = 'Manager';
+          const row = this.purchaseOrders.find(item => item.status === 'pending_approval' && item.createdById !== this.currentUserId)
+            || this.purchaseOrders.find(item => item.status === 'pending_approval');
+          if (row) {
+            if (row.createdById === this.currentUserId) {
+              const manager = this.users.find(user => user.id !== row.createdById && (user.roles || []).includes('Manager'));
+              if (manager) this.currentUserId = manager.id;
+            }
+            this.openRejectPO(row);
+          }
+          break;
+        }
+        case 'receipt-create': this.openReceiptCreate(); break;
+        case 'receipt-preview': {
+          const row = first(this.receipts);
+          if (row) { this.selectedReceiptId = row.id; this.page = 'receipt-preview'; }
+          break;
+        }
+        case 'receipt-detail': {
+          const row = first(this.receipts);
+          if (row) this.viewReceipt(row);
+          break;
+        }
+        case 'receipt-history': {
+          const row = first(this.receipts);
+          if (row) this.viewReceiptHistory(row);
+          break;
+        }
+        case 'purchase-return-create': this.openPurchaseReturnCreate(); break;
+        case 'purchase-return-detail': {
+          const row = first(this.purchaseReturns);
+          if (row) this.viewPurchaseReturn(row);
+          break;
+        }
+        case 'account-modal': {
+          const row = this.accounts.find(item => !item.isSystem);
+          if (row) this.openAccount(row);
+          break;
+        }
+        case 'journal-create': this.startJournalCreate(); break;
+        case 'journal-detail': {
+          const row = first(this.journals);
+          if (row) this.viewJournal(row);
+          break;
+        }
+        case 'journal-void': {
+          const row = this.journals.find(item => item.status === 'posted' && item.source === 'manual');
+          if (row) { this.page = 'journals'; this.voidJournal(row); }
+          break;
+        }
+        case 'payable-detail': {
+          const row = first(this.payables);
+          if (row) this.viewPayable(row);
+          break;
+        }
+        case 'payable-payment': {
+          const row = this.payables.find(item => Number(item.unpaid) > 0);
+          if (row) this.openPayablePayment(row);
+          break;
+        }
+        case 'finance-modal': this.openFinance(definition.page === 'finance-expense' ? 'expense' : 'income'); break;
+        case 'collection-create': this.startCollectionCreate(); break;
+        case 'receivable-payment-modal': {
+          this.page = 'receivables';
+          this.receivableTab = 'active';
+          const row = this.receivables.find(item => Number(item.unpaid) > 0) || first(this.receivables);
+          if (row) this.openPayment(row);
+          break;
+        }
+        case 'collection-confirm': {
+          const row = first(this.collections);
+          if (row) this.startCollection(row);
+          break;
+        }
+        case 'user-modal': this.openUser(first(this.users)); break;
+        case 'role-modal': this.openRole(first(this.roles)); break;
+        case 'login': this.page = 'login'; break;
+        default:
+          if (page) this.page = page;
+      }
+      this.sessionPage = this.page;
+    },
     init() {
+      const params = new URLSearchParams(location.search);
+      this.canvasMode = params.has('canvas');
+      this.canvasScreenId = params.get('canvas');
       this.loadStore();
+      if (this.canvasMode && !this.currentUserId) {
+        const user = this.users.find(item => (item.roles || []).includes('Admin')) || this.users[0];
+        if (user) {
+          this.currentUserId = user.id;
+          this.role = (user.roles || [])[0] || 'Admin';
+        }
+      }
       this.purchaseRequests
         .filter(pr => ['approved','processing','completed'].includes(pr.status))
         .forEach(pr => this.updatePRStatus(pr));
@@ -1297,6 +1612,7 @@ function app() {
       this.saveStore();
 
       window.addEventListener('hashchange', () => {
+        if (this.canvasMode) return;
         const next = (location.hash || '').replace('#', '');
         if (!PAGES.includes(next) || next === 'login') return;
         if (!this.currentUserId) { this.page = 'login'; return; }
@@ -6821,6 +7137,11 @@ function app() {
       addFinance('expense', 4000000, d(-3), '5-1200', '1-1200', 'Gaji karyawan bulan ini', 'Admin');
       addFinance('expense', 350000, d(-2), '5-1300', '1-1100', 'BBM dan transportasi', 'Admin');
 
+      post(d(-2), 'Penyesuaian beban operasional', 'manual', '', [
+        { accountId:accId('5-1100'), debit:150000, credit:0, memo:'Penyesuaian operasional' },
+        { accountId:accId('1-1100'), debit:0, credit:150000, memo:'Kas keluar' }
+      ]);
+
       this.selectedOrderId = order3.id;
       this.selectedDeliveryId = this.deliveries[0]?.id || null;
       this.selectedCollectionId = col1.id;
@@ -6832,7 +7153,7 @@ function app() {
       this.stockTab = 'production';
       this.materialStockTab = 'active';
       this.persist();
-      this.notify('Data dummy berhasil diisi. Silakan jelajahi modul aplikasi.');
+      if (!this.canvasMode) this.notify('Data dummy berhasil diisi. Silakan jelajahi modul aplikasi.');
       this.go('dashboard');
     },
     resetDemo() {
