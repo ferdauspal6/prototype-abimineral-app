@@ -24,6 +24,8 @@
   { "id": "returns", "name": "Return Penjualan", "group": "penjualan", "groupName": "Penjualan", "page": "returns" },
   { "id": "return-modal", "name": "Modal Return", "group": "penjualan", "groupName": "Penjualan", "page": "returns", "setup": "return-modal" },
   { "id": "order-preview", "name": "Preview Order", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "setup": "order-preview" },
+  { "id": "order-stock-confirm", "name": "Konfirmasi Stock Kurang", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "setup": "order-stock-confirm" },
+  { "id": "order-preview-shortage", "name": "Preview Order — Stock Kurang", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "setup": "order-preview-shortage" },
   { "id": "delivery-preview", "name": "Preview Buat Surat Jalan", "group": "penjualan", "groupName": "Penjualan", "page": "delivery-create", "setup": "delivery-preview" },
   { "id": "collection-preview", "name": "Preview Penagihan", "group": "penjualan", "groupName": "Penjualan", "page": "collection-create", "setup": "collection-preview" },
   { "id": "report-modal", "name": "Modal Laporan", "group": "penjualan", "groupName": "Penjualan", "page": "dashboard", "setup": "report-modal" },

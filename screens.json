@@ -317,6 +317,22 @@
       "w": 1440
     },
     {
+      "id": "order-stock-confirm",
+      "name": "Konfirmasi Stock Kurang",
+      "src": "index.html?canvas=order-stock-confirm",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "order-preview-shortage",
+      "name": "Preview Order — Stock Kurang",
+      "src": "index.html?canvas=order-preview-shortage",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "delivery-preview",
       "name": "Preview Buat Surat Jalan",
       "src": "index.html?canvas=delivery-preview",

@@ -17,14 +17,15 @@ ABI Mineral App adalah sistem distribusi penjualan barang mineral/retail yang me
 1. Master data pelanggan, produk, gudang, promo, channel, unit.
 2. Sales membuat order berdasarkan jadwal kunjungan pelanggan (hari + pekan).
 3. Order menghasilkan invoice dan dapat dikonfirmasi.
-4. Order dikelompokkan menjadi surat jalan (delivery order) berdasarkan armada, driver, gudang, dan periode.
-5. Order list memiliki aksi bulk melalui menu **Action**: cetak, konfirmasi, dan hapus. Cetak membuka preview multi-invoice sebelum print.
-5. Saat surat jalan diselesaikan, sistem mencatat pembayaran tunai/transfer dan membuat piutang bila ada sisa.
-6. Piutang dikelompokkan menjadi surat jalan penagihan (collection), lalu dibayar dan dicatat riwayat pembayarannya.
-7. Return barang dari pelanggan diproses (ganti barang atau potong harga).
-8. Stok dikelola lewat stock masuk, riwayat, dan stock opname.
-9. Pendapatan/pengeluaran lain dicatat di modul keuangan.
-10. Dashboard meringkas pendapatan, pengeluaran, laba, piutang, status operasional, dan stok.
+4. Order tidak dikunci oleh stok. Jika qty melebihi stok, muncul konfirmasi **“Stock barang di system tidak mencukup, tetap lanjutkan order ?”** dan order tetap dapat disubmit.
+5. Order dikelompokkan menjadi surat jalan (delivery order) berdasarkan armada, driver, gudang, dan periode.
+6. Order list memiliki aksi bulk melalui menu **Action**: cetak, konfirmasi, dan hapus. Cetak membuka preview multi-invoice sebelum print.
+7. Saat surat jalan diselesaikan, sistem mencatat pembayaran tunai/transfer dan membuat piutang bila ada sisa.
+8. Piutang dikelompokkan menjadi surat jalan penagihan (collection), lalu dibayar dan dicatat riwayat pembayarannya.
+9. Return barang dari pelanggan diproses (ganti barang atau potong harga).
+10. Stok dikelola lewat stock masuk, riwayat, dan stock opname.
+11. Pendapatan/pengeluaran lain dicatat di modul keuangan.
+12. Dashboard meringkas pendapatan, pengeluaran, laba, piutang, status operasional, dan stok.
 
 Pengguna utama:
 
@@ -1858,7 +1859,7 @@ Alur kerjanya:
 5. `state` di manifest mengatur tab, dan `setup` membuka halaman detail, modal,
    preview, atau action menu yang sesuai.
 
-Cakupan saat ini: 105 layar virtual (halaman, sub-tab, form, detail, preview,
+Cakupan saat ini: 107 layar virtual (halaman, sub-tab, form, detail, preview,
 dan popup) di grup Penjualan, Logistik, Pembelian, Keuangan, Pengguna, dan Auth.
 
 ---

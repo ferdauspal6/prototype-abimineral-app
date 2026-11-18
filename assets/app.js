@@ -1381,6 +1381,29 @@ function app() {
           }
           break;
         }
+        case 'order-stock-confirm': {
+          const customer = first(this.customers);
+          const product = this.products.find(item => (Number(item.stock) || 0) > 0) || first(this.products);
+          if (customer && product) {
+            this.startOrder(customer);
+            this.cart = { [product.id]: (Number(product.stock) || 0) + 5 };
+            this.paymentMethod = 'Tunai';
+            this.openOrderPreview();
+          }
+          break;
+        }
+        case 'order-preview-shortage': {
+          const customer = first(this.customers);
+          const product = this.products.find(item => (Number(item.stock) || 0) > 0) || first(this.products);
+          if (customer && product) {
+            this.startOrder(customer);
+            this.cart = { [product.id]: (Number(product.stock) || 0) + 5 };
+            this.paymentMethod = 'Tunai';
+            this.orderStockOverride = true;
+            this.orderPreviewOpen = true;
+          }
+          break;
+        }
         case 'delivery-preview': {
           const rows = this.orders.filter(item => ['already','holding','partial'].includes(item.status)).slice(0, 2);
           this.deliveryDraft = {
@@ -1750,6 +1773,7 @@ function app() {
     closeModals() {
       this.cameraOpen = false;
       this.orderPreviewOpen = false;
+      this.orderStockOverride = false;
       this.deliveryPreviewOpen = false;
       this.collectionPreviewOpen = false;
       this.reportOpen = false;
@@ -2026,6 +2050,10 @@ function app() {
       }
       if (action === 'save-password') {
         this.savePassword(true);
+      }
+      if (action === 'order-stock-shortage') {
+        this.orderStockOverride = true;
+        this.orderPreviewOpen = true;
       }
 
       if (action === 'delete-order') {
@@ -4974,6 +5002,7 @@ function app() {
       this.paymentMethod = '';
       this.customDiscount = 0;
       this.orderSearch = '';
+      this.orderStockOverride = false;
       this.go('order-create');
     },
     cameraOpen: false,
@@ -4992,6 +5021,7 @@ function app() {
     },
     get selectedCustomer() { return this.customer(this.selectedCustomerId); },
     cart: {}, orderSearch: '', paymentMethod: '', customDiscount: 0, ppnPercent: 11, orderTab: 'order',
+    orderStockOverride: false,
     get filteredOrderProducts() {
       const q = this.orderSearch.toLowerCase();
       return this.products.filter(p => p.status && (!q || (p.name + ' ' + p.code).toLowerCase().includes(q)));
@@ -5001,6 +5031,7 @@ function app() {
     setQty(id, value) {
       const v = Math.max(0, Number(value) || 0);
       this.cart = { ...this.cart, [id]: v };
+      this.orderStockOverride = false;
     },
     incQty(id, delta) { this.setQty(id, this.qty(id) + delta); },
     priceFor(p) { return this.selectedCustomer.priceType === 'out' ? p.outSale : p.inSale; },
@@ -5037,18 +5068,38 @@ function app() {
       return rows;
     },
     get cartCount() { return this.products.reduce((sum, p) => sum + this.qty(p.id), 0); },
+    get orderStockShortages() {
+      return this.cartRows
+        .map(row => ({
+          ...row,
+          stock: Math.max(0, Number(row.product.stock) || 0),
+          shortfall: Math.max(0, row.qty - (Number(row.product.stock) || 0))
+        }))
+        .filter(row => row.shortfall > 0);
+    },
     get cartSubtotal() { return this.cartRows.reduce((sum, r) => sum + r.total, 0); },
     get cartDiscount() { return this.cartRows.reduce((sum, r) => sum + r.discValue, 0); },
     get customDiscountValue() { return (this.cartSubtotal - this.cartDiscount) * (Number(this.customDiscount) || 0) / 100; },
     get cartTax() { return (this.cartSubtotal - this.cartDiscount - this.customDiscountValue) * this.ppnPercent / 100; },
     get cartTotal() { return this.cartSubtotal - this.cartDiscount - this.customDiscountValue + this.cartTax; },
     orderPreviewOpen: false,
+    closeOrderPreview() {
+      this.orderPreviewOpen = false;
+      this.orderStockOverride = false;
+    },
     openOrderPreview() {
       if (!this.cartCount) { this.notify('Tambahkan minimal 1 produk terlebih dahulu', 'error'); return; }
       if (!this.paymentMethod) { this.notify('Metode pembayaran wajib dipilih', 'error'); return; }
-      const shortages = this.cartRows.filter(row => Number(row.product.stock) < row.qty);
-      if (shortages.length) {
-        this.notify('Stok tidak cukup: ' + shortages.map(row => row.product.name).join(', '), 'error');
+      if (this.orderStockShortages.length) {
+        this.askConfirm(
+          'order-stock-shortage',
+          null,
+          'Stock tidak mencukupi',
+          'Stock barang di system tidak mencukup, tetap lanjutkan order ?',
+          false,
+          'Tetap Lanjutkan',
+          'Kembali'
+        );
         return;
       }
       this.orderPreviewOpen = true;
@@ -5056,9 +5107,8 @@ function app() {
     submitOrder() {
       if (!this.cartCount) { this.notify('Keranjang masih kosong', 'error'); return; }
       if (!this.paymentMethod) { this.notify('Metode pembayaran wajib dipilih', 'error'); return; }
-      const shortages = this.cartRows.filter(row => Number(row.product.stock) < row.qty);
-      if (shortages.length) {
-        this.notify('Stok tidak cukup: ' + shortages.map(row => row.product.name).join(', '), 'error');
+      if (this.orderStockShortages.length && !this.orderStockOverride) {
+        this.notify('Stock barang di system tidak mencukup, tetap lanjutkan order ?', 'error');
         return;
       }
       const c = this.selectedCustomer;
@@ -5068,7 +5118,7 @@ function app() {
       this.cartBonuses.forEach(bonus => items.push({ productId:bonus.product.id, qty:bonus.qty, price:0, discPercent:100, bonus:true }));
       items.forEach(item => {
         const prod = this.product(item.productId);
-        if (prod.id) prod.stock = Math.max(0, (Number(prod.stock) || 0) - (Number(item.qty) || 0));
+        if (prod.id) prod.stock = (Number(prod.stock) || 0) - (Number(item.qty) || 0);
       });
       const order = {
         id,
@@ -5096,6 +5146,7 @@ function app() {
       c.lastOrder = todayISO();
       this.selectedOrderId = id;
       this.orderPreviewOpen = false;
+      this.orderStockOverride = false;
       this.cart = {};
       this.paymentMethod = '';
       this.customDiscount = 0;
