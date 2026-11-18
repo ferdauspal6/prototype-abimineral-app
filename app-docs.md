@@ -18,6 +18,7 @@ ABI Mineral App adalah sistem distribusi penjualan barang mineral/retail yang me
 2. Sales membuat order berdasarkan jadwal kunjungan pelanggan (hari + pekan).
 3. Order menghasilkan invoice dan dapat dikonfirmasi.
 4. Order dikelompokkan menjadi surat jalan (delivery order) berdasarkan armada, driver, gudang, dan periode.
+5. Order list memiliki aksi bulk melalui menu **Action**: cetak, konfirmasi, dan hapus. Cetak membuka preview multi-invoice sebelum print.
 5. Saat surat jalan diselesaikan, sistem mencatat pembayaran tunai/transfer dan membuat piutang bila ada sisa.
 6. Piutang dikelompokkan menjadi surat jalan penagihan (collection), lalu dibayar dan dicatat riwayat pembayarannya.
 7. Return barang dari pelanggan diproses (ganti barang atau potong harga).

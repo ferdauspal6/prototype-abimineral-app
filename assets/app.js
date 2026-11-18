@@ -24,6 +24,7 @@ const PAGE_PERMISSION = {
   orders: 'Order',
   'order-detail': 'Order',
   invoice: 'Order',
+  'bulk-invoice': 'Order',
   deliveries: 'Order',
   'delivery-create': 'Order',
   'delivery-check': 'Order',
@@ -1128,7 +1129,7 @@ function app() {
         { title: 'Penjualan', items: [
           { page: 'customers', label: 'Master Pelanggan', icon: 'i-users', match: ['customers'] },
           { page: 'promos', label: 'Master Promo', icon: 'i-tag', match: ['promos'] },
-          { page: this.role === 'Sales' ? 'order-customer' : 'orders', label: 'Order', icon: 'i-cart', match: ['order-customer','order-create','order-success','orders','order-detail','invoice','deliveries','delivery-create','delivery-check','delivery-detail','delivery-invoice','returns'] }
+          { page: this.role === 'Sales' ? 'order-customer' : 'orders', label: 'Order', icon: 'i-cart', match: ['order-customer','order-create','order-success','orders','order-detail','invoice','bulk-invoice','deliveries','delivery-create','delivery-check','delivery-detail','delivery-invoice','returns'] }
         ]},
         { title: 'Logistik', items: [
           { page: 'warehouses', label: 'Master Gudang', icon: 'i-warehouse', match: ['warehouses'] },
@@ -1175,6 +1176,7 @@ function app() {
         orders: { title: 'Order', crumb: 'Order' },
         'order-detail': { title: 'Preview Order', crumb: 'Order / Preview Order' },
         invoice: { title: 'Preview Invoice', crumb: 'Order / Invoice' },
+        'bulk-invoice': { title: 'Preview Invoice', crumb: 'Order / Preview Invoice' },
         deliveries: { title: 'Surat Jalan', crumb: 'Order / Surat Jalan' },
         'delivery-create': { title: 'Buat Surat Jalan', crumb: 'Order / Surat Jalan / Buat' },
         'delivery-check': { title: 'Konfirmasi Surat Jalan', crumb: 'Order / Surat Jalan / Konfirmasi' },
@@ -1499,6 +1501,14 @@ function app() {
           { label:'Lihat Invoice', icon:'i-printer', run:() => this.viewInvoice(row.id) },
           { label:'Hapus', icon:'i-trash', danger:true, show:['pending','already'].includes(row.status), run:() => this.deleteOrder(row) }
         ];
+        case 'orders-bulk': {
+          const none = this.selectedOrderIds.length === 0;
+          return [
+            { label:'Cetak', icon:'i-printer', disabled:none, run:() => this.startBulkInvoice() },
+            { label:'Konfirmasi', icon:'i-check', disabled:none, run:() => this.bulkConfirm() },
+            { label:'Hapus', icon:'i-trash', danger:true, disabled:none, run:() => this.bulkDelete() }
+          ];
+        }
         case 'deliveries': return [
           { label:'Konfirmasi', icon:'i-check', show:row.status === 'pending', run:() => this.startDeliveryCheck(row, false) },
           { label:'Lihat', icon:'i-eye', run:() => this.startDeliveryCheck(row, true) },
@@ -4793,7 +4803,16 @@ function app() {
     itemCountText(order) { return (order.items || []).reduce((sum, i) => sum + i.qty, 0) + ' item'; },
 
     /* ---------- ORDER LIST ---------- */
-    orderSearch: '', orderStatus: '', selectedOrderIds: [], orderBulk: false,
+    orderSearch: '', orderStatus: '', selectedOrderIds: [], orderBulk: false, bulkOrderIds: [],
+    get bulkOrders() { return this.bulkOrderIds.map(id => this.order(id)).filter(order => order.id); },
+    startBulkInvoice() {
+      if (!this.selectedOrderIds.length) {
+        this.notify('Pilih minimal 1 order untuk dicetak', 'error');
+        return;
+      }
+      this.bulkOrderIds = [...this.selectedOrderIds];
+      this.go('bulk-invoice');
+    },
     get filteredOrders() {
       const q = this.orderSearch.toLowerCase();
       return this.orders.filter(o => {

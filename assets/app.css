@@ -218,6 +218,8 @@ body { background: #f8fafc; color: #0f172a; margin: 0; }
   .print-area .print-title { font-size: 10pt; }
   .print-area .print-small { font-size: 8pt; }
   .print-area * { color: #000 !important; }
+  .bulk-invoice-sheet { page-break-after: always; break-after: page; }
+  .bulk-invoice-sheet:last-child { page-break-after: auto; break-after: auto; }
 }
 
 /* Inline SVG icons */

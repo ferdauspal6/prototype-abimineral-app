@@ -1,0 +1,105 @@
+{
+  "title": "ABI Mineral System — Design Canvas",
+  "defaultWidth": 1440,
+  "rowWidth": 6000,
+  "ignore": [
+    "assets",
+    "node_modules",
+    "partials",
+    "components",
+    "includes",
+    "layouts",
+    "dist",
+    "build",
+    "public",
+    "canvas"
+  ],
+  "canvasVersion": "2.1.0",
+  "assets": {
+    "dirs": [
+      "assets"
+    ],
+    "extensions": [
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "webp",
+      "svg",
+      "avif"
+    ],
+    "recursive": true,
+    "displayWidth": 260,
+    "group": {
+      "id": "assets",
+      "name": "Assets"
+    }
+  },
+  "bundleFiles": [
+    "assets/app.css",
+    "assets/app.js",
+    "assets/favicon.ico",
+    "assets/fonts/instrument-sans-400.ttf",
+    "assets/fonts/instrument-sans-500.ttf",
+    "assets/fonts/instrument-sans-600.ttf",
+    "assets/fonts/instrument-sans-700.ttf",
+    "assets/logo.png",
+    "assets/vendor/alpine.min.js",
+    "assets/vendor/tailwind.js"
+  ],
+  "flow": {
+    "defaultOn": false,
+    "focusMode": true,
+    "remember": true
+  },
+  "bundle": {
+    "filename": "abi-mineral-prototype.zip",
+    "include": [
+      "index.html",
+      "flow.html",
+      "assets/**"
+    ],
+    "exclude": [
+      "canvas/**",
+      "screens.json",
+      "*.md",
+      "*.zip",
+      "**/*.zip",
+      "node_modules/**"
+    ]
+  },
+  "groups": [
+    {
+      "id": "assets",
+      "name": "Assets"
+    },
+    {
+      "id": "root",
+      "name": "Root"
+    }
+  ],
+  "screens": [
+    {
+      "id": "assets-logo",
+      "name": "logo",
+      "src": "assets/logo.png",
+      "group": "assets",
+      "type": "asset",
+      "bytes": 48269
+    },
+    {
+      "id": "flow",
+      "name": "Alur Operasional",
+      "src": "flow.html",
+      "group": "root"
+    },
+    {
+      "id": "index",
+      "name": "Aplikasi Utama",
+      "src": "index.html",
+      "group": "root",
+      "w": 1440
+    }
+  ],
+  "links": []
+}
