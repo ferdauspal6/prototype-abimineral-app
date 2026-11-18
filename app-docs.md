@@ -46,12 +46,128 @@ Pengguna utama:
 
 ### 2.2 Yang tidak perlu dibuat di prototype
 
-- Autentikasi nyata, database, API, queue, upload file nyata, atau perhitungan backend.
-- Validasi server; cukup validasi tampilan (wajib/opsional, error text).
-- Hak akses nyata; cukup **role switcher** untuk memperlihatkan menu dan aksi yang berbeda.
+- Backend, database, API, queue, upload file nyata, atau perhitungan server.
+- Validasi server; validasi dilakukan di sisi klien.
+- Autentikasi produksi; prototype memakai **login demo** yang divalidasi terhadap daftar pengguna dan disimpan di localStorage, ditambah **role switcher** untuk memperlihatkan menu dan aksi yang berbeda.
 - Integrasi peta nyata; cukup tampilan peta statis/placeholder pada form pelanggan.
 - Global search di header (tombol ada, tetapi belum ada fungsionalitas di aplikasi asli).
 - Notifikasi, chat, audit log, dan halaman laporan terpisah (laporan berupa modal ekspor).
+
+### 2.3 State demo dan penyimpanan lokal
+
+Prototype ini bukan sekadar mockup statis. Seluruh perubahan data disimpan di **localStorage** browser dengan kunci `abi-mineral-demo` dan skema berversi.
+
+- **Sesi login** disimpan, sehingga refresh tidak mengeluarkan pengguna. Login divalidasi terhadap daftar pengguna (akun demo: `admin`, `fahri`, `rina`, `sari`, `developer`, kata sandi `rahasia123`).
+- **CRUD nyata** untuk pelanggan, promo, barang, gudang, order, surat jalan, piutang/penagihan, return, stock/opname, keuangan, pengguna, dan role.
+- **Alur saling terhubung**: order mengurangi stok, surat jalan mencatat pembayaran dan piutang, penagihan mengurangi sisa piutang, return menyesuaikan stok/nilai piutang.
+- **Dashboard live**: KPI, status operasional, low stock, produk populer, dan grafik dihitung dari data aktual.
+- **Kontrol demo** di menu user dan Pengaturan → Data Demo: Export JSON, Import JSON, **Hapus Transaksi**, dan Reset Data.
+- **Hapus Transaksi** mengosongkan order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, jurnal, dan utang tanpa menghapus master data. Stok barang mentah direset ke 0.
+- **Sinkronisasi antar-tab** melalui event `storage`.
+- Data terikat pada browser/perangkat. Gunakan Export/Import untuk memindahkan state demo.
+- Nomor dokumen dan tanggal dibuat relatif terhadap tanggal hari ini, sehingga demo selalu terlihat baru.
+- **Master barang awal** hanya berisi 3 produk ABI Mineral: ABI-0001 (220 ml cup), ABI-0002 (330 ml botol), dan ABI-0003 (600 ml botol), masing-masing dengan stok awal 100 Krt.
+- **Panduan alur:** buka `flow.html` untuk melihat flowchart operasional lengkap (order → surat jalan → pembayaran → piutang → penagihan → return), status, efek data, dan hak akses role.
+- **Design guideline:** `design-guideline.md` berisi standar shell, header, tombol, form, searchable select + quick-add, tabel, status, modal vs halaman, konvensi Alpine, dan checklist modul baru.
+
+### 2.4 Modul Pembelian — L1 & L2
+
+Prototype sekarang memisahkan dua master:
+
+- **Master Produk** — barang jadi yang dipakai Sales Order, promo, surat jalan, dan piutang (kode `ABI-xxxx`).
+- **Master Barang** — bahan mentah/kemasan yang dipakai purchasing (kode `BRG-xxxx`).
+- **Kategori** dikelola sebagai tab di masing-masing master (`Kategori Produk` dan `Kategori Barang`).
+- **Supplier** menyimpan data pemasok, kontak, alamat, dan termin.
+
+Purchase Request (L2):
+- Status: `draft → submitted → approved / rejected` (+ `cancelled`).
+- Hanya memilih Master Barang, tidak bisa memilih produk jadi.
+- Tidak membuat jurnal, utang, atau perubahan stok.
+- Approve/reject hanya oleh role **Manager**.
+- Manager tidak dapat approve PR miliknya sendiri.
+- Admin dan Developer tidak dapat approve PR.
+- PR ikut terhapus saat **Hapus Transaksi**; master tetap.
+
+Purchase Order (L3):
+- Dibuat dari PR `approved`/`processing` atau manual.
+- Qty PO dibatasi sisa qty PR; satu PR bisa dipecah ke beberapa PO.
+- Semua PO memerlukan approval Manager; Admin/Developer tidak approve; Manager tidak bisa approve PO sendiri.
+- Harga awal dari Master Barang dan dapat diubah. Harga master diperbarui saat PO disetujui.
+- Saat approve, `orderedQty` PR bertambah dan status PR menjadi `processing`/`completed`.
+- Cancel PO approved mengembalikan `orderedQty`; harga master tidak di-rollback.
+- PO tidak membuat jurnal, utang, atau perubahan stok.
+- Preview A4 + Print + Export PDF tersedia.
+- PO ikut terhapus saat **Hapus Transaksi**.
+- Tahap berikutnya: Finance F1/F2 (CoA + Jurnal) sebelum Penerimaan Barang (L4).
+
+### 2.5 Finance F1 + F2 — Chart of Accounts & Jurnal Umum
+
+Chart of Accounts:
+- 20 akun awal: aset, kewajiban, ekuitas, pendapatan, beban.
+- Saldo normal debit/kredit, akun induk, penanda Kas/Bank.
+- Akun kontrol (Piutang Usaha, Persediaan, Utang Usaha, Piutang Supplier) bertanda **Sistem** dan terkunci dari jurnal manual.
+- Akun sistem tidak dapat diedit/dihapus.
+- Akun yang sudah dipakai jurnal tidak dapat dihapus.
+- Saldo akun dihitung dari jurnal berstatus `posted`; jurnal void tidak dihitung.
+
+Jurnal Umum:
+- Double-entry: minimal 2 baris, total debit = total kredit.
+- Satu baris hanya debit atau kredit.
+- Akun nonaktif dan akun terkunci tidak bisa dipakai.
+- Status `draft → posted`, serta `void` dengan alasan.
+- Draft dapat diedit/dihapus; posted immutable.
+- Nomor otomatis `JU/YYYY/MM/xxxx`.
+- Riwayat aksi tersimpan pada setiap jurnal.
+- Jurnal ikut terhapus saat **Hapus Transaksi**; Chart of Accounts tetap.
+
+### 2.5.1 Perubahan konsep Master Keuangan
+
+- Menu **Master Keuangan** dihapus dari prototype.
+- `financeTypes` tidak lagi dipakai.
+- **Pendapatan Lainnya** dan **Pengeluaran Lainnya** langsung memilih:
+  - akun CoA (revenue/expense),
+  - akun Kas/Bank.
+- Setiap transaksi otomatis membuat jurnal posted:
+  - Pendapatan: `Dr Kas/Bank / Cr Akun Pendapatan`
+  - Pengeluaran: `Dr Akun Beban / Cr Kas/Bank`
+- Edit transaksi → jurnal lama di-void, jurnal baru dibuat.
+- Hapus transaksi → jurnal terkait di-void.
+- Akun sistem (Pendapatan Penjualan, Diskon Penjualan, HPP) tidak muncul di form transaksi operasional.
+- Migrasi v9 → v10 memetakan transaksi lama ke akun CoA dan membuat jurnal otomatis.
+
+### 2.6 Finance F3 — Buku Besar & Neraca Saldo
+
+Buku Besar:
+- Filter akun, tanggal mulai, dan tanggal akhir.
+- Menampilkan saldo awal, total debit, total kredit, saldo akhir.
+- Mutasi hanya dari jurnal `posted`; `draft` dan `void` diabaikan.
+- Saldo berjalan mengikuti saldo normal akun.
+- Nomor jurnal bisa diklik untuk membuka detail.
+
+Neraca Saldo:
+- Berdasarkan tanggal posisi.
+- Kolom kode, nama akun, tipe, debit, kredit.
+- Total debit = total kredit; selisih ditampilkan.
+- Klik kode akun untuk drill-down ke Buku Besar.
+- Export CSV.
+- Permission `Laporan Keuangan` untuk Admin, Manager, Developer.
+
+### 2.7 L4 — Penerimaan Barang
+
+- Penerimaan dibuat dari PO `approved`, `sent`, atau `partially_received`.
+- Satu penerimaan memiliki satu gudang; qty tidak boleh melebihi sisa PO.
+- Status `draft → posted`; draft bisa diedit/dihapus, posted immutable.
+- Saat posting:
+  - `receivedQty` PO bertambah,
+  - stok material bertambah,
+  - `stockValue`, `avgCost`, dan `stockMovements` diperbarui,
+  - jurnal otomatis `Dr Persediaan / Cr Utang Usaha`,
+  - payable/AP otomatis dengan jatuh tempo dari termin supplier,
+  - status PO menjadi `partially_received` / `fully_received`.
+- Stok per gudang dihitung dari `stockMovements` dan ditampilkan di **Stock → Barang**.
+- Preview A4 + Print/Export PDF tersedia.
+- Penerimaan tidak melakukan pembayaran utang; pembayaran AP masuk F5.
+- Permission `Penerimaan Barang` untuk Admin, Manager, Supervisor, Developer.
 
 ---
 
@@ -166,16 +282,25 @@ Urutan grup:
    - Master Pelanggan
    - Master Promo
    - Order
-3. **Inventory**
+3. **Logistik**
    - Master Gudang
+   - Master Produk
    - Master Barang
    - Stock
-4. **Keuangan**
-   - Master Keuangan
+4. **Pembelian**
+   - Supplier
+   - Purchase Request
+   - Purchase Order
+   - Penerimaan Barang
+5. **Keuangan**
    - Piutang
    - Pendapatan Lainnya
    - Pengeluaran Lainnya
-5. **Pengguna**
+   - Chart of Accounts
+   - Jurnal Umum
+   - Buku Besar
+   - Neraca Saldo
+6. **Pengguna**
    - Akun Saya
    - Kelola Pengguna
    - Kelola Role
@@ -278,8 +403,8 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 |---|---|
 | Admin / Developer | Semua menu |
 | Sales / Sales Office | Dashboard (versi ringkas), Order (alur mobile), Master Pelanggan (hanya pelanggan miliknya), Akun |
-| Manager / Owner | Dashboard, Penjualan, Inventory, Keuangan, Pengguna |
-| Supervisor | Order Admin, Inventory, Piutang, laporan |
+| Manager / Owner | Dashboard, Penjualan, Logistik, Pembelian, Keuangan, Pengguna |
+| Supervisor | Order Admin, Logistik, Piutang, laporan |
 
 ### 6.3 Perilaku khusus
 

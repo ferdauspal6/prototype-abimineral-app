@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alur Operasional — ABI Mineral System</title>
+  <link rel="icon" href="assets/favicon.ico">
+  <script src="assets/vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Instrument Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="assets/app.css?v=20261117a">
+  <style>
+    .flow-track { display: flex; align-items: stretch; min-width: max-content; padding: .25rem .25rem .75rem; }
+    .flow-node { position: relative; width: 15.5rem; flex: 0 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: .9rem; padding: .95rem 1rem .95rem 1.15rem; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+    .flow-node::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: .9rem 0 0 .9rem; background: var(--rail, #1d4ed8); }
+    .flow-node h4 { font-size: .82rem; font-weight: 700; line-height: 1.25; }
+    .flow-node p { font-size: .72rem; line-height: 1.45; color: #64748b; margin-top: .35rem; }
+    .flow-arrow { flex: 0 0 2.15rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
+    .flow-arrow svg { width: 18px; height: 18px; }
+    .role-chip { display: inline-flex; align-items: center; gap: .25rem; font-size: .62rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: .18rem .45rem; border-radius: 999px; border: 1px solid transparent; }
+    .role-sales { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+    .role-admin { background: #0f172b; border-color: #0f172b; color: #fff; }
+    .role-gudang { background: #cffafe; border-color: #67e8f9; color: #0e7490; }
+    .role-sistem { background: #dcfce7; border-color: #86efac; color: #15803d; }
+    .role-keuangan { background: #f3e8ff; border-color: #d8b4fe; color: #7e22ce; }
+    .role-manager { background: #fef3c7; border-color: #fcd34d; color: #b45309; }
+    .stage { position: relative; padding-left: 3rem; padding-bottom: 1.1rem; }
+    .stage:last-child { padding-bottom: 0; }
+    .stage::before { content: ''; position: absolute; left: 1.15rem; top: 2.5rem; bottom: .2rem; width: 2px; background: #e2e8f0; }
+    .stage:last-child::before { display: none; }
+    .stage-num { position: absolute; left: 0; top: .1rem; width: 2.3rem; height: 2.3rem; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: #0f172b; color: #fff; font-size: .78rem; font-weight: 700; box-shadow: 0 0 0 4px #f8fafc; }
+    .stage-card { background: #fff; border: 1px solid #e2e8f0; border-radius: .9rem; padding: 1rem 1.1rem; box-shadow: 0 1px 2px rgba(15,23,42,.03); }
+    .effect { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: .6rem; padding: .6rem .7rem; font-size: .7rem; line-height: 1.5; color: #475569; }
+    .effect b { color: #0f172a; }
+    .mini-flow { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
+    .mini-node { background: #fff; border: 1px solid #e2e8f0; border-radius: .55rem; padding: .4rem .6rem; font-size: .7rem; font-weight: 600; color: #334155; }
+    .mini-arrow { color: #94a3b8; font-size: .85rem; }
+    .decision { border: 1px solid #fcd34d; background: #fffbeb; border-radius: .65rem; padding: .5rem .7rem; font-size: .72rem; font-weight: 700; color: #92400e; }
+    .status-pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 600; padding: .16rem .45rem; border-radius: .35rem; border: 1px solid; }
+    .dot { width: .4rem; height: .4rem; border-radius: 999px; background: currentColor; }
+    .lane-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+    @media (max-width: 900px) { .lane-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .lane-grid { grid-template-columns: 1fr; } }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .flow-track { min-width: 0; flex-wrap: wrap; }
+      .flow-node { break-inside: avoid; }
+      .flow-arrow { display: none; }
+      main { max-width: none !important; padding: 0 !important; }
+      .stage-card, .flow-node, .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased">
+
+<header class="no-print sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+  <div class="mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 lg:px-8">
+    <a href="index.html" class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 p-1">
+      <img src="assets/logo.png" alt="ABI Mineral" class="h-full w-full object-contain">
+    </a>
+    <div class="min-w-0 flex-1">
+      <div class="text-[11px] uppercase tracking-[0.16em] text-slate-400">ABI Mineral System</div>
+      <div class="truncate text-sm font-bold lg:text-base">Alur Operasional</div>
+    </div>
+    <span class="badge badge-green hidden sm:inline-flex">Sesuai prototype</span>
+    <button class="btn btn-outline btn-sm" onclick="window.print()">
+      <svg class="icon icon-sm"><use href="#i-printer"></use></svg> <span class="hidden sm:inline">Print</span>
+    </button>
+    <a href="index.html" class="btn btn-primary btn-sm">
+      <svg class="icon icon-sm"><use href="#i-chevron-left"></use></svg> Buka Aplikasi
+    </a>
+  </div>
+</header>
+
+<!-- Reuse icon sprite subset -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+</svg>
+
+<main class="mx-auto max-w-[1440px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+
+  <!-- HERO -->
+  <section class="card overflow-hidden">
+    <div class="grid gap-0 lg:grid-cols-[1.5fr_1fr]">
+      <div class="p-6 lg:p-8">
+        <div class="eyebrow mb-2">Dokumentasi Operasional</div>
+        <h1 class="text-2xl font-bold tracking-tight lg:text-3xl">Alur penjualan sampai penagihan</h1>
+        <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
+          Flowchart ini mengikuti perilaku aplikasi yang berjalan saat ini: order dibuat oleh Sales, dikonfirmasi Admin,
+          dikirim lewat surat jalan, dibayar, lalu sisa tagihan masuk ke piutang dan penagihan. Setiap aksi juga
+          menuliskan efek datanya, sehingga cocok dipakai sebagai panduan demo ke client.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-2 text-[11px]">
+          <span class="badge badge-slate">9 tahap utama</span>
+          <span class="badge badge-blue">3 percabangan</span>
+          <span class="badge badge-green">Data tersimpan di localStorage</span>
+          <span class="badge badge-slate">Multi-role</span>
+        </div>
+      </div>
+      <div class="border-t border-slate-200 bg-slate-50 p-6 lg:border-l lg:border-t-0 lg:p-8">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Legenda aktor</div>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <span class="role-chip role-sales">Sales</span>
+          <span class="role-chip role-admin">Admin</span>
+          <span class="role-chip role-gudang">Gudang / Driver</span>
+          <span class="role-chip role-keuangan">Keuangan</span>
+          <span class="role-chip role-sistem">Sistem</span>
+          <span class="role-chip role-manager">Manager</span>
+        </div>
+        <div class="mt-5 rounded-xl border border-slate-200 bg-white p-3 text-[11px] leading-relaxed text-slate-500">
+          <b class="text-slate-700">Catatan:</b> Sales hanya melihat pelanggan dan menu miliknya. Admin memiliki akses penuh.
+          Manager melihat operasional tanpa menu pengguna/role.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN FLOW -->
+  <section class="card">
+    <div class="card-header flex-wrap">
+      <div>
+        <div class="section-title">1. Alur utama end-to-end</div>
+        <div class="text-[11px] text-slate-400">Jalur normal dari order baru sampai lunas</div>
+      </div>
+      <div class="flex items-center gap-2 text-[11px] text-slate-400">
+        <svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg> geser untuk melihat seluruh alur
+      </div>
+    </div>
+    <div class="overflow-x-auto px-4 pb-4 lg:px-6">
+      <div class="flow-track">
+        <div class="flow-node" style="--rail:#2563eb">
+          <span class="role-chip role-sales">Sales</span>
+          <h4 class="mt-2">Pilih pelanggan</h4>
+          <p>Menu Order → pelanggan sesuai jadwal kunjungan (hari &amp; pekan) atau tab Semua.</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#2563eb">
+          <span class="role-chip role-sales">Sales</span>
+          <h4 class="mt-2">Buat order</h4>
+          <p>Input qty, promo otomatis, metode bayar, diskon khusus (Admin), PPN 11%.</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#16a34a">
+          <span class="role-chip role-sistem">Sistem</span>
+          <h4 class="mt-2">Order tersimpan</h4>
+          <p>Status <b>Belum Diproses</b> (<span class="font-mono">pending</span>), kode INV, stok langsung berkurang, jatuh tempo +14 hari (Tunai: hari ini).</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#0f172b">
+          <span class="role-chip role-admin">Admin</span>
+          <h4 class="mt-2">Konfirmasi order</h4>
+          <p>Status berubah menjadi <b>Siap Dikirim</b> (<span class="font-mono">already</span>), satuan atau massal.</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#0f172b">
+          <span class="role-chip role-admin">Admin</span>
+          <h4 class="mt-2">Buat surat jalan</h4>
+          <p>Pilih order, periode, driver, armada, gudang. Order menjadi <b>Dikirim</b> (<span class="font-mono">shipping</span>).</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#0e7490">
+          <span class="role-chip role-gudang">Admin / Gudang</span>
+          <h4 class="mt-2">Konfirmasi surat jalan</h4>
+          <p>Input pembayaran tunai/transfer per order saat barang sampai. Surat jalan selesai.</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#16a34a">
+          <span class="role-chip role-sistem">Sistem</span>
+          <h4 class="mt-2">Pembayaran &amp; piutang</h4>
+          <p>Order <b>Selesai</b>. Pembayaran tercatat. Sisa tagihan otomatis menjadi piutang.</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#7e22ce">
+          <span class="role-chip role-keuangan">Admin / Keuangan</span>
+          <h4 class="mt-2">Penagihan</h4>
+          <p>Buat surat jalan penagihan → input pembayaran → piutang berkurang sampai lunas.</p>
+        </div>
+        <div class="flow-arrow"><svg><use href="#i-arrow-right"></use></svg></div>
+        <div class="flow-node" style="--rail:#16a34a">
+          <span class="role-chip role-sistem">Sistem</span>
+          <h4 class="mt-2">Dashboard &amp; laporan</h4>
+          <p>KPI, grafik, status operasional, stok menipis, dan laporan CSV ikut diperbarui.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DETAIL STAGES -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="section-title">2. Detail tiap tahap</div>
+        <div class="text-[11px] text-slate-400">Aksi, status, dan efek data yang benar-benar terjadi</div>
+      </div>
+    </div>
+    <div class="card-body pt-2">
+
+      <div class="stage">
+        <div class="stage-num">0</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-admin">Admin</span>
+            <span class="text-sm font-bold">Persiapan master data</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Kelola pelanggan (jadwal kunjungan, channel, jenis harga, sales penanggung jawab).</li>
+            <li>• Kelola promo (potongan harga / bonus barang + periode berlaku).</li>
+            <li>• Kelola barang &amp; gudang, lalu isi stok awal melalui Stock.</li>
+            <li>• Kelola jenis pendapatan/pengeluaran dan pengguna/role.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> mengisi <span class="font-mono">customers</span>, <span class="font-mono">products</span>, <span class="font-mono">promos</span>, <span class="font-mono">warehouses</span>, <span class="font-mono">users</span>, dan <span class="font-mono">roles</span>.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">1</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-sales">Sales</span>
+            <span class="text-sm font-bold">Pilih pelanggan sesuai jadwal</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Menu <b>Order</b> → tab <b>Jadwal</b> memfilter pelanggan berdasarkan hari dari tanggal kunjungan.</li>
+            <li>• Tab <b>Semua</b> menampilkan seluruh pelanggan milik Sales tersebut.</li>
+            <li>• Tombol <b>Order</b> membuka kamera (simulasi) → konfirmasi foto → masuk ke form order.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> belum ada data berubah; hanya memilih <span class="font-mono">selectedCustomerId</span>.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">2</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-sales">Sales</span>
+            <span class="text-sm font-bold">Buat order</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Pilih produk &amp; qty; harga mengikuti jenis harga pelanggan (dalam/luar kota).</li>
+            <li>• Promo aktif terhitung otomatis: diskon persen atau bonus barang (kelipatan bila diaktifkan).</li>
+            <li>• Pilih metode pembayaran (Tunai / Kredit / Transfer). Diskon khusus hanya untuk Admin.</li>
+            <li>• PPN 11% dihitung dari subtotal setelah diskon. Stok dicek sebelum preview.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> <span class="font-mono">orders</span> +1 dengan status <b>pending</b>; <span class="font-mono">products.stock</span> dikurangi; <span class="font-mono">customers.lastOrder</span> diperbarui; kode <span class="font-mono">INV/YYYY/MM/xxxx</span>; jatuh tempo +14 hari (Tunai: hari ini).</div>
+          <div class="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+            <span class="status-pill" style="background:#fef9c3;border-color:#fde047;color:#a16207"><span class="dot"></span>Belum Diproses</span>
+            <span class="mini-arrow">→</span>
+            <span class="status-pill" style="background:#dbeafe;border-color:#93c5fd;color:#1d4ed8"><span class="dot"></span>Siap Dikirim</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">3</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-admin">Admin</span>
+            <span class="text-sm font-bold">Konfirmasi order</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Buka <b>Order</b> → tombol centang pada baris, atau pilih beberapa order lalu <b>Konfirmasi</b> massal.</li>
+            <li>• Order <b>pending</b> berubah ke <b>already</b> (Siap Dikirim).</li>
+            <li>• Order yang belum dikonfirmasi masih bisa dihapus; stok dikembalikan.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> <span class="font-mono">orders.status</span> menjadi <b>already</b>; due date dipastikan terisi.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">4</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-admin">Admin</span>
+            <span class="role-chip role-gudang">Gudang / Driver</span>
+            <span class="text-sm font-bold">Surat jalan &amp; pengiriman</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Menu <b>Surat Jalan</b> → <b>Buat</b>: pilih order berstatus Siap Dikirim / Ditahan / Parsial.</li>
+            <li>• Lengkapi periode, driver, armada, dan gudang asal, lalu preview dan submit.</li>
+            <li>• Order di dalam surat jalan berubah menjadi <b>shipping</b> (Dikirim).</li>
+            <li>• Order bisa dikeluarkan dari surat jalan bila perlu; statusnya kembali <b>already</b>.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> <span class="font-mono">deliveries</span> +1 status <b>pending</b>; <span class="font-mono">orders.status</span> = <b>shipping</b>.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">5</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-admin">Admin</span>
+            <span class="role-chip role-gudang">Driver / Gudang</span>
+            <span class="role-chip role-sistem">Sistem</span>
+            <span class="text-sm font-bold">Konfirmasi surat jalan &amp; pembayaran</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Buka detail surat jalan → <b>Konfirmasi</b>. Input nominal <b>tunai</b> dan <b>transfer</b> per order.</li>
+            <li>• Nominal dibatasi maksimal sebesar nilai order; sisa dihitung otomatis.</li>
+            <li>• Bila lunas → pembayaran <b>paid</b>. Bila ada sisa → <b>partial</b> dan piutang dibuat.</li>
+            <li>• Surat jalan berubah ke <b>success</b>, order berubah ke <b>success</b>.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> <span class="font-mono">payments</span> +1 per pembayaran; <span class="font-mono">receivables</span> dibuat/diupdate (<span class="font-mono">cash</span>, <span class="font-mono">transfer</span>, <span class="font-mono">unpaid</span>); status order &amp; delivery menjadi <b>success</b>.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">6</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-keuangan">Admin / Keuangan</span>
+            <span class="text-sm font-bold">Piutang &amp; penagihan</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• Menu <b>Piutang</b> menampilkan tagihan dengan sisa &gt; 0 (tab Aktif).</li>
+            <li>• <b>Buat Penagihan</b>: pilih sales, tanggal, dan piutang yang akan ditagih.</li>
+            <li>• <b>Konfirmasi Penagihan</b>: input tunai/transfer per piutang, maksimal sebesar sisa.</li>
+            <li>• Bila belum lunas → collection <b>processing</b>; bila lunas → <b>success</b> dan pindah ke tab Lunas.</li>
+            <li>• Bukti pembayaran dapat dicatat dari halaman piutang.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> <span class="font-mono">collections</span> +1; <span class="font-mono">receivables.cash/transfer/unpaid</span> diperbarui; <span class="font-mono">payments</span> +1 per pembayaran.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">7</div>
+        <div class="stage-card">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="role-chip role-admin">Admin</span>
+            <span class="role-chip role-sistem">Sistem</span>
+            <span class="text-sm font-bold">Return, stok, dan laporan</span>
+          </div>
+          <ul class="mt-2 space-y-1 text-xs text-slate-600">
+            <li>• <b>Return</b> dibuat dari order → pilih barang, qty, jenis (Ganti Barang / Potong Harga), kondisi, keterangan.</li>
+            <li>• <b>Proses return</b>: Potong Harga mengurangi nilai piutang dan menambah stok; Ganti Barang tidak menambah stok.</li>
+            <li>• <b>Stock</b>: tambah stok dan opname (+/-) langsung mengubah stok produk.</li>
+            <li>• Dashboard, grafik, dan laporan CSV dihitung ulang dari data aktual.</li>
+          </ul>
+          <div class="effect mt-3"><b>Efek data:</b> <span class="font-mono">returns</span>, <span class="font-mono">products.stock</span>, <span class="font-mono">stockHistory</span>, <span class="font-mono">opnames</span>, <span class="font-mono">receivables</span>, serta KPI dashboard.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- BRANCHES -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="section-title">3. Percabangan &amp; keputusan</div>
+        <div class="text-[11px] text-slate-400">Kondisi yang mengubah jalur normal</div>
+      </div>
+    </div>
+    <div class="card-body grid gap-3 lg:grid-cols-2">
+
+      <div class="rounded-xl border border-slate-200 p-4">
+        <div class="flex items-center gap-2 text-sm font-bold">Stok cukup?</div>
+        <div class="mini-flow mt-3">
+          <span class="decision">Cek stok saat preview</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node" style="border-color:#86efac;color:#15803d">Ya → order disubmit</span>
+        </div>
+        <div class="mini-flow mt-2">
+          <span class="mini-node" style="border-color:#fca5a5;color:#b91c1c">Tidak → submit diblokir</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Tampilkan toast error</span>
+        </div>
+        <p class="mt-3 text-[11px] leading-relaxed text-slate-500">Order baru langsung mengurangi stok. Menghapus order yang belum dibayar mengembalikan stok.</p>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 p-4">
+        <div class="flex items-center gap-2 text-sm font-bold">Pembayaran saat surat jalan</div>
+        <div class="mini-flow mt-3">
+          <span class="decision">Tunai + transfer</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node" style="border-color:#86efac;color:#15803d">Sisa 0 → Lunas</span>
+        </div>
+        <div class="mini-flow mt-2">
+          <span class="mini-node" style="border-color:#fcd34d;color:#b45309">Sisa &gt; 0 → Partial</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Piutang aktif</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Penagihan</span>
+        </div>
+        <p class="mt-3 text-[11px] leading-relaxed text-slate-500">Pembayaran penuh menutup order. Sisa tagihan tetap terlihat di menu Piutang dan ikut KPI.</p>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 p-4">
+        <div class="flex items-center gap-2 text-sm font-bold">Jenis return</div>
+        <div class="mini-flow mt-3">
+          <span class="decision">Potong Harga</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node" style="border-color:#86efac;color:#15803d">Stok + qty</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Piutang − nilai return</span>
+        </div>
+        <div class="mini-flow mt-2">
+          <span class="decision">Ganti Barang</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node" style="border-color:#fca5a5;color:#b91c1c">Discard</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Stok tetap</span>
+        </div>
+        <p class="mt-3 text-[11px] leading-relaxed text-slate-500">Return berstatus <b>pending</b> sampai di-proses. Return yang sudah diproses tidak bisa diproses ulang.</p>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 p-4">
+        <div class="flex items-center gap-2 text-sm font-bold">Order batal / ditahan</div>
+        <div class="mini-flow mt-3">
+          <span class="decision">Hapus order</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Hanya pending / already</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Stok kembali</span>
+        </div>
+        <div class="mini-flow mt-2">
+          <span class="mini-node" style="border-color:#fca5a5;color:#b91c1c">Sudah ada pembayaran</span>
+          <span class="mini-arrow">→</span>
+          <span class="mini-node">Tidak bisa dihapus</span>
+        </div>
+        <p class="mt-3 text-[11px] leading-relaxed text-slate-500">Status <b>holding</b> (Ditahan) tersedia pada data demo dan tetap bisa dimasukkan ke surat jalan.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- STATUS TABLE -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="section-title">4. Status &amp; transisi</div>
+        <div class="text-[11px] text-slate-400">Label yang muncul di UI dan artinya</div>
+      </div>
+    </div>
+    <div class="card-body pt-0">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Entitas</th><th>Status</th><th>Label UI</th><th>Kapan terjadi</th><th>Langkah berikutnya</th></tr>
+          </thead>
+          <tbody>
+            <tr><td rowspan="6" class="font-semibold align-top">Order / Invoice</td><td><span class="status-pill" style="background:#fef9c3;border-color:#fde047;color:#a16207"><span class="dot"></span>pending</span></td><td>Belum Diproses</td><td>Order baru disubmit</td><td>Konfirmasi Admin</td></tr>
+            <tr><td><span class="status-pill" style="background:#dbeafe;border-color:#93c5fd;color:#1d4ed8"><span class="dot"></span>already</span></td><td>Siap Dikirim</td><td>Admin konfirmasi order</td><td>Buat surat jalan</td></tr>
+            <tr><td><span class="status-pill" style="background:#cffafe;border-color:#67e8f9;color:#0e7490"><span class="dot"></span>holding</span></td><td>Ditahan</td><td>Order ditahan (data demo)</td><td>Masukkan ke surat jalan</td></tr>
+            <tr><td><span class="status-pill" style="background:#fef3c7;border-color:#fcd34d;color:#b45309"><span class="dot"></span>shipping</span></td><td>Dikirim</td><td>Order masuk surat jalan</td><td>Konfirmasi surat jalan</td></tr>
+            <tr><td><span class="status-pill" style="background:#dcfce7;border-color:#86efac;color:#15803d"><span class="dot"></span>success</span></td><td>Selesai</td><td>Surat jalan dikonfirmasi</td><td>Selesai / lanjut penagihan bila belum lunas</td></tr>
+            <tr><td><span class="status-pill" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c"><span class="dot"></span>cancel</span></td><td>Dibatalkan</td><td>Order dibatalkan (data demo)</td><td>Tidak diproses</td></tr>
+            <tr><td rowspan="3" class="font-semibold align-top">Surat Jalan</td><td><span class="status-pill" style="background:#fef9c3;border-color:#fde047;color:#a16207"><span class="dot"></span>pending</span></td><td>Belum Diproses</td><td>Surat jalan dibuat</td><td>Konfirmasi pembayaran</td></tr>
+            <tr><td><span class="status-pill" style="background:#fef3c7;border-color:#fcd34d;color:#b45309"><span class="dot"></span>shipping</span></td><td>Dikirim</td><td>Barang dalam perjalanan</td><td>Konfirmasi</td></tr>
+            <tr><td><span class="status-pill" style="background:#dcfce7;border-color:#86efac;color:#15803d"><span class="dot"></span>success</span></td><td>Selesai</td><td>Dikonfirmasi Admin</td><td>—</td></tr>
+            <tr><td rowspan="3" class="font-semibold align-top">Penagihan</td><td><span class="status-pill" style="background:#fef9c3;border-color:#fde047;color:#a16207"><span class="dot"></span>pending</span></td><td>Belum Diproses</td><td>Surat penagihan dibuat</td><td>Input pembayaran</td></tr>
+            <tr><td><span class="status-pill" style="background:#ffedd5;border-color:#fdba74;color:#c2410c"><span class="dot"></span>processing</span></td><td>Sedang Diproses</td><td>Dibayar sebagian</td><td>Tagih sisa</td></tr>
+            <tr><td><span class="status-pill" style="background:#dcfce7;border-color:#86efac;color:#15803d"><span class="dot"></span>success</span></td><td>Selesai</td><td>Piutang lunas</td><td>—</td></tr>
+            <tr><td rowspan="3" class="font-semibold align-top">Return</td><td><span class="status-pill" style="background:#fef9c3;border-color:#fde047;color:#a16207"><span class="dot"></span>pending</span></td><td>Belum Diproses</td><td>Return dibuat</td><td>Proses return</td></tr>
+            <tr><td><span class="status-pill" style="background:#dbeafe;border-color:#93c5fd;color:#1d4ed8"><span class="dot"></span>return</span></td><td>Kembali ke Stock</td><td>Return diproses (potong harga)</td><td>Stok &amp; piutang disesuaikan</td></tr>
+            <tr><td><span class="status-pill" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c"><span class="dot"></span>discard</span></td><td>Buang Stock</td><td>Return diproses (ganti barang)</td><td>Tidak menambah stok</td></tr>
+            <tr><td rowspan="3" class="font-semibold align-top">Pembayaran</td><td><span class="status-pill" style="background:#fef9c3;border-color:#fde047;color:#a16207"><span class="dot"></span>unpaid</span></td><td>Belum Lunas</td><td>Belum ada pembayaran</td><td>Tagih</td></tr>
+            <tr><td><span class="status-pill" style="background:#dcfce7;border-color:#86efac;color:#15803d"><span class="dot"></span>partial</span></td><td>Lunas Partial</td><td>Dibayar sebagian</td><td>Tagih sisa</td></tr>
+            <tr><td><span class="status-pill" style="background:#dcfce7;border-color:#86efac;color:#15803d"><span class="dot"></span>paid</span></td><td>Lunas</td><td>Sisa 0</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA EFFECTS -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="section-title">5. Aksi → efek data</div>
+        <div class="text-[11px] text-slate-400">Ringkasan untuk menjelaskan “kenapa angka berubah” saat demo</div>
+      </div>
+    </div>
+    <div class="card-body pt-0">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Aksi pengguna</th><th>Data yang berubah</th><th>Dampak di layar lain</th></tr></thead>
+          <tbody>
+            <tr><td>Buat order</td><td><span class="font-mono">orders</span> +1, <span class="font-mono">products.stock</span> −qty, <span class="font-mono">customers.lastOrder</span></td><td>Order list, stok, dashboard, invoice</td></tr>
+            <tr><td>Konfirmasi order</td><td><span class="font-mono">orders.status</span> → already</td><td>Order siap masuk surat jalan</td></tr>
+            <tr><td>Hapus order</td><td><span class="font-mono">orders</span> −1, stok +qty, referensi delivery/piutang dibersihkan</td><td>Stok &amp; order list</td></tr>
+            <tr><td>Buat surat jalan</td><td><span class="font-mono">deliveries</span> +1, <span class="font-mono">orders.status</span> → shipping</td><td>Order, surat jalan, dashboard</td></tr>
+            <tr><td>Konfirmasi surat jalan</td><td><span class="font-mono">payments</span> +, <span class="font-mono">receivables</span> +/update, order &amp; delivery → success</td><td>Piutang, pembayaran, dashboard</td></tr>
+            <tr><td>Buat penagihan</td><td><span class="font-mono">collections</span> +1 (pending)</td><td>Daftar penagihan</td></tr>
+            <tr><td>Bayar penagihan</td><td><span class="font-mono">receivables.cash/transfer/unpaid</span>, <span class="font-mono">payments</span> +, collection → processing/success</td><td>Piutang aktif/lunas, dashboard</td></tr>
+            <tr><td>Proses return</td><td><span class="font-mono">returns.status</span>, stok (+qty bila potong harga), <span class="font-mono">receivables</span> −nilai return</td><td>Stok, piutang, laporan</td></tr>
+            <tr><td>Tambah stock / opname</td><td><span class="font-mono">products.stock</span>, <span class="font-mono">stockHistory</span>, <span class="font-mono">opnames</span></td><td>Stock, dashboard low stock</td></tr>
+            <tr><td>Tambah pendapatan/pengeluaran</td><td><span class="font-mono">incomes</span> / <span class="font-mono">expenses</span></td><td>KPI &amp; grafik dashboard</td></tr>
+            <tr><td>Reset data demo</td><td>Seluruh data kembali ke seed, sesi logout</td><td>Semua halaman</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROLES -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="section-title">6. Hak akses per role</div>
+        <div class="text-[11px] text-slate-400">Menu yang tampil mengikuti permission role</div>
+      </div>
+    </div>
+    <div class="card-body pt-0 overflow-x-auto">
+      <table class="data-table" style="min-width:760px">
+        <thead>
+          <tr>
+            <th>Role</th><th class="text-center">Dashboard</th><th class="text-center">Pelanggan</th><th class="text-center">Order / SJ</th><th class="text-center">Stock</th><th class="text-center">Piutang</th><th class="text-center">Keuangan</th><th class="text-center">User &amp; Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="role-chip role-admin">Admin</span></td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td></tr>
+          <tr><td><span class="role-chip role-manager">Manager</span></td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-slate-300">—</td></tr>
+          <tr><td><span class="role-chip role-sales">Sales</span></td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-slate-300">—</td><td class="text-center text-slate-300">—</td><td class="text-center text-slate-300">—</td><td class="text-center text-slate-300">—</td></tr>
+          <tr><td><span class="role-chip" style="background:#f3e8ff;border-color:#d8b4fe;color:#7e22ce">Supervisor</span></td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-slate-300">—</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-slate-300">—</td><td class="text-center text-slate-300">—</td></tr>
+          <tr><td><span class="role-chip role-sistem">Developer</span></td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td><td class="text-center text-emerald-600 font-bold">✓</td></tr>
+        </tbody>
+      </table>
+      <div class="mt-3 text-[11px] text-slate-400">Catatan: permission dapat diubah di menu Kelola Role; perubahan langsung memengaruhi menu dan guard halaman.</div>
+    </div>
+  </section>
+
+  <!-- DEMO NOTES -->
+  <section class="grid gap-4 lg:grid-cols-2">
+    <div class="card">
+      <div class="card-header"><div><div class="section-title">7. Skenario demo yang disarankan</div><div class="text-[11px] text-slate-400">Urutan singkat saat presentasi</div></div></div>
+      <div class="card-body pt-0">
+        <ol class="space-y-2 text-xs text-slate-600 list-decimal pl-4">
+          <li>Login sebagai <b>Sales</b> → buat order untuk pelanggan hari ini → submit.</li>
+          <li>Refresh halaman → tunjukkan order tetap ada dan stok sudah berkurang.</li>
+          <li>Ganti role ke <b>Admin</b> → konfirmasi order → buat surat jalan.</li>
+          <li>Konfirmasi surat jalan dengan pembayaran sebagian → tunjukkan piutang terbentuk.</li>
+          <li>Buat penagihan → bayar sisa → piutang pindah ke tab Lunas.</li>
+          <li>Proses return → tunjukkan stok/piutang berubah.</li>
+          <li>Kembali ke dashboard → angka KPI, grafik, dan status ikut berubah.</li>
+          <li>Buka Pengaturan → Data Demo → Export JSON sebagai backup state.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div><div class="section-title">8. Catatan implementasi prototype</div><div class="text-[11px] text-slate-400">Agar ekspektasi demo jelas</div></div></div>
+      <div class="card-body pt-0 space-y-3 text-xs text-slate-600">
+        <div class="effect"><b>Penyimpanan:</b> seluruh data disimpan di <span class="font-mono">localStorage</span> browser dengan kunci <span class="font-mono">abi-mineral-demo</span>. Tidak ada server/API.</div>
+        <div class="effect"><b>Tanggal &amp; nomor dokumen:</b> dibuat relatif terhadap hari ini agar demo selalu terlihat baru.</div>
+        <div class="effect"><b>Kontrol data:</b> Export JSON, Import JSON, Hapus Transaksi, dan Reset Data tersedia di menu user serta Pengaturan → Data Demo. Hapus Transaksi mengosongkan seluruh transaksi tanpa menghapus master data.</div>
+        <div class="effect"><b>Batasan:</b> data terikat pada browser/perangkat; upload bukti pembayaran hanya menyimpan nama file; password demo disimpan sebagai teks biasa.</div>
+        <div class="effect"><b>Sinkronisasi:</b> perubahan di satu tab otomatis diterapkan ke tab lain pada browser yang sama.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="flex flex-wrap items-center justify-between gap-3 pb-6 text-[11px] text-slate-400">
+    <span>ABI Mineral System — CV Tou Masagena Mineral</span>
+    <div class="flex items-center gap-3 no-print">
+      <a href="index.html" class="font-semibold text-blue-600 hover:underline">Kembali ke aplikasi</a>
+      <span>•</span>
+      <a href="app-docs.md" class="font-semibold text-blue-600 hover:underline">Dokumentasi aplikasi</a>
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>
