@@ -141,6 +141,8 @@ Aturan:
 - Jika halaman memiliki tab, aksi utama harus sejajar dengan baris tab: tab di kiri, tombol di kanan. Jangan menumpuk toolbar aksi di atas baris tab.
 - Jika halaman tidak memiliki tab tetapi memiliki search/filter, aksi utama harus sejajar dengan baris search/filter: pencarian dan filter di kiri, tombol di kanan. Jangan membuat baris toolbar terpisah di atasnya.
 - Jika halaman tidak memiliki tab maupun search/filter, toolbar aksi boleh berdiri sendiri di kanan atas.
+- Semua tombol simpan/submit pada halaman input non-popup wajib memunculkan konfirmasi **Pastikan data sudah benar** dengan tombol **Kembali** dan tombol aksi (`Simpan`, `Submit`, atau `Posting`).
+- Form di dalam modal tidak memakai konfirmasi tambahan.
 
 ```html
 <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
@@ -209,10 +211,17 @@ Aturan:
 | Kebutuhan | Pola |
 |---|---|
 | Form singkat ≤ 8 field | Modal (`modal-md` / `modal-lg`) |
+| Form panjang / banyak baris | Halaman penuh |
 | Form transaksi panjang, banyak baris | **Halaman penuh** |
 | Detail dokumen | Modal `modal-2xl` atau halaman |
 | Konfirmasi destruktif | Modal `modal-sm` |
 | Picker nilai master di dalam modal | **Floating picker global** (`fixed z-[120]`) |
+
+Aturan footer modal:
+- Aksi positif (`Setujui`, `Submit`, `Posting`, `Simpan`, `Bayar`, `Konfirmasi`) selalu paling kanan.
+- Aksi destruktif (`Batalkan`, `Void`, `Hapus`) dipisahkan di kiri.
+- Untuk footer kompleks, gunakan `.modal-foot-split` dengan `.modal-actions-left` dan `.modal-actions-right`.
+- Contoh PO: `Batalkan PO` di kiri; `Preview A4`, `Tolak`, `Setujui` di kanan dengan `Setujui` paling akhir.
 | Picker nilai master di halaman/tabel | Popover lokal atau floating picker |
 
 Contoh halaman transaksi: **Buat Surat Jalan**, **Buat Purchase Request**.
@@ -362,8 +371,9 @@ Untuk pemilihan berulang (baris PR/PO):
           <td x-text="row.name"></td>
           <td class="num" x-text="fmt(row.qty)"></td>
           <td class="actions">
-            <button class="icon-btn icon-btn-sm" title="Edit">...</button>
-            <button class="icon-btn icon-btn-sm icon-btn-danger" title="Hapus">...</button>
+            <button class="icon-btn icon-btn-sm" title="Aksi" @click.stop="openActionMenu($event, 'rows', row)">
+              <svg class="icon icon-sm"><use href="#i-more"></use></svg>
+            </button>
           </td>
         </tr>
       </template>
@@ -374,6 +384,13 @@ Untuk pemilihan berulang (baris PR/PO):
   </table>
 </div>
 ```
+
+Aturan action tabel:
+- Tabel daftar memakai satu tombol ellipsis (`i-more`) di kolom Action, bukan kumpulan ikon.
+- Menu action tampil floating di atas tabel, boleh berisi ikon + label.
+- Aksi destruktif memakai warna merah.
+- Aksi yang tidak tersedia ditampilkan disabled atau tidak dimasukkan.
+- Tabel input (baris PR/PO, jurnal, resep, produksi) tetap memakai tombol baris langsung, bukan ellipsis.
 
 Aturan:
 - Angka uang/qty: `class="num"` + `tabular-nums`.
@@ -470,8 +487,12 @@ notify('Stok tidak cukup', 'error');
 - Header: Tanggal, Keperluan, Requester.
 - Baris: barang searchable, qty, catatan, hapus baris.
 - Tombol: **Simpan Draft**, **Submit**, **Tambah Barang**, **Tambah Baris**.
+- Tombol **Tambah Baris** tersedia di atas dan di bawah tabel Rincian Barang.
 - Tidak membuat jurnal, utang, atau perubahan stok.
 - Approve/reject hanya Manager.
+- Daftar PR menampilkan kolom **PO Terkait**.
+- Status PR: `draft → submitted → approved → processing → completed`.
+- `processing` selama PO terkait belum selesai diterima; `completed` saat semua PO related fully received/closed.
 
 ### Tahap berikutnya
 - Purchase Order (L3)
@@ -513,6 +534,7 @@ window.print();
    - area tanda tangan;
    - footer “Dicetak dari ABI Mineral System • tanggal”.
 8. Riwayat approval **tidak** ikut dicetak; tampilkan di bawah preview dengan `.no-print`.
+9. Riwayat di dalam popup memakai disclosure yang tertutup secara default (`.history-details` / `.history-summary`) agar hemat ruang; buka hanya saat dibutuhkan.
 
 Jangan memakai `@page` A4 secara global jika ada dokumen lain yang memakai ukuran berbeda. Inject aturan A4 hanya saat print dokumen tersebut, lalu hapus setelah selesai.
 
@@ -525,6 +547,9 @@ Jangan memakai `@page` A4 secara global jika ada dokumen lain yang memakai ukura
 - Qty tiap baris ≤ sisa qty PR (`qty - orderedQty`).
 - Satu PR boleh dipecah ke beberapa PO.
 - Harga awal = `materials.purchasePrice`, boleh diubah.
+- **Biaya Tambahan** memakai baris keterangan + nominal + qty; total PO adalah subtotal barang + biaya tambahan.
+- Biaya tambahan dialokasikan proporsional ke AP saat penerimaan dan dicatat sebagai beban tambahan pada jurnal penerimaan.
+- Tombol **Tambah Baris** tersedia di atas dan di bawah tabel Rincian Barang; PO juga memiliki **Tambah Biaya** di bawah tabel.
 - Harga master diperbarui **saat PO approved**, bukan saat draft/submit.
 - Approval hanya Manager; Admin/Developer tidak approve; Manager tidak approve PO sendiri.
 - Status:
@@ -533,7 +558,8 @@ Jangan memakai `@page` A4 secara global jika ada dokumen lain yang memakai ukura
   approved → sent → closed
   draft/pending_approval/approved → cancelled
   ```
-- Approve menambah `orderedQty` PR dan mengubah status PR menjadi `processing`/`completed`.
+- Approve menambah `orderedQty` PR dan mengubah status PR menjadi `processing`.
+- Status PR menjadi `completed` ketika semua PO terkait selesai diterima/closed.
 - Cancel PO approved mengembalikan `orderedQty`; harga master tidak di-rollback.
 - PO tidak membuat jurnal, utang, atau perubahan stok.
 - Preview A4/Print/Export PDF memakai pola yang sama dengan PR.
@@ -598,8 +624,45 @@ Neraca Saldo:
   - payable/AP otomatis,
   - update `receivedQty` dan status PO.
 - Dokumen penerimaan memakai halaman preview A4 + Print/Export PDF.
+- Daftar penerimaan menampilkan **Nilai Diterima** (qty diterima × harga) dan **Total PO**.
+- Action **Riwayat** membuka modal riwayat draft/posted dengan aktor `Nama (Role)`.
 - Stok per gudang ditampilkan di Stock → Barang; jangan menyimpan saldo gudang manual.
 - Pembayaran utang bukan bagian penerimaan; itu modul AP/F5.
+
+### 12.6 Return Pembelian
+
+- Return dibuat dari PO yang sudah memiliki penerimaan posted.
+- Pilih PO, lalu gudang asal otomatis mengikuti penerimaan PO.
+- Setiap baris wajib memiliki qty, kondisi (`Bagus` / `Rusak`), dan tindakan (`Ganti Barang` / `Ganti Biaya`).
+- Qty dibatasi oleh sisa qty yang belum diretur dan stok gudang asal.
+- `Ganti Barang` membentuk Piutang Supplier; `Ganti Biaya` mengurangi Utang Usaha.
+- Posting mengurangi stok, menambah `returnedQty` PO, dan membuat jurnal otomatis.
+- Aksi **Terima Ganti Barang** menambah stok pengganti dan mengurangi Piutang Supplier; return yang penggantinya sudah diterima tidak dapat dibatalkan.
+- Pembatalan return mengembalikan stok, payable, dan mem-void jurnal.
+- Jangan mencampur return pembelian dengan return penjualan; keduanya modul dan permission berbeda.
+
+### 12.7 Utang Supplier
+
+- Utang/AP dibuat otomatis dari penerimaan posted; jangan input ulang manual.
+- Daftar utang menampilkan total, dibayar, sisa, jatuh tempo, dan status.
+- Pembayaran utang memilih akun Kas/Bank dan nominal ≤ sisa utang.
+- Posting pembayaran menghasilkan jurnal `Dr Utang Usaha / Cr Kas/Bank`.
+- Riwayat pembayaran ditampilkan di detail utang.
+- Pembayaran tidak boleh melebihi sisa utang.
+
+### 12.8 Produksi & Resep (BOM)
+
+- Resep produk dikelola di halaman penuh Master Produk (Tambah/Edit Produk), bukan modal, karena form dan resep cukup panjang.
+- Tabel produk menampilkan badge jumlah bahan; klik untuk pratinjau resep read-only.
+- Harga Modal tidak dihitung otomatis dari resep.
+- Buat Produksi memakai dialog lebar, bukan halaman baru.
+- Standar = qty resep × hasil produksi; baris manual tidak ditimpa saat qty hasil berubah.
+- Selisih wajib alasan; bahan tambahan juga wajib alasan.
+- Stok bahan yang kurang memblokir simpan.
+- Produksi menyimpan snapshot resep, harga, standar, dan pemakaian.
+- Koreksi hanya mengubah hasil dan pemakaian; standar snapshot tetap.
+- Setiap koreksi mencatat Riwayat Perubahan dan menyesuaikan stok sebesar selisih.
+- Riwayat stok produk dan barang harus menautkan nomor `PRD-YYYY-0001` ke detail produksi.
 
 ## 13. Persistensi dan migrasi
 

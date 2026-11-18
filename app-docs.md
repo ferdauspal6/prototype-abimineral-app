@@ -28,6 +28,7 @@ ABI Mineral App adalah sistem distribusi penjualan barang mineral/retail yang me
 Pengguna utama:
 
 - **Sales / Sales Office**: membuat order di lapangan, melihat pelanggan dan riwayat order.
+- **Logistik**: mengelola gudang, produk, barang, stok, Purchase Request, dan Penerimaan Barang.
 - **Admin / Supervisor / Manager / Owner**: mengelola master data, order, pengiriman, penagihan, stok, keuangan, dan laporan.
 - **Developer**: akses teknis penuh, termasuk menghapus role.
 
@@ -61,8 +62,8 @@ Prototype ini bukan sekadar mockup statis. Seluruh perubahan data disimpan di **
 - **CRUD nyata** untuk pelanggan, promo, barang, gudang, order, surat jalan, piutang/penagihan, return, stock/opname, keuangan, pengguna, dan role.
 - **Alur saling terhubung**: order mengurangi stok, surat jalan mencatat pembayaran dan piutang, penagihan mengurangi sisa piutang, return menyesuaikan stok/nilai piutang.
 - **Dashboard live**: KPI, status operasional, low stock, produk populer, dan grafik dihitung dari data aktual.
-- **Kontrol demo** di menu user dan Pengaturan → Data Demo: Export JSON, Import JSON, **Hapus Transaksi**, dan Reset Data.
-- **Hapus Transaksi** mengosongkan order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, jurnal, dan utang tanpa menghapus master data. Stok barang mentah direset ke 0.
+- **Kontrol demo** di menu user dan Pengaturan → Data Demo: Export JSON, Import JSON, **Isi Data Dummy**, **Hapus Transaksi**, dan Reset Data.
+- **Hapus Transaksi** mengosongkan order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, Return Pembelian, jurnal, dan utang tanpa menghapus master data. Stok barang mentah direset ke 0.
 - **Sinkronisasi antar-tab** melalui event `storage`.
 - Data terikat pada browser/perangkat. Gunakan Export/Import untuk memindahkan state demo.
 - Nomor dokumen dan tanggal dibuat relatif terhadap tanggal hari ini, sehingga demo selalu terlihat baru.
@@ -80,7 +81,11 @@ Prototype sekarang memisahkan dua master:
 - **Supplier** menyimpan data pemasok, kontak, alamat, dan termin.
 
 Purchase Request (L2):
-- Status: `draft → submitted → approved / rejected` (+ `cancelled`).
+- Status: `draft → submitted → approved → processing → completed` (+ `rejected` / `cancelled`).
+- Daftar PR menampilkan kolom **PO Terkait** berisi nomor PO yang terhubung.
+- PR menjadi `processing` selama masih ada PO terkait yang belum selesai diterima.
+- PR menjadi `completed` ketika semua PO terkait sudah fully received/closed.
+- Jika seluruh PO terkait dibatalkan/ditolak, PR kembali ke `approved`.
 - Hanya memilih Master Barang, tidak bisa memilih produk jadi.
 - Tidak membuat jurnal, utang, atau perubahan stok.
 - Approve/reject hanya oleh role **Manager**.
@@ -93,6 +98,8 @@ Purchase Order (L3):
 - Qty PO dibatasi sisa qty PR; satu PR bisa dipecah ke beberapa PO.
 - Semua PO memerlukan approval Manager; Admin/Developer tidak approve; Manager tidak bisa approve PO sendiri.
 - Harga awal dari Master Barang dan dapat diubah. Harga master diperbarui saat PO disetujui.
+- **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
+- Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.
 - Saat approve, `orderedQty` PR bertambah dan status PR menjadi `processing`/`completed`.
 - Cancel PO approved mengembalikan `orderedQty`; harga master tidak di-rollback.
 - PO tidak membuat jurnal, utang, atau perubahan stok.
@@ -165,9 +172,63 @@ Neraca Saldo:
   - payable/AP otomatis dengan jatuh tempo dari termin supplier,
   - status PO menjadi `partially_received` / `fully_received`.
 - Stok per gudang dihitung dari `stockMovements` dan ditampilkan di **Stock → Barang**.
+- Daftar penerimaan menampilkan **Nilai Diterima** dan **Total PO**.
+- Action **Riwayat** menampilkan riwayat draft/posted beserta user dan jabatan.
 - Preview A4 + Print/Export PDF tersedia.
 - Penerimaan tidak melakukan pembayaran utang; pembayaran AP masuk F5.
 - Permission `Penerimaan Barang` untuk Admin, Manager, Supervisor, Developer.
+
+### 2.8 L5 — Return Pembelian
+
+- Return dibuat dari PO yang sudah memiliki penerimaan `posted`.
+- Flow: **Buat Return → Pilih Purchase Order → isi qty, kondisi, tindakan, keterangan → Posting**.
+- Satu return memakai satu gudang asal; gudang diambil dari penerimaan PO.
+- Setiap baris memiliki:
+  - qty return,
+  - kondisi `Bagus` / `Rusak`,
+  - tindakan `Ganti Barang` / `Ganti Biaya`,
+  - keterangan bebas.
+- Qty return dibatasi oleh `receivedQty - returnedQty` dan stok gudang asal.
+- Saat posting:
+  - stok material berkurang dan `stockMovements` mencatat qty negatif,
+  - `returnedQty` PO bertambah,
+  - **Ganti Barang** → `Dr Piutang Supplier / Cr Persediaan`,
+  - **Ganti Biaya** → `Dr Utang Usaha / Cr Persediaan` dan payable PO dikurangi,
+  - jurnal otomatis dibuat dengan source `purchase-return`.
+- Aksi **Terima Ganti Barang** menambah stok pengganti dan mengurangi Piutang Supplier.
+- Return posted dapat dibatalkan selama penggantian belum diterima; pembatalan mengembalikan stok, `returnedQty`, payable, dan mem-void jurnal.
+- Permission `Return Pembelian` untuk Admin, Manager, Supervisor, Developer.
+
+### 2.9 Utang Supplier
+
+- Menu **Keuangan → Utang** menampilkan payable yang terbentuk otomatis dari penerimaan barang posted.
+- Kolom: nilai utang, dibayar, sisa, jatuh tempo, status, PO/penerimaan.
+- Aksi **Bayar** membuka form pembayaran:
+  - tanggal,
+  - nominal (maksimal sisa utang),
+  - akun Kas/Bank,
+  - keterangan dan bukti.
+- Saat pembayaran disimpan:
+  - `paid` bertambah dan `unpaid` berkurang,
+  - status menjadi `partial` atau `paid`,
+  - jurnal otomatis `Dr Utang Usaha / Cr Kas/Bank`,
+  - riwayat pembayaran tersimpan di detail utang.
+- Permission `Utang` untuk Admin, Manager, Supervisor, Developer.
+
+### 2.10 Produksi & Resep (BOM)
+
+- Master Produk memiliki resep bahan baku per 1 satuan produk.
+- Tambah/Edit Produk memakai halaman penuh karena form dan resep cukup panjang.
+- Resep disimpan di `recipes` dan tidak menimpa Harga Modal.
+- Buat Produksi mengurangi stok bahan baku dan menambah stok produk jadi.
+- Pemakaian bahan mengikuti standar resep × qty hasil, tetapi dapat diedit manual.
+- Setiap produksi menyimpan snapshot bahan, harga, standar, dan pemakaian.
+- Nomor produksi memakai format `PRD-YYYY-0001`.
+- Produksi menghasilkan dua pergerakan stok: hasil produk (+) dan pemakaian bahan (-).
+- Koreksi produksi hanya mengubah hasil dan pemakaian; standar snapshot tetap.
+- Koreksi menyesuaikan stok sebesar selisih dan tercatat di `productionLogs`.
+- Tab Produksi menyediakan daftar, detail, dan riwayat perubahan.
+- Stok Barang memiliki tab Riwayat untuk pemakaian bahan baku.
 
 ---
 
@@ -292,8 +353,10 @@ Urutan grup:
    - Purchase Request
    - Purchase Order
    - Penerimaan Barang
+   - Return
 5. **Keuangan**
    - Piutang
+   - Utang
    - Pendapatan Lainnya
    - Pengeluaran Lainnya
    - Chart of Accounts
@@ -395,6 +458,7 @@ Item aktif ditandai background biru `sidebar-accent` dan teks putih. Menu dengan
 - Admin
 - Sales
 - Sales Office
+- Logistik
 - Developer (dibuat oleh `PermissionSeeder`, mendapat semua permission)
 
 Role tidak otomatis memiliki permission; permission diatur per role melalui halaman **Kelola Role**. Untuk prototype, sediakan role switcher dengan contoh:
@@ -404,7 +468,8 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 | Admin / Developer | Semua menu |
 | Sales / Sales Office | Dashboard (versi ringkas), Order (alur mobile), Master Pelanggan (hanya pelanggan miliknya), Akun |
 | Manager / Owner | Dashboard, Penjualan, Logistik, Pembelian, Keuangan, Pengguna |
-| Supervisor | Order Admin, Logistik, Piutang, laporan |
+| Supervisor | Order Admin, Logistik, Pembelian (PR/PO/Penerimaan/Return), Piutang, Utang, laporan |
+| Logistik | Dashboard, Logistik, Purchase Request, Penerimaan Barang |
 
 ### 6.3 Perilaku khusus
 
@@ -470,10 +535,12 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 ### 7.5 Stock
 
 1. **Stock Aktif**: daftar produk + total stok dari semua gudang.
-2. **Riwayat**: dokumen stock masuk (`AS/YYYY/MM/0001`), bisa diedit/dihapus; perubahan stok dihitung selisih.
-3. **Opname**: penyesuaian stok per produk/gudang; qty positif menambah, negatif mengurangi.
-4. **Master Barang**: status aktif/nonaktif; hanya produk aktif yang muncul di pilihan promo.
-5. **Master Gudang**: kode otomatis `ST-0001`.
+2. **Produksi**: membuat produk jadi dari bahan baku berdasarkan resep; standar dapat disesuaikan dengan pemakaian aktual.
+3. **Riwayat**: pergerakan stock masuk, produksi, koreksi produksi; nomor PRD dapat diklik menuju detail.
+4. **Opname**: penyesuaian stok per produk/gudang; qty positif menambah, negatif mengurangi.
+5. **Barang → Riwayat**: pergerakan bahan baku dari penerimaan, return, dan produksi.
+6. **Master Barang**: status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
+7. **Master Gudang**: kode otomatis `ST-0001`.
 
 ### 7.6 Keuangan & Laporan
 

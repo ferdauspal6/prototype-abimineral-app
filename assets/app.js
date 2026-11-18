@@ -2,7 +2,7 @@ const rupiahFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 
 const numberFmt = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 11;
+const STORE_VERSION = 14;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
@@ -10,7 +10,8 @@ const DOMAIN_KEYS = [
   'stockHistory', 'opnames', 'incomes', 'expenses', 'receivables',
   'collections', 'payments', 'users', 'roles', 'monthlyHistory',
   'categories', 'materials', 'suppliers', 'purchaseRequests', 'units', 'purchaseOrders',
-  'receipts', 'stockMovements', 'payables', 'accounts', 'journals'
+  'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'accounts', 'journals',
+  'recipes', 'productions', 'productionLogs'
 ];
 
 const PAGE_PERMISSION = {
@@ -31,6 +32,7 @@ const PAGE_PERMISSION = {
   returns: 'Order',
   warehouses: 'Master Gudang',
   products: 'Master Produk',
+  'product-create': 'Master Produk',
   materials: 'Master Barang',
   suppliers: 'Master Supplier',
   'purchase-requests': 'Purchase Request',
@@ -42,6 +44,8 @@ const PAGE_PERMISSION = {
   receipts: 'Penerimaan Barang',
   'receipt-create': 'Penerimaan Barang',
   'receipt-preview': 'Penerimaan Barang',
+  'purchase-returns': 'Return Pembelian',
+  'purchase-return-create': 'Return Pembelian',
   coa: 'Chart of Accounts',
   journals: 'Jurnal Umum',
   'journal-create': 'Jurnal Umum',
@@ -49,6 +53,7 @@ const PAGE_PERMISSION = {
   'trial-balance': 'Laporan Keuangan',
   stock: 'Stock',
   receivables: 'Piutang',
+  payables: 'Utang',
   'collection-create': 'Piutang',
   'collection-confirm': 'Piutang',
   'finance-income': 'Pendapatan Lainnya',
@@ -140,7 +145,8 @@ function seedData() {
     { id:'cat3', code:'KAT-0003', name:'Botol', type:'material', description:'Bahan botol kosong', status:true },
     { id:'cat4', code:'KAT-0004', name:'Cup', type:'material', description:'Bahan cup kosong', status:true },
     { id:'cat5', code:'KAT-0005', name:'Label', type:'material', description:'Label dan stiker', status:true },
-    { id:'cat6', code:'KAT-0006', name:'Kemasan', type:'material', description:'Karton dan kemasan', status:true }
+    { id:'cat6', code:'KAT-0006', name:'Kemasan', type:'material', description:'Karton dan kemasan', status:true },
+    { id:'cat7', code:'KAT-0007', name:'Aksesoris', type:'material', description:'Lid, straw, dan lakban', status:true }
   ];
 
   const products = [
@@ -153,7 +159,10 @@ function seedData() {
     { id:'mat1', code:'BRG-0001', name:'Botol PET 600 ml', categoryId:'cat3', unit:'Pcs', purchasePrice:800, minStock:1000, stock:0, status:true, description:'Botol kosong 600 ml' },
     { id:'mat2', code:'BRG-0002', name:'Cup 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:250, minStock:2000, stock:0, status:true, description:'Cup kosong 220 ml' },
     { id:'mat3', code:'BRG-0003', name:'Label 330 ml', categoryId:'cat5', unit:'Pcs', purchasePrice:100, minStock:3000, stock:0, status:true, description:'Label botol 330 ml' },
-    { id:'mat4', code:'BRG-0004', name:'Karton Box', categoryId:'cat6', unit:'Pcs', purchasePrice:3500, minStock:300, stock:0, status:true, description:'Karton kemasan produk' }
+    { id:'mat4', code:'BRG-0004', name:'Karton Box', categoryId:'cat6', unit:'Pcs', purchasePrice:3500, minStock:300, stock:0, status:true, description:'Karton kemasan produk' },
+    { id:'mat5', code:'BRG-0005', name:'LID 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:50, minStock:1000, stock:0, status:true, description:'Tutup cup 220 ml' },
+    { id:'mat6', code:'BRG-0006', name:'Straw', categoryId:'cat7', unit:'Pcs', purchasePrice:30, minStock:1000, stock:0, status:true, description:'Sedotan produk cup' },
+    { id:'mat7', code:'BRG-0007', name:'Lakban', categoryId:'cat7', unit:'Pcs', purchasePrice:5000, minStock:20, stock:0, status:true, description:'Lakban kemasan' }
   ];
 
   materials.forEach(material => {
@@ -167,9 +176,20 @@ function seedData() {
     { id:'sup3', code:'SUP-0003', name:'PT Cetak Label Nusantara', contact:'Andi Wijaya', phone:'081399887766', email:'produksi@cetaklabel.co.id', address:'Jl. Mulawarman No. 45, Samarinda', paymentTerms:'Cash', status:true, notes:'Supplier label dan stiker' }
   ];
 
+  const recipes = [
+    { id:'rec1', productId:'p1', materialId:'mat2', qtyPerUnit:48 },
+    { id:'rec2', productId:'p1', materialId:'mat5', qtyPerUnit:48 },
+    { id:'rec3', productId:'p1', materialId:'mat6', qtyPerUnit:48 },
+    { id:'rec4', productId:'p1', materialId:'mat4', qtyPerUnit:1 },
+    { id:'rec5', productId:'p1', materialId:'mat7', qtyPerUnit:2 }
+  ];
+  const productions = [];
+  const productionLogs = [];
+
   const purchaseRequests = [];
   const purchaseOrders = [];
   const receipts = [];
+  const purchaseReturns = [];
   const stockMovements = [];
   const payables = [];
 
@@ -233,14 +253,15 @@ function seedData() {
     { id:'u6', code:'U-0006', name:'Developer', username:'developer', email:'developer@abimineral.com', password:DEMO_PASSWORD, roles:['Developer'] }
   ];
 
-  const permissions = ['Dashboard','Master Pelanggan','Master Promo','Order','Order Admin','Master Gudang','Master Produk','Master Barang','Master Supplier','Purchase Request','Approval PR','Purchase Order','Approval PO','Penerimaan Barang','Stock','Stock Opname','Piutang','Pendapatan Lainnya','Pengeluaran Lainnya','Chart of Accounts','Jurnal Umum','Laporan Keuangan','Kelola Role & Pengguna','Diskon Khusus'];
+  const permissions = ['Dashboard','Master Pelanggan','Master Promo','Order','Order Admin','Master Gudang','Master Produk','Master Barang','Master Supplier','Purchase Request','Approval PR','Purchase Order','Approval PO','Penerimaan Barang','Return Pembelian','Stock','Stock Opname','Piutang','Utang','Pendapatan Lainnya','Pengeluaran Lainnya','Chart of Accounts','Jurnal Umum','Laporan Keuangan','Kelola Role & Pengguna','Diskon Khusus'];
 
   const roles = [
     { id:'role1', name:'Admin', guard:'web', members:1, permissions:[...permissions] },
     { id:'role2', name:'Sales', guard:'web', members:2, permissions:['Dashboard','Master Pelanggan','Order'] },
-    { id:'role3', name:'Manager', guard:'web', members:1, permissions:['Dashboard','Master Pelanggan','Master Promo','Order','Order Admin','Master Gudang','Master Produk','Master Barang','Master Supplier','Purchase Request','Approval PR','Purchase Order','Approval PO','Penerimaan Barang','Stock','Stock Opname','Piutang','Pendapatan Lainnya','Pengeluaran Lainnya','Chart of Accounts','Jurnal Umum','Laporan Keuangan'] },
-    { id:'role4', name:'Supervisor', guard:'web', members:1, permissions:['Dashboard','Order','Order Admin','Purchase Request','Purchase Order','Penerimaan Barang','Stock','Piutang'] },
-    { id:'role5', name:'Developer', guard:'web', members:0, permissions:[...permissions] }
+    { id:'role3', name:'Manager', guard:'web', members:1, permissions:['Dashboard','Master Pelanggan','Master Promo','Order','Order Admin','Master Gudang','Master Produk','Master Barang','Master Supplier','Purchase Request','Approval PR','Purchase Order','Approval PO','Penerimaan Barang','Return Pembelian','Stock','Stock Opname','Piutang','Utang','Pendapatan Lainnya','Pengeluaran Lainnya','Chart of Accounts','Jurnal Umum','Laporan Keuangan'] },
+    { id:'role4', name:'Supervisor', guard:'web', members:1, permissions:['Dashboard','Order','Order Admin','Purchase Request','Purchase Order','Penerimaan Barang','Return Pembelian','Stock','Piutang','Utang'] },
+    { id:'role5', name:'Developer', guard:'web', members:0, permissions:[...permissions] },
+    { id:'role6', name:'Logistik', guard:'web', members:0, permissions:['Dashboard','Master Gudang','Master Produk','Master Barang','Stock','Stock Opname','Purchase Request','Penerimaan Barang'] }
   ];
 
   const monthlyHistory = [];
@@ -250,7 +271,8 @@ function seedData() {
     stockHistory, opnames, incomes, expenses, receivables,
     collections, payments, users, roles, monthlyHistory,
     categories, materials, suppliers, purchaseRequests, units, purchaseOrders,
-    receipts, stockMovements, payables, accounts, journals, permissions
+    receipts, purchaseReturns, stockMovements, payables, accounts, journals, permissions,
+    recipes, productions, productionLogs
   };
 }
 
@@ -274,7 +296,8 @@ function app() {
     syncing: false,
     toast: { show: false, message: '', type: 'success' },
     toastTimer: null,
-    confirm: { open: false, title: '', message: '', action: '', id: null, danger: true },
+    confirm: { open: false, title: '', message: '', action: '', id: null, danger: true, confirmLabel: 'Lanjutkan', cancelLabel: 'Kembali' },
+    actionMenu: { open: false, kind: '', id: null, top: 0, left: 0, items: [] },
 
     /* ---------- DATA ---------- */
     customers: seed.customers,
@@ -301,8 +324,12 @@ function app() {
     purchaseRequests: seed.purchaseRequests,
     purchaseOrders: seed.purchaseOrders,
     receipts: seed.receipts,
+    purchaseReturns: seed.purchaseReturns,
     stockMovements: seed.stockMovements,
     payables: seed.payables,
+    recipes: seed.recipes,
+    productions: seed.productions,
+    productionLogs: seed.productionLogs,
     units: seed.units,
     accounts: seed.accounts,
     journals: seed.journals,
@@ -400,6 +427,21 @@ function app() {
         this.saveStore();
         return;
       }
+      if (parsed && parsed.version === 11 && parsed.data) {
+        this.migrateFromV11(parsed);
+        this.saveStore();
+        return;
+      }
+      if (parsed && parsed.version === 12 && parsed.data) {
+        this.migrateFromV12(parsed);
+        this.saveStore();
+        return;
+      }
+      if (parsed && parsed.version === 13 && parsed.data) {
+        this.migrateFromV13(parsed);
+        this.saveStore();
+        return;
+      }
       if (!parsed || parsed.version !== STORE_VERSION || !parsed.data) {
         this.seedDefaults();
         this.saveStore();
@@ -429,6 +471,25 @@ function app() {
         if (parsed.ui.selectedCollectionId && this.collections.some(c => c.id === parsed.ui.selectedCollectionId)) {
           this.selectedCollectionId = parsed.ui.selectedCollectionId;
         }
+      }
+    },
+    applyLogisticRoleMigration() {
+      const fresh = seedData();
+      this.permissions = fresh.permissions;
+      this.roles = (this.roles || fresh.roles).map(role => {
+        if (role.name === 'Admin' || role.name === 'Developer') {
+          return { ...role, permissions: [...fresh.permissions] };
+        }
+        const permissions = (role.permissions || []).filter(permission => permission !== 'Master Keuangan');
+        if (['Manager','Supervisor'].includes(role.name)) {
+          if (!permissions.includes('Return Pembelian')) permissions.push('Return Pembelian');
+          if (!permissions.includes('Utang')) permissions.push('Utang');
+        }
+        return { ...role, permissions };
+      });
+      if (!this.roles.some(role => role.name === 'Logistik')) {
+        const logistic = fresh.roles.find(role => role.name === 'Logistik');
+        if (logistic) this.roles.push({ ...logistic, permissions: [...logistic.permissions] });
       }
     },
     migrateFromV2(parsed) {
@@ -728,6 +789,7 @@ function app() {
         if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
       });
       this.receipts = parsed.data.receipts || [];
+      this.purchaseReturns = parsed.data.purchaseReturns || [];
       this.stockMovements = parsed.data.stockMovements || [];
       this.payables = parsed.data.payables || [];
       this.materials = (this.materials || fresh.materials).map(material => ({
@@ -743,6 +805,7 @@ function app() {
         const additions = ['Manager','Supervisor'].includes(role.name) ? ['Penerimaan Barang'] : [];
         return { ...role, permissions: [...new Set([...(role.permissions || []).filter(permission => permission !== 'Master Keuangan'), ...additions])] };
       });
+      this.applyLogisticRoleMigration();
       this.applyFinanceAccountMigration(parsed);
       this.savedAt = parsed.savedAt || null;
       const session = parsed.session || {};
@@ -778,6 +841,7 @@ function app() {
         }
         return { ...role, permissions: (role.permissions || []).filter(permission => permission !== 'Master Keuangan') };
       });
+      this.applyLogisticRoleMigration();
       this.applyFinanceAccountMigration(parsed);
       this.savedAt = parsed.savedAt || null;
       const session = parsed.session || {};
@@ -816,6 +880,104 @@ function app() {
         }
         return { ...role, permissions: (role.permissions || []).filter(permission => permission !== 'Master Keuangan') };
       });
+      this.applyLogisticRoleMigration();
+      this.savedAt = parsed.savedAt || null;
+      const session = parsed.session || {};
+      this.currentUserId = null;
+      if (session.userId && (this.users || []).some(user => user.id === session.userId)) {
+        const user = this.users.find(u => u.id === session.userId);
+        this.currentUserId = user.id;
+        this.role = (user.roles || [])[0] || session.role || 'Admin';
+      }
+      if (parsed.ui) {
+        this.collapsed = !!parsed.ui.collapsed;
+        this.sessionPage = parsed.ui.page || null;
+        if (parsed.ui.selectedOrderId && (this.orders || []).some(order => order.id === parsed.ui.selectedOrderId)) {
+          this.selectedOrderId = parsed.ui.selectedOrderId;
+        }
+        if (parsed.ui.selectedDeliveryId && (this.deliveries || []).some(delivery => delivery.id === parsed.ui.selectedDeliveryId)) {
+          this.selectedDeliveryId = parsed.ui.selectedDeliveryId;
+        }
+        if (parsed.ui.selectedCollectionId && (this.collections || []).some(collection => collection.id === parsed.ui.selectedCollectionId)) {
+          this.selectedCollectionId = parsed.ui.selectedCollectionId;
+        }
+      }
+    },
+    migrateFromV11(parsed) {
+      DOMAIN_KEYS.forEach(key => {
+        if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
+      });
+      this.purchaseReturns = parsed.data.purchaseReturns || [];
+      this.applyLogisticRoleMigration();
+      this.savedAt = parsed.savedAt || null;
+      const session = parsed.session || {};
+      this.currentUserId = null;
+      if (session.userId && (this.users || []).some(user => user.id === session.userId)) {
+        const user = this.users.find(u => u.id === session.userId);
+        this.currentUserId = user.id;
+        this.role = (user.roles || [])[0] || session.role || 'Admin';
+      }
+      if (parsed.ui) {
+        this.collapsed = !!parsed.ui.collapsed;
+        this.sessionPage = parsed.ui.page || null;
+        if (parsed.ui.selectedOrderId && (this.orders || []).some(order => order.id === parsed.ui.selectedOrderId)) {
+          this.selectedOrderId = parsed.ui.selectedOrderId;
+        }
+        if (parsed.ui.selectedDeliveryId && (this.deliveries || []).some(delivery => delivery.id === parsed.ui.selectedDeliveryId)) {
+          this.selectedDeliveryId = parsed.ui.selectedDeliveryId;
+        }
+        if (parsed.ui.selectedCollectionId && (this.collections || []).some(collection => collection.id === parsed.ui.selectedCollectionId)) {
+          this.selectedCollectionId = parsed.ui.selectedCollectionId;
+        }
+      }
+    },
+    migrateFromV12(parsed) {
+      DOMAIN_KEYS.forEach(key => {
+        if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
+      });
+      this.payables = (this.payables || []).map(payable => ({ ...payable, payments: payable.payments || [] }));
+      this.applyLogisticRoleMigration();
+      this.savedAt = parsed.savedAt || null;
+      const session = parsed.session || {};
+      this.currentUserId = null;
+      if (session.userId && (this.users || []).some(user => user.id === session.userId)) {
+        const user = this.users.find(u => u.id === session.userId);
+        this.currentUserId = user.id;
+        this.role = (user.roles || [])[0] || session.role || 'Admin';
+      }
+      if (parsed.ui) {
+        this.collapsed = !!parsed.ui.collapsed;
+        this.sessionPage = parsed.ui.page || null;
+        if (parsed.ui.selectedOrderId && (this.orders || []).some(order => order.id === parsed.ui.selectedOrderId)) {
+          this.selectedOrderId = parsed.ui.selectedOrderId;
+        }
+        if (parsed.ui.selectedDeliveryId && (this.deliveries || []).some(delivery => delivery.id === parsed.ui.selectedDeliveryId)) {
+          this.selectedDeliveryId = parsed.ui.selectedDeliveryId;
+        }
+        if (parsed.ui.selectedCollectionId && (this.collections || []).some(collection => collection.id === parsed.ui.selectedCollectionId)) {
+          this.selectedCollectionId = parsed.ui.selectedCollectionId;
+        }
+      }
+    },
+    migrateFromV13(parsed) {
+      const fresh = seedData();
+      DOMAIN_KEYS.forEach(key => {
+        if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
+      });
+      fresh.categories.forEach(category => {
+        if (!(this.categories || []).some(item => item.code === category.code)) this.categories.push(category);
+      });
+      fresh.materials.forEach(material => {
+        if (!(this.materials || []).some(item => item.code === material.code)) this.materials.push(material);
+      });
+      if (!Array.isArray(this.recipes)) {
+        this.recipes = fresh.recipes.filter(recipe =>
+          (this.products || []).some(product => product.id === recipe.productId)
+          && (this.materials || []).some(material => material.id === recipe.materialId)
+        );
+      }
+      this.productions = Array.isArray(this.productions) ? this.productions : [];
+      this.productionLogs = Array.isArray(this.productionLogs) ? this.productionLogs : [];
       this.savedAt = parsed.savedAt || null;
       const session = parsed.session || {};
       this.currentUserId = null;
@@ -929,9 +1091,11 @@ function app() {
       });
       window.addEventListener('scroll', () => {
         if (this.formPicker.open) this.closeFormPicker();
+        if (this.actionMenu.open) this.actionMenu.open = false;
       }, true);
       window.addEventListener('resize', () => {
         if (this.formPicker.open) this.closeFormPicker();
+        if (this.actionMenu.open) this.actionMenu.open = false;
       });
     },
     get savedLabel() {
@@ -968,7 +1132,7 @@ function app() {
         ]},
         { title: 'Logistik', items: [
           { page: 'warehouses', label: 'Master Gudang', icon: 'i-warehouse', match: ['warehouses'] },
-          { page: 'products', label: 'Master Produk', icon: 'i-package', match: ['products'] },
+          { page: 'products', label: 'Master Produk', icon: 'i-package', match: ['products','product-create'] },
           { page: 'materials', label: 'Master Barang', icon: 'i-box', match: ['materials'] },
           { page: 'stock', label: 'Stock', icon: 'i-boxes', match: ['stock'] }
         ]},
@@ -976,10 +1140,12 @@ function app() {
           { page: 'suppliers', label: 'Supplier', icon: 'i-store', match: ['suppliers'] },
           { page: 'purchase-requests', label: 'Purchase Request', icon: 'i-clipboard', match: ['purchase-requests','purchase-request-create','purchase-request-preview'] },
           { page: 'purchase-orders', label: 'Purchase Order', icon: 'i-file', match: ['purchase-orders','purchase-order-create','purchase-order-preview'] },
-          { page: 'receipts', label: 'Penerimaan Barang', icon: 'i-truck', match: ['receipts','receipt-create','receipt-preview'] }
+          { page: 'receipts', label: 'Penerimaan Barang', icon: 'i-truck', match: ['receipts','receipt-create','receipt-preview'] },
+          { page: 'purchase-returns', label: 'Return', icon: 'i-refresh', match: ['purchase-returns','purchase-return-create'] }
         ]},
         { title: 'Keuangan', items: [
           { page: 'receivables', label: 'Piutang', icon: 'i-wallet', match: ['receivables','collection-create','collection-confirm'] },
+          { page: 'payables', label: 'Utang', icon: 'i-coins', match: ['payables'] },
           { page: 'finance-income', label: 'Pendapatan Lainnya', icon: 'i-banknote', match: ['finance-income'] },
           { page: 'finance-expense', label: 'Pengeluaran Lainnya', icon: 'i-banknote-down', match: ['finance-expense'] },
           { page: 'coa', label: 'Chart of Accounts', icon: 'i-clipboard', match: ['coa'] },
@@ -1018,6 +1184,7 @@ function app() {
         stock: { title: 'Stock', crumb: 'Stock' },
         warehouses: { title: 'Master Gudang', crumb: 'Master Gudang' },
         products: { title: 'Master Produk', crumb: 'Master Produk' },
+        'product-create': { title: 'Form Produk', crumb: 'Master Produk / Form Produk' },
         materials: { title: 'Master Barang', crumb: 'Master Barang' },
         suppliers: { title: 'Supplier', crumb: 'Pembelian / Supplier' },
         'purchase-requests': { title: 'Purchase Request', crumb: 'Pembelian / Purchase Request' },
@@ -1029,6 +1196,8 @@ function app() {
         receipts: { title: 'Penerimaan Barang', crumb: 'Pembelian / Penerimaan Barang' },
         'receipt-create': { title: 'Buat Penerimaan', crumb: 'Pembelian / Penerimaan Barang / Buat' },
         'receipt-preview': { title: 'Preview Penerimaan', crumb: 'Pembelian / Penerimaan Barang / Preview' },
+        'purchase-returns': { title: 'Return Pembelian', crumb: 'Pembelian / Return' },
+        'purchase-return-create': { title: 'Buat Return Pembelian', crumb: 'Pembelian / Return / Buat' },
         coa: { title: 'Chart of Accounts', crumb: 'Keuangan / Chart of Accounts' },
         journals: { title: 'Jurnal Umum', crumb: 'Keuangan / Jurnal Umum' },
         'journal-create': { title: 'Buat Jurnal', crumb: 'Keuangan / Jurnal Umum / Buat' },
@@ -1037,6 +1206,7 @@ function app() {
         'finance-income': { title: 'Pendapatan Lainnya', crumb: 'Keuangan / Pendapatan Lainnya' },
         'finance-expense': { title: 'Pengeluaran Lainnya', crumb: 'Keuangan / Pengeluaran Lainnya' },
         receivables: { title: 'Piutang', crumb: 'Keuangan / Piutang' },
+        payables: { title: 'Utang', crumb: 'Keuangan / Utang' },
         'collection-create': { title: 'Buat Penagihan', crumb: 'Keuangan / Piutang / Penagihan / Buat' },
         'collection-confirm': { title: 'Konfirmasi Penagihan', crumb: 'Keuangan / Piutang / Penagihan / Konfirmasi' },
         users: { title: 'Kelola Pengguna', crumb: 'Kelola Pengguna' },
@@ -1096,6 +1266,9 @@ function app() {
     },
     init() {
       this.loadStore();
+      this.purchaseRequests
+        .filter(pr => ['approved','processing','completed'].includes(pr.status))
+        .forEach(pr => this.updatePRStatus(pr));
       this.syncRoleCounts();
       this.syncProfileForm();
       this.wirePersistence();
@@ -1119,6 +1292,7 @@ function app() {
       if (['delivery-check','delivery-detail'].includes(this.page) && this.deliveries.length) {
         this.startDeliveryCheck(this.deliveries[0], this.page === 'delivery-detail');
       }
+      this.saveStore();
 
       window.addEventListener('hashchange', () => {
         const next = (location.hash || '').replace('#', '');
@@ -1226,6 +1400,13 @@ function app() {
       return ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
     },
     initials(name) { return (name || '').split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase(); },
+    userRoleLabel(name, role = '') {
+      const actor = String(name || '').trim();
+      if (!actor || actor === 'Sistem') return actor || '-';
+      const user = this.users.find(item => item.name === actor || item.username === actor);
+      const resolvedRole = role || (user && (user.roles || [])[0]) || (actor === this.currentUser ? this.role : '');
+      return resolvedRole ? actor + ' (' + resolvedRole + ')' : actor;
+    },
     customer(id) { return this.customers.find(c => c.id === id) || {}; },
     product(id) { return this.products.find(p => p.id === id) || {}; },
     customerName(id) { return this.customer(id).name || '-'; },
@@ -1266,6 +1447,14 @@ function app() {
       this.poDetailOpen = false;
       this.poRejectOpen = false;
       this.receiptDetailOpen = false;
+      this.receiptHistoryOpen = false;
+      this.purchaseReturnDetailOpen = false;
+      this.payableDetailOpen = false;
+      this.payablePaymentOpen = false;
+      this.recipePreviewOpen = false;
+      this.productionModalOpen = false;
+      this.productionDetailOpen = false;
+      this.actionMenu.open = false;
       this.accountModalOpen = false;
       this.journalDetailOpen = false;
       this.journalVoidOpen = false;
@@ -1279,8 +1468,153 @@ function app() {
       this.paymentModalOpen = false;
       this.confirm.open = false;
     },
-    askConfirm(action, id, title, message, danger = true) {
-      this.confirm = { open: true, action, id, title, message, danger };
+    askConfirm(action, id, title, message, danger = true, confirmLabel = 'Lanjutkan', cancelLabel = 'Kembali') {
+      this.confirm = { open: true, action, id, title, message, danger, confirmLabel, cancelLabel };
+    },
+    askSave(action, id, message, confirmLabel = 'Simpan') {
+      this.askConfirm(action, id, 'Pastikan data sudah benar', message, false, confirmLabel, 'Kembali');
+    },
+    openActionMenu(event, kind, row) {
+      const items = this.actionMenuItems(kind, row).filter(item => item && item.label && item.show !== false);
+      if (!items.length) { this.actionMenu.open = false; return; }
+      const rect = event.currentTarget.getBoundingClientRect();
+      const width = 224;
+      const height = Math.min(items.length * 38 + 16, 360);
+      const left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.right - width));
+      const top = rect.bottom + 6 + height > window.innerHeight - 8
+        ? Math.max(8, rect.top - height - 6)
+        : rect.bottom + 6;
+      this.actionMenu = { open:true, kind, id:row.id, top, left, items };
+    },
+    runActionMenuItem(item) {
+      if (!item || item.disabled) return;
+      this.actionMenu.open = false;
+      item.run();
+    },
+    actionMenuItems(kind, row) {
+      switch (kind) {
+        case 'orders': return [
+          { label:'Konfirmasi', icon:'i-check', show:row.status === 'pending', run:() => this.confirmOrder(row) },
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewOrder(row.id) },
+          { label:'Lihat Invoice', icon:'i-printer', run:() => this.viewInvoice(row.id) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:['pending','already'].includes(row.status), run:() => this.deleteOrder(row) }
+        ];
+        case 'deliveries': return [
+          { label:'Konfirmasi', icon:'i-check', show:row.status === 'pending', run:() => this.startDeliveryCheck(row, false) },
+          { label:'Lihat', icon:'i-eye', run:() => this.startDeliveryCheck(row, true) },
+          { label:'Cetak Invoice', icon:'i-printer', run:() => this.openDeliveryInvoice(row.id) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:row.status !== 'success', run:() => this.deleteDelivery(row) }
+        ];
+        case 'returns': return row.status === 'pending' ? [
+          { label:'Proses Return', icon:'i-check', run:() => this.processReturn(row) },
+          { label:'Batalkan', icon:'i-trash', danger:true, run:() => this.deleteReturn(row) }
+        ] : [{ label:'Selesai', icon:'i-circle-check', disabled:true }];
+        case 'customers': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openCustomer(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-customer', row.id, 'Hapus pelanggan?', 'Pelanggan ' + row.name + ' akan dihapus.') }
+        ];
+        case 'promos': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openPromo(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-promo', row.id, 'Hapus promo?', 'Promo ' + row.name + ' akan dihapus.') }
+        ];
+        case 'warehouses': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openWarehouse(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-warehouse', row.id, 'Hapus gudang?', 'Gudang ' + row.name + ' akan dihapus.') }
+        ];
+        case 'products': return [
+          { label:'Edit Produk', icon:'i-pencil', run:() => this.openProduct(row) },
+          { label:'Lihat Resep', icon:'i-box', run:() => this.openRecipePreview(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-product', row.id, 'Hapus produk?', 'Produk ' + row.name + ' akan dihapus.') }
+        ];
+        case 'product-categories':
+        case 'material-categories': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openCategory(kind === 'product-categories' ? 'product' : 'material', row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.deleteCategory(row) }
+        ];
+        case 'materials': {
+          const used = this.productsUsingMaterial(row.id).length > 0;
+          return [
+            { label:'Edit', icon:'i-pencil', run:() => this.openMaterial(row) },
+            { label:'Hapus', icon:'i-trash', danger:true, disabled:used, run:() => used ? null : this.deleteMaterial(row) }
+          ];
+        }
+        case 'suppliers': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openSupplier(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.deleteSupplier(row) }
+        ];
+        case 'purchase-requests': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPR(row) },
+          { label:'Preview A4', icon:'i-printer', run:() => this.startPRPreview(row) },
+          { label:'Buat PO', icon:'i-file', show:['approved','processing'].includes(row.status), run:() => this.openPOCreate(row) },
+          { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startPREdit(row) },
+          { label:'Submit', icon:'i-send', show:row.status === 'draft', run:() => this.submitPR(row) },
+          { label:'Setujui', icon:'i-check', show:this.canApprovePR && row.status === 'submitted' && row.requesterId !== this.currentUserId, run:() => this.approvePR(row) },
+          { label:'Tolak', icon:'i-x', danger:true, show:this.canApprovePR && row.status === 'submitted' && row.requesterId !== this.currentUserId, run:() => this.openRejectPR(row) },
+          { label:'Batalkan', icon:'i-trash', danger:true, show:['draft','submitted'].includes(row.status) && (row.requesterId === this.currentUserId || ['Admin','Manager'].includes(this.role)), run:() => this.cancelPR(row) }
+        ];
+        case 'purchase-orders': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPO(row) },
+          { label:'Preview A4', icon:'i-printer', run:() => this.startPOPreview(row) },
+          { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startPOEdit(row) },
+          { label:'Submit', icon:'i-send', show:row.status === 'draft', run:() => this.submitPO(row) },
+          { label:'Setujui', icon:'i-check', show:this.canApprovePO && row.status === 'pending_approval' && row.createdById !== this.currentUserId, run:() => this.approvePO(row) },
+          { label:'Tolak', icon:'i-x', danger:true, show:this.canApprovePO && row.status === 'pending_approval' && row.createdById !== this.currentUserId, run:() => this.openRejectPO(row) },
+          { label:'Tandai Terkirim', icon:'i-send', show:row.status === 'approved', run:() => this.sendPO(row) },
+          { label:'Terima Barang', icon:'i-truck', show:['approved','sent','partially_received'].includes(row.status), run:() => this.openReceiptCreate(row) },
+          { label:'Batalkan', icon:'i-trash', danger:true, show:['draft','pending_approval','approved'].includes(row.status), run:() => this.cancelPO(row) }
+        ];
+        case 'coa': return row.isSystem ? [{ label:'Akun terkunci', icon:'i-shield', disabled:true }] : [
+          { label:'Edit', icon:'i-pencil', run:() => this.openAccount(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.deleteAccount(row) }
+        ];
+        case 'journals': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewJournal(row) },
+          { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startJournalEdit(row) },
+          { label:'Posting', icon:'i-check', show:row.status === 'draft', run:() => this.postJournal(row) },
+          { label:'Void', icon:'i-x', danger:true, show:row.status === 'posted' && this.canVoidJournal && row.source === 'manual', run:() => this.voidJournal(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:row.status === 'draft', run:() => this.deleteJournal(row) }
+        ];
+        case 'receipts': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewReceipt(row) },
+          { label:'Riwayat', icon:'i-clock', run:() => this.viewReceiptHistory(row) },
+          { label:'Preview A4', icon:'i-printer', run:() => this.startReceiptPreview(row) },
+          { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startReceiptEdit(row) },
+          { label:'Posting', icon:'i-check', show:row.status === 'draft', run:() => this.postReceipt(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:row.status === 'draft', run:() => this.deleteReceipt(row) }
+        ];
+        case 'purchase-returns': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPurchaseReturn(row) },
+          { label:'Terima Ganti Barang', icon:'i-box', show:row.status === 'posted' && row.replacementStatus === 'pending', run:() => this.receivePurchaseReturnReplacement(row) },
+          { label:'Batalkan', icon:'i-trash', danger:true, show:row.status === 'posted', run:() => this.voidPurchaseReturn(row) }
+        ];
+        case 'payables': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPayable(row) },
+          { label:'Bayar Utang', icon:'i-banknote-down', show:Number(row.unpaid) > 0, run:() => this.openPayablePayment(row) }
+        ];
+        case 'finance': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openFinance(this.financeTab, row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-finance', row.id, 'Hapus transaksi?', 'Transaksi ' + row.code + ' akan dihapus dan jurnalnya di-void.') }
+        ];
+        case 'receivables': return [{ label:'Lihat Invoice', icon:'i-printer', run:() => this.viewInvoice(row.orderId) }];
+        case 'collections': return [{ label:row.status === 'success' ? 'Lihat' : 'Konfirmasi', icon:'i-check', run:() => this.startCollection(row) }];
+        case 'users': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openUser(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-user', row.id, 'Hapus pengguna?', 'Akun ' + row.name + ' akan dihapus.') }
+        ];
+        case 'roles': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openRole(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-role', row.id, 'Hapus role?', 'Role ' + row.name + ' akan dihapus.') }
+        ];
+        case 'stock-history': return row.refType === 'production'
+          ? [{ label:'Lihat Produksi', icon:'i-eye', run:() => this.openProductionByRef(row.refId) }]
+          : [{ label:'Hapus', icon:'i-trash', danger:true, run:() => this.deleteStockHistory(row) }];
+        case 'opnames': return [{ label:'Hapus', icon:'i-trash', danger:true, run:() => this.deleteOpname(row) }];
+        case 'productions': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewProduction(row) },
+          { label:'Koreksi', icon:'i-pencil', show:this.canCorrectProduction, run:() => this.openProductionCorrection(row) }
+        ];
+        default: return [];
+      }
     },
     nextCode(prefix, list) {
       return docCode(prefix, todayISO(), nextDocSeq(list, prefix, todayISO()));
@@ -1329,6 +1663,45 @@ function app() {
     runConfirm() {
       const { action, id } = this.confirm;
 
+      if (action === 'save-pr-form') {
+        this.savePR(id === 'submit', true);
+      }
+      if (action === 'submit-pr') {
+        const pr = this.purchaseRequests.find(item => item.id === id);
+        if (pr) this.submitPR(pr, true);
+      }
+      if (action === 'save-po-form') {
+        this.savePO(id === 'submit', true);
+      }
+      if (action === 'submit-po') {
+        const po = this.purchaseOrders.find(item => item.id === id);
+        if (po) this.submitPO(po, true);
+      }
+      if (action === 'save-receipt-form') {
+        this.saveReceipt(id === 'post', true);
+      }
+      if (action === 'save-journal-form') {
+        this.saveJournal(id === 'post', true);
+      }
+      if (action === 'save-purchase-return') {
+        this.savePurchaseReturn(true);
+      }
+      if (action === 'save-payable-payment') {
+        this.savePayablePayment(true);
+      }
+      if (action === 'save-production') {
+        this.saveProduction(true);
+      }
+      if (action === 'save-product') {
+        this.saveProduct(true);
+      }
+      if (action === 'save-profile') {
+        this.saveProfile(true);
+      }
+      if (action === 'save-password') {
+        this.savePassword(true);
+      }
+
       if (action === 'delete-order') {
         const order = this.order(id);
         const rec = this.receivables.find(r => r.orderId === id);
@@ -1365,9 +1738,12 @@ function app() {
         this.notify('Kategori berhasil dihapus');
       }
       if (action === 'delete-material') {
-        const used = this.purchaseRequests.some(pr => (pr.items || []).some(item => item.materialId === id));
+        const used = this.purchaseRequests.some(pr => (pr.items || []).some(item => item.materialId === id))
+          || this.purchaseOrders.some(po => (po.items || []).some(item => item.materialId === id))
+          || this.recipes.some(recipe => recipe.materialId === id)
+          || this.productions.some(production => (production.materials || []).some(item => item.materialId === id));
         if (used) {
-          this.notify('Barang masih dipakai pada Purchase Request', 'error');
+          this.notify('Barang masih dipakai pada transaksi pembelian atau resep produk', 'error');
           this.confirm.open = false;
           return;
         }
@@ -1390,7 +1766,7 @@ function app() {
         pr.approvedBy = this.currentUser;
         pr.approvedAt = todayISO();
         pr.history = pr.history || [];
-        pr.history.push({ action:'approved', by:this.currentUser, at:todayISO(), note:'' });
+        pr.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
         this.notify('Purchase Request ' + pr.code + ' disetujui');
       }
       if (action === 'cancel-pr') {
@@ -1402,8 +1778,26 @@ function app() {
         }
         pr.status = 'cancelled';
         pr.history = pr.history || [];
-        pr.history.push({ action:'cancelled', by:this.currentUser, at:todayISO(), note:'' });
+        pr.history.push({ action:'cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
         this.notify('Purchase Request ' + pr.code + ' dibatalkan');
+      }
+      if (action === 'receive-return-replacement') {
+        const purchaseReturn = this.purchaseReturns.find(item => item.id === id);
+        if (!purchaseReturn || purchaseReturn.status !== 'posted' || purchaseReturn.replacementStatus !== 'pending') {
+          this.notify('Return ini tidak menunggu ganti barang', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        this.postPurchaseReturnReplacement(purchaseReturn);
+      }
+      if (action === 'void-purchase-return') {
+        const purchaseReturn = this.purchaseReturns.find(item => item.id === id);
+        if (!purchaseReturn || purchaseReturn.status !== 'posted') {
+          this.notify('Return pembelian tidak dapat dibatalkan', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        this.voidPurchaseReturnDocument(purchaseReturn);
       }
       if (action === 'post-receipt') {
         const receipt = this.receipts.find(item => item.id === id);
@@ -1448,7 +1842,7 @@ function app() {
         po.approvedBy = this.currentUser;
         po.approvedAt = todayISO();
         po.history = po.history || [];
-        po.history.push({ action:'approved', by:this.currentUser, at:todayISO(), note:'' });
+        po.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
         this.reservePRQuantities(po);
         this.updateMaterialPrices(po);
         this.notify('Purchase Order ' + po.code + ' disetujui');
@@ -1463,7 +1857,9 @@ function app() {
         if (po.status === 'approved') this.releasePRQuantities(po);
         po.status = 'cancelled';
         po.history = po.history || [];
-        po.history.push({ action:'cancelled', by:this.currentUser, at:todayISO(), note:'' });
+        po.history.push({ action:'cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+        this.syncPRStatusForPO(po);
+        this.poDetailOpen = false;
         this.notify('Purchase Order ' + po.code + ' dibatalkan');
       }
       if (action === 'delete-account') {
@@ -1494,7 +1890,7 @@ function app() {
         journal.postedBy = this.currentUser;
         journal.postedAt = todayISO();
         journal.history = journal.history || [];
-        journal.history.push({ action:'posted', by:this.currentUser, at:todayISO(), note:'' });
+        journal.history.push({ action:'posted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
         this.notify('Jurnal ' + journal.code + ' berhasil diposting');
       }
       if (action === 'delete-journal') {
@@ -1510,12 +1906,14 @@ function app() {
       if (action === 'delete-product') {
         const usedInOrder = this.orders.some(o => (o.items || []).some(i => i.productId === id));
         const usedInPromo = this.promos.some(p => p.productId === id || p.bonusProductId === id);
-        if (usedInOrder || usedInPromo) {
-          this.notify('Barang masih dipakai pada order/promo', 'error');
+        const usedInProduction = this.productions.some(p => p.productId === id);
+        if (usedInOrder || usedInPromo || usedInProduction) {
+          this.notify('Produk masih dipakai pada order/promo/produksi', 'error');
           this.confirm.open = false;
           return;
         }
         this.products = this.products.filter(p => p.id !== id);
+        this.recipes = this.recipes.filter(recipe => recipe.productId !== id);
         this.stockHistory.forEach(sh => { sh.items = (sh.items || []).filter(i => i.productId !== id); });
         this.opnames = this.opnames.filter(o => o.productId !== id);
         this.notify('Barang berhasil dihapus');
@@ -1605,6 +2003,10 @@ function app() {
         this.opnames = this.opnames.filter(o => o.id !== id);
         this.notify('Opname dihapus');
       }
+      if (action === 'seed-dummy') {
+        this.closeModals();
+        this.seedDummyData();
+      }
       if (action === 'clear-transactions') {
         this.closeModals();
         this.orders = [];
@@ -1621,7 +2023,10 @@ function app() {
         this.purchaseRequests = [];
         this.purchaseOrders = [];
         this.receipts = [];
+        this.purchaseReturns = [];
         this.stockMovements = [];
+        this.productions = [];
+        this.productionLogs = [];
         this.payables = [];
         this.materials = this.materials.map(material => ({
           ...material,
@@ -1643,6 +2048,9 @@ function app() {
         this.prEditId = null;
         this.prEditRequester = '';
         this.prForm = { date:todayISO(), purpose:'', items:[{ materialId:'', qty:1, note:'' }] };
+        this.purchaseReturnForm = { date:todayISO(), poId:'', warehouseId:'', notes:'', items:[] };
+        this.purchaseReturnDetailOpen = false;
+        this.purchaseReturnSelectedId = null;
         this.page = 'dashboard';
         this.sessionPage = 'dashboard';
         try { history.replaceState(null, '', '#dashboard'); } catch (e) {}
@@ -1976,8 +2384,9 @@ function app() {
 
     /* ---------- PRODUCT (Master Produk) ---------- */
     productTab: 'items', productSearch: '', productStatus: '', productCategory: '', productModalOpen: false, productEditId: null,
+    recipePreviewOpen: false, recipePreviewProductId: null,
     formPicker: { open:false, kind:'category', target:'product', query:'', top:0, left:0, width:280 },
-    productForm: { name:'', categoryId:'cat1', unit:'Krt', cost:0, inSale:0, outSale:0, stock:0, minStock:20, status:true },
+    productForm: { name:'', categoryId:'cat1', unit:'Krt', cost:0, inSale:0, outSale:0, stock:0, minStock:20, status:true, recipe:[] },
     get filteredProducts() {
       const q = this.productSearch.toLowerCase();
       return this.products.filter(p => {
@@ -1994,14 +2403,83 @@ function app() {
       this.closeFormPicker();
       this.productEditId = p ? p.id : null;
       this.productForm = p
-        ? { name:p.name, categoryId:p.categoryId || '', unit:p.unit, cost:p.cost, inSale:p.inSale, outSale:p.outSale, stock:p.stock, minStock:p.minStock || 0, status:p.status }
-        : { name:'', categoryId:this.productCategories[0]?.id || '', unit:'Krt', cost:0, inSale:0, outSale:0, stock:0, minStock:20, status:true };
-      this.productModalOpen = true;
+        ? {
+            name:p.name, categoryId:p.categoryId || '', unit:p.unit, cost:p.cost, inSale:p.inSale, outSale:p.outSale,
+            stock:p.stock, minStock:p.minStock || 0, status:p.status,
+            recipe:this.recipeRows(p.id).map(row => ({
+              materialId:row.materialId,
+              qtyPerUnit:row.qtyPerUnit,
+              materialOpen:false,
+              materialSearch:''
+            }))
+          }
+        : { name:'', categoryId:this.productCategories[0]?.id || '', unit:'Krt', cost:0, inSale:0, outSale:0, stock:0, minStock:20, status:true, recipe:[] };
+      this.productModalOpen = false;
+      this.go('product-create');
     },
-    saveProduct() {
+    recipeRows(productId) {
+      return this.recipes.filter(recipe => recipe.productId === productId);
+    },
+    recipeCount(productId) { return this.recipeRows(productId).length; },
+    recipeMaterial(materialId) { return this.materials.find(material => material.id === materialId) || {}; },
+    recipeLineSubtotal(row) {
+      const material = this.recipeMaterial(row.materialId);
+      return (Number(row.qtyPerUnit) || 0) * (Number(material.purchasePrice) || 0);
+    },
+    get recipeEstimatedCost() {
+      return (this.productForm.recipe || []).reduce((sum, row) => sum + this.recipeLineSubtotal(row), 0);
+    },
+    recipeMaterialOptions(index) {
+      const row = (this.productForm.recipe || [])[index] || {};
+      const selectedElsewhere = (this.productForm.recipe || [])
+        .filter((item, itemIndex) => itemIndex !== index)
+        .map(item => item.materialId)
+        .filter(Boolean);
+      const query = String(row.materialSearch || '').toLowerCase();
+      return this.materials.filter(material => {
+        if (!material.status) return false;
+        if (selectedElsewhere.includes(material.id)) return false;
+        if (!query) return true;
+        return (material.code + ' ' + material.name + ' ' + material.unit).toLowerCase().includes(query);
+      });
+    },
+    selectRecipeMaterial(index, material) {
+      const row = (this.productForm.recipe || [])[index];
+      if (!row) return;
+      row.materialId = material.id;
+      row.materialOpen = false;
+      row.materialSearch = '';
+    },
+    addRecipeLine() {
+      this.productForm.recipe = this.productForm.recipe || [];
+      this.productForm.recipe.push({ materialId:'', qtyPerUnit:1, materialOpen:false, materialSearch:'' });
+    },
+    removeRecipeLine(index) {
+      this.productForm.recipe.splice(index, 1);
+    },
+    productsUsingMaterial(materialId) {
+      const productIds = [...new Set(this.recipes.filter(recipe => recipe.materialId === materialId).map(recipe => recipe.productId))];
+      return this.products.filter(product => productIds.includes(product.id));
+    },
+    openRecipePreview(product) {
+      this.recipePreviewProductId = product.id;
+      this.recipePreviewOpen = true;
+    },
+    get recipePreviewProduct() { return this.product(this.recipePreviewProductId) || {}; },
+    saveProduct(confirmed = false) {
       if (!this.productForm.name) { this.notify('Nama produk wajib diisi', 'error'); return; }
+      const recipeRows = (this.productForm.recipe || []).filter(row => row.materialId);
+      const invalidRow = recipeRows.find(row => Number(row.qtyPerUnit) <= 0);
+      if (invalidRow) { this.notify('Qty resep harus lebih dari 0', 'error'); return; }
+      const duplicate = recipeRows.map(row => row.materialId).find((id, index, list) => list.indexOf(id) !== index);
+      if (duplicate) { this.notify('Barang tidak boleh dobel dalam satu resep', 'error'); return; }
+      if (!confirmed) {
+        this.askSave('save-product', this.productEditId, 'Produk ' + this.productForm.name + ' akan disimpan' + (recipeRows.length ? ' dengan ' + recipeRows.length + ' bahan resep.' : ' tanpa resep.'), 'Simpan');
+        return;
+      }
+      const { recipe, ...base } = this.productForm;
       const data = {
-        ...this.productForm,
+        ...base,
         categoryId:this.productForm.categoryId || null,
         cost:Number(this.productForm.cost),
         inSale:Number(this.productForm.inSale),
@@ -2010,16 +2488,28 @@ function app() {
         minStock:Number(this.productForm.minStock) || 0,
         status:!!this.productForm.status
       };
+      let productId = this.productEditId;
       if (this.productEditId) {
         const prod = this.products.find(p => p.id === this.productEditId);
         if (prod) Object.assign(prod, data);
         this.notify('Produk berhasil diperbarui');
       } else {
-        this.products.push({ id:'p' + Date.now(), code:nextSimpleCode(this.products, 'ABI-'), ...data });
+        productId = 'p' + Date.now();
+        this.products.push({ id:productId, code:nextSimpleCode(this.products, 'ABI-'), ...data });
         this.notify('Produk baru berhasil ditambahkan');
       }
+      this.recipes = this.recipes.filter(item => item.productId !== productId);
+      recipeRows.forEach((row, index) => {
+        this.recipes.push({
+          id:'rec' + Date.now() + index,
+          productId,
+          materialId:row.materialId,
+          qtyPerUnit:Number(row.qtyPerUnit) || 0
+        });
+      });
       this.productModalOpen = false;
       this.persist();
+      this.go('products');
     },
 
     /* ---------- CATEGORY ---------- */
@@ -2230,8 +2720,11 @@ function app() {
       this.persist();
     },
     deleteMaterial(material) {
-      const used = this.purchaseRequests.some(pr => (pr.items || []).some(item => item.materialId === material.id));
-      if (used) { this.notify('Barang masih dipakai pada Purchase Request', 'error'); return; }
+      const used = this.purchaseRequests.some(pr => (pr.items || []).some(item => item.materialId === material.id))
+        || this.purchaseOrders.some(po => (po.items || []).some(item => item.materialId === material.id))
+        || this.purchaseReturns.some(pr => (pr.items || []).some(item => item.materialId === material.id))
+        || this.recipes.some(recipe => recipe.materialId === material.id);
+      if (used) { this.notify('Barang masih dipakai pada transaksi pembelian atau resep produk', 'error'); return; }
       this.askConfirm('delete-material', material.id, 'Hapus barang?', 'Barang ' + material.name + ' akan dihapus.');
     },
 
@@ -2297,7 +2790,7 @@ function app() {
       return { draft:'badge-slate', submitted:'badge-yellow', approved:'badge-green', processing:'badge-blue', completed:'badge-cyan', rejected:'badge-red', cancelled:'badge-stone' }[status] || 'badge-slate';
     },
     prStatusLabel(status) {
-      return { draft:'Draft', submitted:'Diajukan', approved:'Disetujui', processing:'Diproses', completed:'Selesai', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
+      return { draft:'Draft', submitted:'Diajukan', approved:'Disetujui', processing:'Proses', completed:'Selesai', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
     },
     startPRCreate() {
       this.prEditId = null;
@@ -2366,7 +2859,7 @@ function app() {
       this.prMaterialTargetIndex = index === null ? 'new' : index;
       this.openMaterial(null, true);
     },
-    savePR(submit = false) {
+    savePR(submit = false, confirmed = false) {
       if (!this.prForm.purpose.trim()) { this.notify('Keperluan PR wajib diisi', 'error'); return; }
       const items = (this.prForm.items || [])
         .filter(item => item.materialId && Number(item.qty) > 0)
@@ -2376,6 +2869,16 @@ function app() {
       if (duplicates.length) { this.notify('Barang yang sama tidak boleh dipilih dua kali', 'error'); return; }
       const invalid = items.find(item => !this.materials.some(m => m.id === item.materialId && m.status));
       if (invalid) { this.notify('Barang tidak aktif atau tidak ditemukan', 'error'); return; }
+      if (!confirmed) {
+        const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+        this.askSave(
+          'save-pr-form',
+          submit ? 'submit' : 'draft',
+          (submit ? 'PR akan diajukan untuk approval Manager.' : 'Draft PR akan disimpan.') + ' ' + items.length + ' barang • total qty ' + this.fmt(totalQty) + '.',
+          submit ? 'Submit' : 'Simpan'
+        );
+        return;
+      }
       const now = todayISO();
       if (this.prEditId) {
         const pr = this.purchaseRequests.find(item => item.id === this.prEditId);
@@ -2385,7 +2888,7 @@ function app() {
         pr.items = items;
         if (submit) {
           pr.status = 'submitted';
-          pr.history.push({ action:'submitted', by:this.currentUser, at:now, note:'' });
+          pr.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:now, note:'' });
         }
         this.notify(submit ? 'PR berhasil disubmit' : 'Draft PR berhasil diperbarui');
       } else {
@@ -2398,7 +2901,7 @@ function app() {
           purpose:this.prForm.purpose.trim(),
           status:submit ? 'submitted' : 'draft',
           items,
-          history:[{ action:submit ? 'submitted' : 'draft', by:this.currentUser, at:now, note:'' }],
+          history:[{ action:submit ? 'submitted' : 'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }],
           rejectReason:''
         };
         this.purchaseRequests.unshift(pr);
@@ -2408,15 +2911,19 @@ function app() {
       this.persist();
       this.go('purchase-requests');
     },
-    submitPR(pr) {
+    submitPR(pr, confirmed = false) {
       if (pr.status !== 'draft') { this.notify('Hanya PR draft yang dapat diajukan', 'error'); return; }
       if (pr.requesterId !== this.currentUserId && !['Admin','Manager'].includes(this.role)) {
         this.notify('Anda tidak berhak mengajukan PR ini', 'error');
         return;
       }
+      if (!confirmed) {
+        this.askSave('submit-pr', pr.id, 'PR ' + pr.code + ' akan diajukan untuk approval Manager.', 'Submit');
+        return;
+      }
       pr.status = 'submitted';
       pr.history = pr.history || [];
-      pr.history.push({ action:'submitted', by:this.currentUser, at:todayISO(), note:'' });
+      pr.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
       this.persist();
       this.notify('PR berhasil disubmit');
     },
@@ -2473,7 +2980,7 @@ function app() {
       pr.status = 'rejected';
       pr.rejectReason = this.prRejectReason.trim();
       pr.history = pr.history || [];
-      pr.history.push({ action:'rejected', by:this.currentUser, at:todayISO(), note:pr.rejectReason });
+      pr.history.push({ action:'rejected', by:this.currentUser, byRole:this.role, at:todayISO(), note:pr.rejectReason });
       this.prRejectOpen = false;
       this.persist();
       this.notify('PR ditolak');
@@ -2491,7 +2998,7 @@ function app() {
     poSearch: '', poStatus: '', poSupplier: '',
     poSelectedId: null, poDetailOpen: false, poRejectOpen: false, poRejectId: null, poRejectReason: '',
     poEditId: null,
-    poForm: { date:todayISO(), supplierId:'', prId:'', paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' }] },
+    poForm: { date:todayISO(), supplierId:'', prId:'', paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
     get filteredPurchaseOrders() {
       const q = this.poSearch.toLowerCase();
       return this.purchaseOrders.filter(po => {
@@ -2517,6 +3024,7 @@ function app() {
     },
     get activeSuppliers() { return this.suppliers.filter(supplier => supplier.status); },
     supplierName(id) { return (this.suppliers.find(s => s.id === id) || {}).name || '-'; },
+    poTotal(poId) { const po = this.purchaseOrders.find(item => item.id === poId); return Number(po?.total) || 0; },
     poStatusBadge(status) {
       return { draft:'badge-slate', pending_approval:'badge-yellow', approved:'badge-green', sent:'badge-blue', partially_received:'badge-cyan', fully_received:'badge-green', closed:'badge-stone', rejected:'badge-red', cancelled:'badge-red' }[status] || 'badge-slate';
     },
@@ -2524,6 +3032,18 @@ function app() {
       return { draft:'Draft', pending_approval:'Menunggu Approval', approved:'Disetujui', sent:'Dikirim', partially_received:'Diterima Sebagian', fully_received:'Diterima Penuh', closed:'Ditutup', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
     },
     poLineSubtotal(item) { return (Number(item.qty) || 0) * (Number(item.price) || 0); },
+    poAdditionalSubtotal(row) { return (Number(row.amount) || 0) * (Number(row.qty) || 0); },
+    get poAdditionalTotal() {
+      return (this.poForm.additionalCosts || []).reduce((sum, row) => sum + this.poAdditionalSubtotal(row), 0);
+    },
+    get poGrandTotal() { return this.poSubtotal + this.poAdditionalTotal; },
+    addPOAdditionalCost() {
+      this.poForm.additionalCosts = this.poForm.additionalCosts || [];
+      this.poForm.additionalCosts.push({ description:'', amount:0, qty:1 });
+    },
+    removePOAdditionalCost(index) {
+      this.poForm.additionalCosts.splice(index, 1);
+    },
     poMaterialOptionsFor(index) {
       const item = this.poForm.items[index] || {};
       const selectedElsewhere = this.poForm.items
@@ -2593,7 +3113,8 @@ function app() {
           prId:pr.id,
           paymentTerms:supplier ? supplier.paymentTerms : '',
           notes:'',
-          items
+          items,
+          additionalCosts:[]
         };
       } else {
         const supplier = this.activeSuppliers[0];
@@ -2604,7 +3125,8 @@ function app() {
           prId:'',
           paymentTerms:supplier ? supplier.paymentTerms : '',
           notes:'',
-          items:[{ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' }]
+          items:[{ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' }],
+          additionalCosts:[]
         };
       }
       this.go('purchase-order-create');
@@ -2624,7 +3146,8 @@ function app() {
           price:item.price,
           materialOpen:false,
           materialSearch:''
-        }))
+        })),
+        additionalCosts:(po.additionalCosts || []).map(row => ({ description:row.description || '', amount:Number(row.amount) || 0, qty:Number(row.qty) || 1 }))
       };
       this.go('purchase-order-create');
     },
@@ -2650,9 +3173,15 @@ function app() {
           }
         }
       }
+      const additionalRows = (this.poForm.additionalCosts || []).filter(row => String(row.description || '').trim() || Number(row.amount) > 0);
+      for (const row of additionalRows) {
+        if (!String(row.description || '').trim()) return 'Keterangan biaya tambahan wajib diisi';
+        if (Number(row.amount) <= 0) return 'Nominal biaya tambahan harus lebih dari 0';
+        if (Number(row.qty) <= 0) return 'Qty biaya tambahan harus lebih dari 0';
+      }
       return null;
     },
-    savePO(submit = false) {
+    savePO(submit = false, confirmed = false) {
       const items = (this.poForm.items || [])
         .filter(item => item.materialId && Number(item.qty) > 0)
         .map(item => ({
@@ -2664,7 +3193,26 @@ function app() {
         }));
       const error = this.poValidationError(items);
       if (error) { this.notify(error, 'error'); return; }
-      const total = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const materialTotal = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const additionalCosts = (this.poForm.additionalCosts || [])
+        .filter(row => String(row.description || '').trim() || Number(row.amount) > 0)
+        .map(row => ({
+          description:String(row.description || '').trim(),
+          amount:Number(row.amount) || 0,
+          qty:Number(row.qty) || 0,
+          subtotal:this.poAdditionalSubtotal(row)
+        }));
+      const additionalTotal = additionalCosts.reduce((sum, row) => sum + row.subtotal, 0);
+      const total = materialTotal + additionalTotal;
+      if (!confirmed) {
+        this.askSave(
+          'save-po-form',
+          submit ? 'submit' : 'draft',
+          (submit ? 'PO akan disubmit untuk approval Manager.' : 'Draft PO akan disimpan.') + ' ' + this.supplierName(this.poForm.supplierId) + ' • ' + items.length + ' barang • total ' + this.rp(total) + '.',
+          submit ? 'Submit' : 'Simpan'
+        );
+        return;
+      }
       const now = todayISO();
       if (this.poEditId) {
         const po = this.purchaseOrders.find(item => item.id === this.poEditId);
@@ -2676,11 +3224,13 @@ function app() {
         po.paymentTerms = this.poForm.paymentTerms || '';
         po.notes = this.poForm.notes || '';
         po.items = items;
-        po.subtotal = total;
+        po.additionalCosts = additionalCosts;
+        po.additionalTotal = additionalTotal;
+        po.subtotal = materialTotal;
         po.total = total;
         if (submit) {
           po.status = 'pending_approval';
-          po.history.push({ action:'submitted', by:this.currentUser, at:now, note:'' });
+          po.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:now, note:'' });
         }
         this.notify(submit ? 'PO berhasil disubmit' : 'Draft PO berhasil diperbarui');
       } else {
@@ -2695,32 +3245,45 @@ function app() {
           notes:this.poForm.notes || '',
           status:submit ? 'pending_approval' : 'draft',
           items,
-          subtotal:total,
+          additionalCosts,
+          additionalTotal,
+          subtotal:materialTotal,
           total,
           createdBy:this.currentUser,
           createdById:this.currentUserId,
-          history:[{ action:submit ? 'submitted' : 'draft', by:this.currentUser, at:now, note:'' }],
+          history:[{ action:submit ? 'submitted' : 'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }],
           rejectReason:''
         };
         this.purchaseOrders.unshift(po);
         this.poSelectedId = po.id;
         this.notify(submit ? 'PO berhasil dibuat dan disubmit' : 'Draft PO berhasil dibuat');
       }
+      const relatedPR = this.purchaseRequests.find(pr => pr.id === this.poForm.prId);
+      if (relatedPR) this.updatePRStatus(relatedPR);
       this.persist();
       this.go('purchase-orders');
     },
-    submitPO(po) {
+    submitPO(po, confirmed = false) {
       if (po.status !== 'draft') { this.notify('Hanya PO draft yang dapat disubmit', 'error'); return; }
       this.poForm = {
         date:po.date, supplierId:po.supplierId, prId:po.prId || '',
         paymentTerms:po.paymentTerms, notes:po.notes,
-        items:(po.items || []).map(item => ({ ...item }))
+        items:(po.items || []).map(item => ({ ...item })),
+        additionalCosts:(po.additionalCosts || []).map(row => ({ ...row }))
       };
       const error = this.poValidationError(po.items || []);
       if (error) { this.notify(error, 'error'); return; }
+      if (!confirmed) {
+        this.askSave('submit-po', po.id, 'PO ' + po.code + ' akan disubmit untuk approval Manager.', 'Submit');
+        return;
+      }
       po.status = 'pending_approval';
       po.history = po.history || [];
-      po.history.push({ action:'submitted', by:this.currentUser, at:todayISO(), note:'' });
+      po.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+      if (po.prId) {
+        const pr = this.purchaseRequests.find(item => item.id === po.prId);
+        if (pr) this.updatePRStatus(pr);
+      }
       this.persist();
       this.notify('PO berhasil disubmit');
     },
@@ -2766,7 +3329,8 @@ function app() {
       po.status = 'rejected';
       po.rejectReason = this.poRejectReason.trim();
       po.history = po.history || [];
-      po.history.push({ action:'rejected', by:this.currentUser, at:todayISO(), note:po.rejectReason });
+      po.history.push({ action:'rejected', by:this.currentUser, byRole:this.role, at:todayISO(), note:po.rejectReason });
+      this.syncPRStatusForPO(po);
       this.poRejectOpen = false;
       this.persist();
       this.notify('PO ditolak');
@@ -2776,7 +3340,8 @@ function app() {
       po.status = 'sent';
       po.sentAt = todayISO();
       po.history = po.history || [];
-      po.history.push({ action:'sent', by:this.currentUser, at:todayISO(), note:'' });
+      po.history.push({ action:'sent', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+      this.syncPRStatusForPO(po);
       this.persist();
       this.notify('PO ditandai terkirim ke supplier');
     },
@@ -2785,7 +3350,8 @@ function app() {
       po.status = 'closed';
       po.closedAt = todayISO();
       po.history = po.history || [];
-      po.history.push({ action:'closed', by:this.currentUser, at:todayISO(), note:'' });
+      po.history.push({ action:'closed', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+      this.syncPRStatusForPO(po);
       this.persist();
       this.notify('PO ditutup');
     },
@@ -2800,11 +3366,29 @@ function app() {
       }
       this.askConfirm('cancel-po', po.id, 'Batalkan PO?', 'PO ' + po.code + ' akan dibatalkan.', true);
     },
+    purchaseRequestPOs(pr) {
+      if (!pr || !pr.id) return [];
+      return this.purchaseOrders.filter(po => po.prId === pr.id && !['rejected','cancelled'].includes(po.status));
+    },
+    poFullyReceived(po) {
+      if (!po) return false;
+      if (po.status === 'closed') return true;
+      const items = po.items || [];
+      return items.length > 0 && items.every(item => Number(item.receivedQty || 0) >= Number(item.qty || 0));
+    },
     updatePRStatus(pr) {
       if (!pr || !['approved','processing','completed'].includes(pr.status)) return;
-      const allOrdered = (pr.items || []).every(item => Number(item.orderedQty || 0) >= Number(item.qty));
-      const anyOrdered = (pr.items || []).some(item => Number(item.orderedQty || 0) > 0);
-      pr.status = allOrdered ? 'completed' : anyOrdered ? 'processing' : 'approved';
+      const pos = this.purchaseRequestPOs(pr);
+      if (!pos.length) {
+        pr.status = 'approved';
+        return;
+      }
+      pr.status = pos.every(po => this.poFullyReceived(po)) ? 'completed' : 'processing';
+    },
+    syncPRStatusForPO(po) {
+      if (!po || !po.prId) return;
+      const pr = this.purchaseRequests.find(item => item.id === po.prId);
+      if (pr) this.updatePRStatus(pr);
     },
     reservePRQuantities(po) {
       if (!po.prId) return;
@@ -2816,7 +3400,7 @@ function app() {
       });
       this.updatePRStatus(pr);
       pr.history = pr.history || [];
-      pr.history.push({ action:'po-approved', by:this.currentUser, at:todayISO(), note:po.code });
+      pr.history.push({ action:'po-approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:po.code });
     },
     releasePRQuantities(po) {
       if (!po.prId) return;
@@ -2828,7 +3412,7 @@ function app() {
       });
       this.updatePRStatus(pr);
       pr.history = pr.history || [];
-      pr.history.push({ action:'po-cancelled', by:this.currentUser, at:todayISO(), note:po.code });
+      pr.history.push({ action:'po-cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:po.code });
     },
     updateMaterialPrices(po) {
       (po.items || []).forEach(poItem => {
@@ -2838,6 +3422,7 @@ function app() {
     },
     /* ---------- GOODS RECEIPT ---------- */
     receiptSearch: '', receiptStatus: '', receiptSupplier: '',
+    receiptHistoryOpen: false, receiptHistoryId: null,
     receiptSelectedId: null, receiptDetailOpen: false, receiptEditId: null,
     receiptForm: { date:todayISO(), poId:'', warehouseId:'wh1', deliveryNote:'', items:[] },
     stockView: 'product', materialStockSearch: '', materialStockWarehouse: '',
@@ -2936,7 +3521,7 @@ function app() {
       }
       return null;
     },
-    saveReceipt(post = false) {
+    saveReceipt(post = false, confirmed = false) {
       const items = (this.receiptForm.items || [])
         .filter(item => Number(item.qty) > 0)
         .map(item => ({
@@ -2948,6 +3533,15 @@ function app() {
       if (error) { this.notify(error, 'error'); return; }
       const po = this.purchaseOrders.find(item => item.id === this.receiptForm.poId);
       const total = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+      if (!confirmed) {
+        this.askSave(
+          'save-receipt-form',
+          post ? 'post' : 'draft',
+          (post ? 'Penerimaan akan diposting. Stok, jurnal, dan utang supplier akan dibuat otomatis.' : 'Draft penerimaan akan disimpan.') + ' ' + po.code + ' • ' + this.warehouseName(this.receiptForm.warehouseId) + ' • nilai diterima ' + this.rp(total) + '.',
+          post ? 'Posting' : 'Simpan'
+        );
+        return;
+      }
       const now = todayISO();
       let receipt = null;
       if (this.receiptEditId) {
@@ -2975,12 +3569,14 @@ function app() {
           status:'draft',
           items,
           total,
+          additionalCost:0,
+          apTotal:0,
           journalId:'',
           payableId:'',
           createdBy:this.currentUser,
           createdById:this.currentUserId,
           postedAt:'',
-          history:[{ action:'draft', by:this.currentUser, at:now, note:'' }]
+          history:[{ action:'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }]
         };
         this.receipts.unshift(receipt);
         this.receiptSelectedId = receipt.id;
@@ -2994,7 +3590,7 @@ function app() {
       if (!receipt || receipt.status !== 'draft') { this.notify('Hanya penerimaan draft yang dapat diposting', 'error'); return; }
       const error = this.receiptValidationError(receipt.poId, receipt.warehouseId, receipt.items);
       if (error) { this.notify(error, 'error'); return; }
-      this.askConfirm('post-receipt', receipt.id, 'Posting penerimaan?', 'Stok, jurnal, dan utang supplier akan dibuat otomatis.', false);
+      this.askSave('post-receipt', receipt.id, 'Penerimaan ' + receipt.code + ' akan diposting. Stok, jurnal, dan utang supplier akan dibuat otomatis.', 'Posting');
     },
     postReceiptDocument(receipt) {
       const po = this.purchaseOrders.find(item => item.id === receipt.poId);
@@ -3037,17 +3633,36 @@ function app() {
       const anyReceived = (po.items || []).some(item => Number(item.receivedQty || 0) > 0);
       po.status = allReceived ? 'fully_received' : anyReceived ? 'partially_received' : po.status;
       po.history = po.history || [];
-      po.history.push({ action:'received', by:this.currentUser, at:now, note:receipt.code });
+      po.history.push({ action:'received', by:this.currentUser, byRole:this.role, at:now, note:receipt.code });
+      this.syncPRStatusForPO(po);
 
+      const poMaterialSubtotal = Number(po.subtotal) || (po.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+      const previousReceipts = this.receipts.filter(item => item.poId === po.id && item.status === 'posted' && item.id !== receipt.id);
+      const previousMaterial = previousReceipts.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+      const previousAdditional = previousReceipts.reduce((sum, item) => sum + (Number(item.additionalCost) || 0), 0);
+      let additionalCost = 0;
+      if (Number(po.additionalTotal) > 0 && poMaterialSubtotal > 0) {
+        const cumulativeMaterial = previousMaterial + (Number(receipt.total) || 0);
+        additionalCost = cumulativeMaterial >= poMaterialSubtotal - 0.01
+          ? Math.max(0, Number(po.additionalTotal) - previousAdditional)
+          : Math.round(Number(po.additionalTotal) * (Number(receipt.total) || 0) / poMaterialSubtotal);
+      }
+      const apTotal = (Number(receipt.total) || 0) + additionalCost;
+      receipt.additionalCost = additionalCost;
+      receipt.apTotal = apTotal;
+      const journalLines = [
+        { accountId:'acc4', debit:receipt.total, credit:0, memo:'Persediaan ' + receipt.code }
+      ];
+      if (additionalCost > 0) {
+        journalLines.push({ accountId:'acc14', debit:additionalCost, credit:0, memo:'Biaya tambahan PO ' + receipt.code });
+      }
+      journalLines.push({ accountId:'acc7', debit:0, credit:apTotal, memo:'Utang supplier ' + receipt.code });
       const journal = this.createSystemJournal({
         date:receipt.date,
         description:'Penerimaan barang ' + receipt.code,
         source:'receipt',
         sourceId:receipt.id,
-        lines:[
-          { accountId:'acc4', debit:receipt.total, credit:0, memo:'Persediaan ' + receipt.code },
-          { accountId:'acc7', debit:0, credit:receipt.total, memo:'Utang supplier ' + receipt.code }
-        ]
+        lines:journalLines
       });
       const dueDate = this.dueDateFromTerms(po.paymentTerms, receipt.date);
       const payable = {
@@ -3060,11 +3675,12 @@ function app() {
         poCode:po.code,
         date:receipt.date,
         dueDate,
-        total:receipt.total,
+        total:apTotal,
         paid:0,
-        unpaid:receipt.total,
+        unpaid:apTotal,
         status:'unpaid',
-        history:[{ action:'created', by:this.currentUser, at:now, note:receipt.code }]
+        payments:[],
+        history:[{ action:'created', by:this.currentUser, byRole:this.role, at:now, note:receipt.code }]
       };
       this.payables.unshift(payable);
       receipt.status = 'posted';
@@ -3072,7 +3688,7 @@ function app() {
       receipt.journalId = journal ? journal.id : '';
       receipt.payableId = payable.id;
       receipt.history = receipt.history || [];
-      receipt.history.push({ action:'posted', by:this.currentUser, at:now, note:'' });
+      receipt.history.push({ action:'posted', by:this.currentUser, byRole:this.role, at:now, note:'' });
       this.notify('Penerimaan ' + receipt.code + ' diposting');
     },
     dueDateFromTerms(terms, date) {
@@ -3102,6 +3718,16 @@ function app() {
       return journal;
     },
     viewReceipt(receipt) { this.receiptSelectedId = receipt.id; this.receiptDetailOpen = true; },
+    viewReceiptHistory(receipt) {
+      this.receiptHistoryId = receipt.id;
+      this.receiptHistoryOpen = true;
+    },
+    get selectedReceiptHistory() {
+      return this.receipts.find(receipt => receipt.id === this.receiptHistoryId) || {};
+    },
+    receiptHistoryLabel(action) {
+      return { draft:'Draft dibuat', posted:'Diposting', void:'Dibatalkan' }[action] || action;
+    },
     startReceiptPreview(receipt) {
       if (!receipt) return;
       this.receiptSelectedId = receipt.id;
@@ -3148,6 +3774,379 @@ function app() {
       });
     },
 
+    /* ---------- PURCHASE RETURN ---------- */
+    purchaseReturnSearch: '', purchaseReturnStatus: '',
+    purchaseReturnDetailOpen: false, purchaseReturnSelectedId: null,
+    purchaseReturnForm: { date:todayISO(), poId:'', warehouseId:'', notes:'', items:[] },
+    get filteredPurchaseReturns() {
+      const q = this.purchaseReturnSearch.toLowerCase();
+      return this.purchaseReturns.filter(pr => {
+        if (q && !(pr.code + ' ' + (pr.poCode || '') + ' ' + this.supplierName(pr.supplierId)).toLowerCase().includes(q)) return false;
+        if (this.purchaseReturnStatus && pr.status !== this.purchaseReturnStatus) return false;
+        return true;
+      });
+    },
+    get selectedPurchaseReturn() {
+      return this.purchaseReturns.find(pr => pr.id === this.purchaseReturnSelectedId) || this.purchaseReturns[0] || {};
+    },
+    get purchaseReturnSourcePO() {
+      return this.purchaseOrders.find(po => po.id === this.purchaseReturnForm.poId) || null;
+    },
+    get purchaseReturnPOOptions() {
+      return this.purchaseOrders.filter(po => {
+        if (!['partially_received','fully_received','closed'].includes(po.status)) return false;
+        return (po.items || []).some(item => this.purchaseReturnRemainingQty(item) > 0);
+      });
+    },
+    get purchaseReturnFormQty() {
+      return (this.purchaseReturnForm.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+    },
+    get purchaseReturnFormTotal() {
+      return (this.purchaseReturnForm.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+    },
+    purchaseReturnStatusBadge(status) {
+      return { posted:'badge-green', void:'badge-red' }[status] || 'badge-slate';
+    },
+    purchaseReturnStatusLabel(status) {
+      return { posted:'Posted', void:'Void' }[status] || status;
+    },
+    purchaseReturnConditionLabel(condition) {
+      return { good:'Bagus', damaged:'Rusak' }[condition] || condition;
+    },
+    purchaseReturnActionLabel(action) {
+      return { replace:'Ganti Barang', credit:'Ganti Biaya' }[action] || action;
+    },
+    purchaseReturnRemainingQty(poItem) {
+      return Math.max(0, Number(poItem.receivedQty || 0) - Number(poItem.returnedQty || 0));
+    },
+    purchaseReturnMaxQty(materialId) {
+      const po = this.purchaseReturnSourcePO;
+      if (!po) return 0;
+      const item = (po.items || []).find(row => row.materialId === materialId);
+      return item ? this.purchaseReturnRemainingQty(item) : 0;
+    },
+    purchaseReturnLineSubtotal(item) {
+      return (Number(item.qty) || 0) * (Number(item.price) || 0);
+    },
+    purchaseReturnReceiptsFor(poId) {
+      return this.receipts.filter(receipt => receipt.poId === poId && receipt.status === 'posted');
+    },
+    purchaseReturnWarehouseOptions() {
+      const ids = [...new Set(this.purchaseReturnReceiptsFor(this.purchaseReturnForm.poId).map(receipt => receipt.warehouseId))];
+      return this.warehouses.filter(warehouse => ids.includes(warehouse.id));
+    },
+    purchaseReturnWarehouseQty(materialId, warehouseId) {
+      return this.stockMovements
+        .filter(movement => movement.materialId === materialId && movement.warehouseId === warehouseId)
+        .reduce((sum, movement) => sum + (Number(movement.qty) || 0), 0);
+    },
+    purchaseReturnReplaceCount(pr) {
+      return (pr.items || []).filter(item => item.action === 'replace').length;
+    },
+    purchaseReturnCreditCount(pr) {
+      return (pr.items || []).filter(item => item.action === 'credit').length;
+    },
+    onPurchaseReturnPOChange() {
+      const po = this.purchaseReturnSourcePO;
+      const receipts = this.purchaseReturnReceiptsFor(po?.id);
+      this.purchaseReturnForm.warehouseId = receipts[0]?.warehouseId || this.warehouses[0]?.id || '';
+      this.purchaseReturnForm.items = (po?.items || [])
+        .filter(item => this.purchaseReturnRemainingQty(item) > 0)
+        .map(item => ({
+          materialId:item.materialId,
+          qty:0,
+          price:Number(item.price) || 0,
+          condition:'damaged',
+          action:'replace',
+          note:''
+        }));
+    },
+    openPurchaseReturnCreate() {
+      const source = this.purchaseReturnPOOptions[0];
+      if (!source) { this.notify('Belum ada PO yang memiliki barang untuk diretur', 'error'); return; }
+      this.purchaseReturnForm = {
+        date:todayISO(),
+        poId:source.id,
+        warehouseId:'',
+        notes:'',
+        items:[]
+      };
+      this.onPurchaseReturnPOChange();
+      this.go('purchase-return-create');
+    },
+    purchaseReturnValidationError() {
+      const po = this.purchaseReturnSourcePO;
+      if (!po) return 'Purchase Order wajib dipilih';
+      if (!this.purchaseReturnForm.warehouseId) return 'Gudang asal retur wajib dipilih';
+      const rows = (this.purchaseReturnForm.items || []).filter(item => Number(item.qty) > 0);
+      if (!rows.length) return 'Isi minimal 1 qty return';
+      for (const item of rows) {
+        const poItem = (po.items || []).find(row => row.materialId === item.materialId);
+        if (!poItem) return 'Barang tidak ada pada PO sumber';
+        if (Number(item.qty) > this.purchaseReturnRemainingQty(poItem)) {
+          return 'Qty ' + this.materialName(item.materialId) + ' melebihi sisa yang dapat diretur';
+        }
+        if (!['good','damaged'].includes(item.condition)) return 'Kondisi barang wajib dipilih';
+        if (!['replace','credit'].includes(item.action)) return 'Tindakan return wajib dipilih';
+        const stock = this.purchaseReturnWarehouseQty(item.materialId, this.purchaseReturnForm.warehouseId);
+        if (Number(item.qty) > stock) {
+          return 'Stok ' + this.materialName(item.materialId) + ' di gudang asal tidak mencukupi';
+        }
+      }
+      const creditTotal = rows
+        .filter(item => item.action === 'credit')
+        .reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+      if (creditTotal > 0) {
+        const unpaid = this.payables
+          .filter(payable => payable.poId === po.id)
+          .reduce((sum, payable) => sum + (Number(payable.unpaid) || 0), 0);
+        if (creditTotal > unpaid + 0.0001) {
+          return 'Nilai Ganti Biaya melebihi sisa utang supplier (' + this.rp(unpaid) + ')';
+        }
+      }
+      return null;
+    },
+    applyPurchaseReturnCredit(po, amount, note, adjustments) {
+      let remaining = Number(amount) || 0;
+      const payables = this.payables
+        .filter(payable => payable.poId === po.id && Number(payable.unpaid) > 0)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      for (const payable of payables) {
+        if (remaining <= 0) break;
+        const applied = Math.min(remaining, Number(payable.unpaid) || 0);
+        payable.unpaid = Math.max(0, (Number(payable.unpaid) || 0) - applied);
+        payable.total = Math.max(0, (Number(payable.total) || 0) - applied);
+        payable.status = payable.unpaid <= 0 ? 'paid' : (Number(payable.paid) > 0 ? 'partial' : 'unpaid');
+        payable.history = payable.history || [];
+        payable.history.push({ action:'purchase-return-credit', by:this.currentUser, byRole:this.role, at:todayISO(), note });
+        adjustments.push({ payableId:payable.id, payableCode:payable.code, amount:applied });
+        remaining -= applied;
+      }
+      return remaining;
+    },
+    savePurchaseReturn(confirmed = false) {
+      const error = this.purchaseReturnValidationError();
+      if (error) { this.notify(error, 'error'); return; }
+      const po = this.purchaseReturnSourcePO;
+      const rows = (this.purchaseReturnForm.items || [])
+        .filter(item => Number(item.qty) > 0)
+        .map(item => ({
+          materialId:item.materialId,
+          qty:Number(item.qty),
+          price:Number(item.price) || 0,
+          condition:item.condition,
+          action:item.action,
+          note:String(item.note || '').trim()
+        }));
+      const total = rows.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const replaceTotal = rows.filter(item => item.action === 'replace').reduce((sum, item) => sum + item.qty * item.price, 0);
+      const creditTotal = rows.filter(item => item.action === 'credit').reduce((sum, item) => sum + item.qty * item.price, 0);
+      if (!confirmed) {
+        this.askSave(
+          'save-purchase-return',
+          null,
+          'Return pembelian akan diposting. Stok, jurnal, dan utang/piutang supplier akan disesuaikan. ' + po.code + ' • ' + rows.length + ' barang • total ' + this.rp(total) + '.',
+          'Posting'
+        );
+        return;
+      }
+      const date = this.purchaseReturnForm.date || todayISO();
+      const code = docCode('PRT', date, nextDocSeq(this.purchaseReturns, 'PRT', date));
+      const returnId = 'prt' + Date.now();
+      const now = todayISO();
+      const apAdjustments = [];
+      if (creditTotal > 0) this.applyPurchaseReturnCredit(po, creditTotal, code, apAdjustments);
+      rows.forEach(item => {
+        const poItem = (po.items || []).find(row => row.materialId === item.materialId);
+        if (poItem) poItem.returnedQty = Number(poItem.returnedQty || 0) + item.qty;
+        const material = this.materials.find(row => row.id === item.materialId);
+        if (material) {
+          const oldQty = Number(material.stock) || 0;
+          const oldValue = Number(material.stockValue) || 0;
+          const newQty = Math.max(0, oldQty - item.qty);
+          const newValue = Math.max(0, oldValue - item.qty * item.price);
+          material.stock = newQty;
+          material.stockValue = newValue;
+          material.avgCost = newQty > 0 ? newValue / newQty : item.price;
+        }
+        this.stockMovements.unshift({
+          id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+          date,
+          materialId:item.materialId,
+          warehouseId:this.purchaseReturnForm.warehouseId,
+          type:'purchase-return',
+          qty:-item.qty,
+          value:-(item.qty * item.price),
+          unitCost:item.price,
+          refType:'purchase-return',
+          refId:returnId,
+          refNumber:code,
+          createdAt:now
+        });
+      });
+      const journalLines = [];
+      if (replaceTotal > 0) journalLines.push({ accountId:'acc5', debit:replaceTotal, credit:0, memo:'Klaim ganti barang ' + code });
+      if (creditTotal > 0) journalLines.push({ accountId:'acc7', debit:creditTotal, credit:0, memo:'Potongan utang supplier ' + code });
+      journalLines.push({ accountId:'acc4', debit:0, credit:total, memo:'Persediaan keluar ' + code });
+      const journal = this.createSystemJournal({
+        date,
+        description:'Return pembelian ' + code,
+        source:'purchase-return',
+        sourceId:returnId,
+        lines:journalLines
+      });
+      const purchaseReturn = {
+        id:returnId,
+        code,
+        date,
+        poId:po.id,
+        poCode:po.code,
+        supplierId:po.supplierId,
+        warehouseId:this.purchaseReturnForm.warehouseId,
+        notes:this.purchaseReturnForm.notes || '',
+        items:rows,
+        total,
+        replaceTotal,
+        creditTotal,
+        status:'posted',
+        replacementStatus:replaceTotal > 0 ? 'pending' : 'none',
+        journalId:journal ? journal.id : '',
+        apAdjustments,
+        createdBy:this.currentUser,
+        createdById:this.currentUserId,
+        postedAt:now,
+        history:[{ action:'posted', by:this.currentUser, byRole:this.role, at:now, note:code }]
+      };
+      this.purchaseReturns.unshift(purchaseReturn);
+      this.purchaseReturnSelectedId = purchaseReturn.id;
+      po.history = po.history || [];
+      po.history.push({ action:'purchase-return', by:this.currentUser, byRole:this.role, at:now, note:code });
+      this.persist();
+      this.notify('Return pembelian ' + code + ' berhasil diposting');
+      this.go('purchase-returns');
+    },
+    viewPurchaseReturn(pr) {
+      this.purchaseReturnSelectedId = pr.id;
+      this.purchaseReturnDetailOpen = true;
+    },
+    voidPurchaseReturn(pr) {
+      if (!pr || pr.status !== 'posted') { this.notify('Return ini tidak dapat dibatalkan', 'error'); return; }
+      if (pr.replacementStatus === 'received') { this.notify('Return yang penggantinya sudah diterima tidak dapat dibatalkan', 'error'); return; }
+      this.askConfirm('void-purchase-return', pr.id, 'Batalkan return?', 'Return ' + pr.code + ' akan dibatalkan. Stok, utang supplier, dan jurnal akan dikembalikan.');
+    },
+    receivePurchaseReturnReplacement(pr) {
+      if (!pr || pr.status !== 'posted' || pr.replacementStatus !== 'pending') {
+        this.notify('Return ini tidak menunggu ganti barang', 'error');
+        return;
+      }
+      this.askConfirm('receive-return-replacement', pr.id, 'Terima ganti barang?', 'Stok pengganti akan ditambahkan dan Piutang Supplier dikurangi.');
+    },
+    postPurchaseReturnReplacement(pr) {
+      if (!pr || pr.status !== 'posted' || pr.replacementStatus !== 'pending') return;
+      const items = (pr.items || []).filter(item => item.action === 'replace');
+      if (!items.length) return;
+      const now = todayISO();
+      const total = items.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+      items.forEach(item => {
+        const material = this.materials.find(row => row.id === item.materialId);
+        if (material) {
+          const oldQty = Number(material.stock) || 0;
+          const oldValue = Number(material.stockValue) || 0;
+          const newQty = oldQty + item.qty;
+          const newValue = oldValue + item.qty * item.price;
+          material.stock = newQty;
+          material.stockValue = newValue;
+          material.avgCost = newQty > 0 ? newValue / newQty : item.price;
+        }
+        this.stockMovements.unshift({
+          id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+          date:now,
+          materialId:item.materialId,
+          warehouseId:pr.warehouseId,
+          type:'purchase-return-replacement',
+          qty:item.qty,
+          value:item.qty * item.price,
+          unitCost:item.price,
+          refType:'purchase-return',
+          refId:pr.id,
+          refNumber:pr.code,
+          createdAt:now
+        });
+      });
+      const journal = this.createSystemJournal({
+        date:now,
+        description:'Penerimaan ganti barang ' + pr.code,
+        source:'purchase-return-replacement',
+        sourceId:pr.id,
+        lines:[
+          { accountId:'acc4', debit:total, credit:0, memo:'Persediaan ganti barang ' + pr.code },
+          { accountId:'acc5', debit:0, credit:total, memo:'Piutang supplier ' + pr.code }
+        ]
+      });
+      pr.replacementStatus = 'received';
+      pr.replacementAt = now;
+      pr.replacementJournalId = journal ? journal.id : '';
+      pr.history = pr.history || [];
+      pr.history.push({ action:'replacement-received', by:this.currentUser, byRole:this.role, at:now, note:pr.code });
+      this.persist();
+      this.notify('Ganti barang ' + pr.code + ' diterima dan stok diperbarui');
+    },
+    voidPurchaseReturnDocument(pr) {
+      if (!pr || pr.status !== 'posted') return;
+      const now = todayISO();
+      (pr.items || []).forEach(item => {
+        const material = this.materials.find(row => row.id === item.materialId);
+        if (material) {
+          const oldQty = Number(material.stock) || 0;
+          const oldValue = Number(material.stockValue) || 0;
+          const newQty = oldQty + item.qty;
+          const newValue = oldValue + item.qty * item.price;
+          material.stock = newQty;
+          material.stockValue = newValue;
+          material.avgCost = newQty > 0 ? newValue / newQty : item.price;
+        }
+        this.stockMovements.unshift({
+          id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+          date:now,
+          materialId:item.materialId,
+          warehouseId:pr.warehouseId,
+          type:'purchase-return-void',
+          qty:item.qty,
+          value:item.qty * item.price,
+          unitCost:item.price,
+          refType:'purchase-return',
+          refId:pr.id,
+          refNumber:pr.code,
+          createdAt:now
+        });
+        const po = this.purchaseOrders.find(row => row.id === pr.poId);
+        const poItem = po ? (po.items || []).find(row => row.materialId === item.materialId) : null;
+        if (poItem) poItem.returnedQty = Math.max(0, Number(poItem.returnedQty || 0) - item.qty);
+      });
+      (pr.apAdjustments || []).forEach(adjustment => {
+        const payable = this.payables.find(row => row.id === adjustment.payableId);
+        if (!payable) return;
+        payable.unpaid = (Number(payable.unpaid) || 0) + (Number(adjustment.amount) || 0);
+        payable.total = (Number(payable.total) || 0) + (Number(adjustment.amount) || 0);
+        payable.status = payable.unpaid <= 0 ? 'paid' : (Number(payable.paid) > 0 ? 'partial' : 'unpaid');
+        payable.history = payable.history || [];
+        payable.history.push({ action:'purchase-return-void', by:this.currentUser, byRole:this.role, at:now, note:pr.code });
+      });
+      const journal = this.journals.find(item => item.id === pr.journalId);
+      if (journal && journal.status === 'posted') {
+        journal.status = 'void';
+        journal.voidReason = 'Return pembelian dibatalkan';
+        journal.history = journal.history || [];
+        journal.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:now, note:'Return pembelian dibatalkan' });
+      }
+      pr.status = 'void';
+      pr.voidedAt = now;
+      pr.voidedBy = this.currentUser;
+      pr.history = pr.history || [];
+      pr.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:now, note:'' });
+      this.persist();
+      this.notify('Return pembelian ' + pr.code + ' dibatalkan');
+    },
     /* ---------- CHART OF ACCOUNTS ---------- */
     coaSearch: '', coaType: '', coaStatus: '', accountModalOpen: false, accountEditId: null,
     accountForm: { code:'', name:'', type:'asset', normalBalance:'debit', parentId:'', isCashBank:false, status:true, description:'' },
@@ -3308,7 +4307,18 @@ function app() {
     journalStatusLabel(status) {
       return { draft:'Draft', posted:'Posted', void:'Void' }[status] || status;
     },
-    journalSourceLabel() { return 'Manual'; },
+    journalSourceLabel(journal) {
+      const source = (journal && journal.source) || 'manual';
+      return {
+        manual:'Manual',
+        receipt:'Penerimaan Barang',
+        income:'Pendapatan Lainnya',
+        expense:'Pengeluaran Lainnya',
+        'purchase-return':'Return Pembelian',
+        'purchase-return-replacement':'Ganti Barang',
+        'payable-payment':'Pembayaran Utang'
+      }[source] || source;
+    },
     journalAccountOptions() {
       return this.accounts.filter(account => account.status && !account.isLocked).sort((a, b) => String(a.code).localeCompare(String(b.code)));
     },
@@ -3370,7 +4380,7 @@ function app() {
       if (debit <= 0) return 'Total jurnal harus lebih dari 0';
       return null;
     },
-    saveJournal(post = false) {
+    saveJournal(post = false, confirmed = false) {
       const error = this.validateJournalLines(this.journalForm.lines);
       if (error) { this.notify(error, 'error'); return; }
       const lines = this.journalForm.lines
@@ -3381,6 +4391,16 @@ function app() {
           credit:Number(line.credit) || 0,
           memo:line.memo || ''
         }));
+      if (!confirmed) {
+        const debit = lines.reduce((sum, line) => sum + line.debit, 0);
+        this.askSave(
+          'save-journal-form',
+          post ? 'post' : 'draft',
+          (post ? 'Jurnal akan diposting dan memengaruhi saldo akun.' : 'Draft jurnal akan disimpan.') + ' ' + (this.journalForm.description || 'Tanpa keterangan') + ' • total ' + this.rp(debit) + '.',
+          post ? 'Posting' : 'Simpan'
+        );
+        return;
+      }
       const now = todayISO();
       if (this.journalEditId) {
         const journal = this.journals.find(item => item.id === this.journalEditId);
@@ -3392,7 +4412,7 @@ function app() {
           journal.status = 'posted';
           journal.postedBy = this.currentUser;
           journal.postedAt = now;
-          journal.history.push({ action:'posted', by:this.currentUser, at:now, note:'' });
+          journal.history.push({ action:'posted', by:this.currentUser, byRole:this.role, at:now, note:'' });
         }
         this.notify(post ? 'Jurnal diposting' : 'Draft jurnal diperbarui');
       } else {
@@ -3408,7 +4428,7 @@ function app() {
           postedAt:post ? now : '',
           voidReason:'',
           createdBy:this.currentUser,
-          history:[{ action:post ? 'posted' : 'draft', by:this.currentUser, at:now, note:'' }]
+          history:[{ action:post ? 'posted' : 'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }]
         };
         this.journals.unshift(journal);
         this.journalSelectedId = journal.id;
@@ -3423,7 +4443,7 @@ function app() {
       this.journalForm = { date:journal.date, description:journal.description, lines:(journal.lines || []).map(line => ({ ...line })) };
       const error = this.validateJournalLines(journal.lines);
       if (error) { this.notify(error, 'error'); return; }
-      this.askConfirm('post-journal', journal.id, 'Posting jurnal?', 'Jurnal ' + journal.code + ' akan memengaruhi saldo akun.', false);
+      this.askSave('post-journal', journal.id, 'Jurnal ' + journal.code + ' akan diposting dan memengaruhi saldo akun.', 'Posting');
     },
     voidJournal(journal) {
       if (journal.status !== 'posted') { this.notify('Hanya jurnal posted yang dapat di-void', 'error'); return; }
@@ -3440,7 +4460,7 @@ function app() {
       journal.status = 'void';
       journal.voidReason = this.journalVoidReason.trim();
       journal.history = journal.history || [];
-      journal.history.push({ action:'void', by:this.currentUser, at:todayISO(), note:journal.voidReason });
+      journal.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:todayISO(), note:journal.voidReason });
       this.journalVoidOpen = false;
       this.persist();
       this.notify('Jurnal di-void');
@@ -4039,6 +5059,11 @@ function app() {
     /* ---------- STOCK ---------- */
     stockTab: 'active', stockSearch: '',
     stockModalOpen: false, stockForm: { productId:'p1', warehouseId:'wh1', date:todayISO(), qty:10, description:'' },
+    materialStockTab: 'active',
+    productionSearch: '', productionDateFrom: '', productionDateTo: '', productionProductFilter: '',
+    productionModalOpen: false, productionEditId: null, productionCorrection: false,
+    productionDetailOpen: false, productionSelectedId: null, productionDetailTab: 'summary',
+    productionForm: { warehouseId:'wh1', productId:'', date:todayISO(), qty:1, description:'', materials:[], correctionReason:'' },
     opnameModalOpen: false, opnameForm: { productId:'p1', warehouseId:'wh1', date:todayISO(), qty:1, description:'' },
     get filteredStockProducts() {
       const q = this.stockSearch.toLowerCase();
@@ -4090,8 +5115,485 @@ function app() {
       this.notify('Stock opname berhasil disimpan');
     },
     stockItemQty(item) { return item.qty; },
-    deleteStockHistory(s) { this.askConfirm('delete-stock', s.id, 'Hapus riwayat stock?', 'Dokumen ' + s.code + ' akan dihapus.'); },
+    deleteStockHistory(s) {
+      if (s.refType === 'production') { this.notify('Riwayat produksi tidak dapat dihapus', 'error'); return; }
+      this.askConfirm('delete-stock', s.id, 'Hapus riwayat stock?', 'Dokumen ' + s.code + ' akan dihapus.');
+    },
     deleteOpname(o) { this.askConfirm('delete-opname', o.id, 'Hapus opname?', 'Dokumen ' + o.code + ' akan dihapus.'); },
+
+    materialStockAt(materialId, warehouseId) {
+      return this.stockMovements
+        .filter(movement => movement.materialId === materialId && movement.warehouseId === warehouseId)
+        .reduce((sum, movement) => sum + (Number(movement.qty) || 0), 0);
+    },
+    get productionProductOptions() { return this.products.filter(product => product.status); },
+    get productionList() {
+      const q = this.productionSearch.toLowerCase();
+      return [...this.productions]
+        .filter(production => {
+          if (q && !(production.code + ' ' + this.productName(production.productId)).toLowerCase().includes(q)) return false;
+          if (this.productionProductFilter && production.productId !== this.productionProductFilter) return false;
+          if (this.productionDateFrom && production.date < this.productionDateFrom) return false;
+          if (this.productionDateTo && production.date > this.productionDateTo) return false;
+          return true;
+        })
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.code).localeCompare(String(a.code)));
+    },
+    get selectedProduction() {
+      return this.productions.find(production => production.id === this.productionSelectedId) || this.productions[0] || {};
+    },
+    productionLogsFor(productionId) {
+      return this.productionLogs
+        .filter(log => log.productionId === productionId)
+        .sort((a, b) => String(b.at).localeCompare(String(a.at)) || String(b.id).localeCompare(String(a.id)));
+    },
+    productionUnitPrice(materialId) {
+      const material = this.material(materialId);
+      return Number(material.avgCost) || Number(material.purchasePrice) || 0;
+    },
+    recipeQtyFor(productId, materialId) {
+      const recipe = this.recipes.find(row => row.productId === productId && row.materialId === materialId);
+      return Number(recipe?.qtyPerUnit) || 0;
+    },
+    productionRowsFromProduct(productId, qty) {
+      return this.recipes
+        .filter(recipe => recipe.productId === productId)
+        .map(recipe => {
+          const standard = (Number(recipe.qtyPerUnit) || 0) * (Number(qty) || 0);
+          return {
+            materialId:recipe.materialId,
+            standardQty:standard,
+            qty:standard,
+            manual:false,
+            fromRecipe:true,
+            note:'',
+            materialOpen:false,
+            materialSearch:''
+          };
+        });
+    },
+    openProduction() {
+      const product = this.productionProductOptions[0];
+      this.productionEditId = null;
+      this.productionCorrection = false;
+      this.productionForm = {
+        warehouseId:'wh1',
+        productId:product ? product.id : '',
+        date:todayISO(),
+        qty:1,
+        description:'',
+        materials:product ? this.productionRowsFromProduct(product.id, 1) : [],
+        correctionReason:''
+      };
+      this.productionModalOpen = true;
+    },
+    onProductionProductChange() {
+      if (this.productionCorrection) return;
+      this.productionForm.materials = this.productionRowsFromProduct(this.productionForm.productId, this.productionForm.qty);
+    },
+    onProductionQtyChange() {
+      if (this.productionCorrection) return;
+      const qty = Number(this.productionForm.qty) || 0;
+      (this.productionForm.materials || []).forEach(row => {
+        if (!row.fromRecipe) return;
+        row.standardQty = this.recipeQtyFor(this.productionForm.productId, row.materialId) * qty;
+        if (!row.manual) row.qty = row.standardQty;
+      });
+    },
+    productionMaterialOptions(index) {
+      const row = (this.productionForm.materials || [])[index] || {};
+      const selectedElsewhere = (this.productionForm.materials || [])
+        .filter((item, itemIndex) => itemIndex !== index)
+        .map(item => item.materialId)
+        .filter(Boolean);
+      const query = String(row.materialSearch || '').toLowerCase();
+      return this.materials.filter(material => {
+        if (!material.status) return false;
+        if (selectedElsewhere.includes(material.id)) return false;
+        if (!query) return true;
+        return (material.code + ' ' + material.name + ' ' + material.unit).toLowerCase().includes(query);
+      });
+    },
+    selectProductionMaterial(index, material) {
+      const row = (this.productionForm.materials || [])[index];
+      if (!row) return;
+      row.materialId = material.id;
+      row.materialOpen = false;
+      row.materialSearch = '';
+    },
+    addProductionMaterial() {
+      if (this.productionCorrection) return;
+      this.productionForm.materials.push({
+        materialId:'',
+        standardQty:0,
+        qty:0,
+        manual:true,
+        fromRecipe:false,
+        note:'',
+        materialOpen:true,
+        materialSearch:''
+      });
+    },
+    removeProductionMaterial(index) {
+      if (this.productionCorrection) return;
+      this.productionForm.materials.splice(index, 1);
+    },
+    setProductionQty(index, value) {
+      const row = this.productionForm.materials[index];
+      if (!row) return;
+      row.qty = Math.max(0, Number(value) || 0);
+      row.manual = true;
+    },
+    resetProductionRow(index) {
+      const row = this.productionForm.materials[index];
+      if (!row || !row.fromRecipe) return;
+      row.qty = Number(row.standardQty) || 0;
+      row.manual = false;
+    },
+    productionRowDifference(row) { return (Number(row.qty) || 0) - (Number(row.standardQty) || 0); },
+    productionRowAvailable(row) { return this.materialStockAt(row.materialId, this.productionForm.warehouseId); },
+    productionRowCost(row) { return (Number(row.qty) || 0) * this.productionUnitPrice(row.materialId); },
+    get productionTotalCost() {
+      return (this.productionForm.materials || []).reduce((sum, row) => sum + this.productionRowCost(row), 0);
+    },
+    get productionCostPerUnit() {
+      const qty = Number(this.productionForm.qty) || 0;
+      return qty > 0 ? this.productionTotalCost / qty : 0;
+    },
+    get productionChangedRows() {
+      return (this.productionForm.materials || []).filter(row =>
+        row.materialId && (row.manual || Number(row.qty) !== Number(row.standardQty) || (row.fromRecipe === false && Number(row.qty) > 0))
+      ).length;
+    },
+    get productionHasShortage() {
+      return (this.productionForm.materials || []).some(row => Number(row.qty) > this.productionRowAvailable(row) + 0.0001);
+    },
+    productionRowNeedsReason(row) {
+      return Number(row.qty) !== Number(row.standardQty) || (row.fromRecipe === false && Number(row.qty) > 0);
+    },
+    productionValidationError() {
+      const form = this.productionForm;
+      const product = this.product(form.productId);
+      if (!product.id || !product.status) return 'Pilih produk aktif';
+      if (!form.warehouseId) return 'Gudang wajib dipilih';
+      if (Number(form.qty) <= 0) return 'Hasil produksi harus lebih dari 0';
+      if (this.productionCorrection && !String(form.correctionReason || '').trim()) return 'Alasan koreksi wajib diisi';
+      const rows = (form.materials || []).filter(row => row.materialId);
+      const usedRows = rows.filter(row => Number(row.qty) > 0);
+      if (!usedRows.length) return 'Tambahkan minimal 1 bahan baku yang dipakai';
+      const duplicates = rows.map(row => row.materialId).filter((id, index, list) => list.indexOf(id) !== index);
+      if (duplicates.length) return 'Bahan baku tidak boleh dobel';
+      for (const row of usedRows) {
+        const material = this.material(row.materialId);
+        if (!material.id || !material.status) return 'Bahan baku tidak aktif atau tidak ditemukan';
+        const available = this.productionRowAvailable(row);
+        if (Number(row.qty) > available + 0.0001) {
+          return 'Stok ' + (material.name || 'bahan') + ' tidak mencukupi. Tersedia ' + this.fmt(available) + ' ' + (material.unit || '');
+        }
+      }
+      for (const row of rows) {
+        const material = this.material(row.materialId);
+        if (this.productionRowNeedsReason(row) && !String(row.note || '').trim()) {
+          return 'Alasan wajib diisi untuk bahan ' + (material.name || '') + ' karena selisih / bahan tambahan';
+        }
+      }
+      if (this.productionCorrection) {
+        const original = this.productions.find(item => item.id === this.productionEditId);
+        if (!original) return 'Data produksi tidak ditemukan';
+        const originalIds = (original.materials || []).map(row => row.materialId);
+        const invalid = (form.materials || []).find(row => row.materialId && !originalIds.includes(row.materialId));
+        if (invalid) return 'Koreksi tidak boleh menambah bahan baru';
+        const productDelta = Number(form.qty) - (Number(original.qty) || 0);
+        if (productDelta < 0 && (Number(product.stock) || 0) + productDelta < 0) {
+          return 'Stok produk tidak mencukupi untuk koreksi hasil produksi';
+        }
+      }
+      return null;
+    },
+    nextProductionCode(date) {
+      const year = String(date || todayISO()).slice(0, 4);
+      const prefix = 'PRD-' + year + '-';
+      const max = this.productions.reduce((value, production) => {
+        if (!String(production.code || '').startsWith(prefix)) return value;
+        return Math.max(value, Number(String(production.code).slice(prefix.length)) || 0);
+      }, 0);
+      return prefix + String(max + 1).padStart(4, '0');
+    },
+    saveProduction(confirmed = false) {
+      const error = this.productionValidationError();
+      if (error) { this.notify(error, 'error'); return; }
+      if (!confirmed) {
+        this.askSave(
+          'save-production',
+          this.productionEditId,
+          (this.productionCorrection ? 'Koreksi produksi akan disimpan. Stok akan disesuaikan sebesar selisih.' : 'Produksi akan disimpan. Stok produk bertambah dan stok bahan baku berkurang.') + ' ' + this.productName(this.productionForm.productId) + ' • ' + this.fmt(this.productionForm.qty) + ' ' + (this.product(this.productionForm.productId).unit || ''),
+          'Simpan'
+        );
+        return;
+      }
+      if (this.productionCorrection) {
+        this.commitProductionCorrection();
+      } else {
+        this.commitProductionCreate();
+      }
+    },
+    commitProductionCreate() {
+      const form = this.productionForm;
+      const product = this.product(form.productId);
+      const rows = (form.materials || [])
+        .filter(row => Number(row.qty) > 0)
+        .map(row => ({
+          materialId:row.materialId,
+          standardQty:Number(row.standardQty) || 0,
+          qty:Number(row.qty) || 0,
+          price:this.productionUnitPrice(row.materialId),
+          note:String(row.note || '').trim(),
+          fromRecipe:row.fromRecipe !== false
+        }));
+      const code = this.nextProductionCode(form.date);
+      const now = todayISO();
+      const totalCost = rows.reduce((sum, row) => sum + row.qty * row.price, 0);
+      const production = {
+        id:'prd' + Date.now(),
+        code,
+        date:form.date || now,
+        productId:product.id,
+        warehouseId:form.warehouseId,
+        qty:Number(form.qty) || 0,
+        description:form.description || '',
+        status:'posted',
+        materials:rows,
+        totalCost,
+        costPerUnit:Number(form.qty) > 0 ? totalCost / Number(form.qty) : 0,
+        createdBy:this.currentUser,
+        createdById:this.currentUserId,
+        createdByRole:this.role,
+        createdAt:now,
+        updatedAt:now
+      };
+      product.stock = (Number(product.stock) || 0) + production.qty;
+      this.stockHistory.unshift({
+        id:'sh' + Date.now() + 'a',
+        code,
+        date:production.date,
+        warehouseId:production.warehouseId,
+        description:'Produksi (hasil) ' + code,
+        by:this.currentUser,
+        byRole:this.role,
+        type:'production-result',
+        refType:'production',
+        refId:production.id,
+        refNumber:code,
+        items:[{ productId:product.id, qty:production.qty }]
+      });
+      const usageItems = [];
+      rows.forEach(row => {
+        const material = this.material(row.materialId);
+        if (!material.id) return;
+        material.stock = Math.max(0, (Number(material.stock) || 0) - row.qty);
+        material.stockValue = Math.max(0, (Number(material.stockValue) || 0) - row.qty * row.price);
+        material.avgCost = material.stock > 0 ? material.stockValue / material.stock : row.price;
+        usageItems.push({ materialId:row.materialId, qty:-row.qty });
+        this.stockMovements.unshift({
+          id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+          date:production.date,
+          materialId:row.materialId,
+          warehouseId:production.warehouseId,
+          type:'production-usage',
+          qty:-row.qty,
+          value:-(row.qty * row.price),
+          unitCost:row.price,
+          refType:'production',
+          refId:production.id,
+          refNumber:code,
+          createdAt:now
+        });
+      });
+      this.stockHistory.unshift({
+        id:'sh' + Date.now() + 'b',
+        code,
+        date:production.date,
+        warehouseId:production.warehouseId,
+        description:'Produksi (pemakaian) ' + code,
+        by:this.currentUser,
+        byRole:this.role,
+        type:'production-usage',
+        refType:'production',
+        refId:production.id,
+        refNumber:code,
+        items:usageItems
+      });
+      this.productions.unshift(production);
+      this.productionLogs.unshift({
+        id:'plog' + Date.now(),
+        productionId:production.id,
+        at:now,
+        user:this.currentUser,
+        role:this.role,
+        action:'buat',
+        detail:'Produksi ' + code + ' dibuat: ' + this.fmt(production.qty) + ' ' + (product.unit || '') + ', ' + rows.length + ' jenis bahan.',
+        reason:''
+      });
+      this.productionModalOpen = false;
+      this.productionEditId = null;
+      this.productionSelectedId = production.id;
+      this.stockTab = 'production';
+      this.persist();
+      this.notify('Produksi ' + code + ' berhasil disimpan');
+    },
+    commitProductionCorrection() {
+      const form = this.productionForm;
+      const original = this.productions.find(item => item.id === this.productionEditId);
+      if (!original) { this.notify('Data produksi tidak ditemukan', 'error'); return; }
+      const product = this.product(original.productId);
+      const oldQty = Number(original.qty) || 0;
+      const newQty = Number(form.qty) || 0;
+      const changes = [];
+      const productDelta = newQty - oldQty;
+      if (productDelta !== 0) {
+        product.stock = Math.max(0, (Number(product.stock) || 0) + productDelta);
+        this.stockHistory.unshift({
+          id:'sh' + Date.now() + 'c',
+          code:original.code,
+          date:todayISO(),
+          warehouseId:original.warehouseId,
+          description:'Koreksi Produksi ' + original.code,
+          by:this.currentUser,
+          byRole:this.role,
+          type:'production-correction',
+          refType:'production',
+          refId:original.id,
+          refNumber:original.code,
+          items:[{ productId:product.id, qty:productDelta }]
+        });
+        changes.push('Hasil: ' + this.fmt(oldQty) + ' menjadi ' + this.fmt(newQty) + ' ' + (product.unit || ''));
+      }
+      (original.materials || []).forEach(materialRow => {
+        const formRow = (form.materials || []).find(row => row.materialId === materialRow.materialId);
+        if (!formRow) return;
+        const material = this.material(materialRow.materialId);
+        const oldUsed = Number(materialRow.qty) || 0;
+        const newUsed = Number(formRow.qty) || 0;
+        const delta = newUsed - oldUsed;
+        const price = Number(materialRow.price) || this.productionUnitPrice(materialRow.materialId);
+        if (delta !== 0) {
+          material.stock = Math.max(0, (Number(material.stock) || 0) - delta);
+          material.stockValue = Math.max(0, (Number(material.stockValue) || 0) - delta * price);
+          material.avgCost = material.stock > 0 ? material.stockValue / material.stock : price;
+          this.stockMovements.unshift({
+            id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+            date:todayISO(),
+            materialId:materialRow.materialId,
+            warehouseId:original.warehouseId,
+            type:'production-correction',
+            qty:-delta,
+            value:-(delta * price),
+            unitCost:price,
+            refType:'production',
+            refId:original.id,
+            refNumber:original.code,
+            createdAt:todayISO()
+          });
+          changes.push((material.name || 'Bahan') + ': ' + this.fmt(oldUsed) + ' menjadi ' + this.fmt(newUsed) + ' ' + (material.unit || ''));
+        }
+        materialRow.qty = newUsed;
+        materialRow.note = String(formRow.note || '').trim();
+      });
+      original.qty = newQty;
+      original.materials = (original.materials || []).map(materialRow => ({ ...materialRow, price:Number(materialRow.price) || 0 }));
+      original.totalCost = original.materials.reduce((sum, row) => sum + (Number(row.qty) || 0) * (Number(row.price) || 0), 0);
+      original.costPerUnit = newQty > 0 ? original.totalCost / newQty : 0;
+      original.updatedAt = todayISO();
+      original.updatedBy = this.currentUser;
+      original.updatedByRole = this.role;
+      this.productionLogs.unshift({
+        id:'plog' + Date.now(),
+        productionId:original.id,
+        at:todayISO(),
+        user:this.currentUser,
+        role:this.role,
+        action:'koreksi',
+        detail:changes.length ? changes.join('; ') : 'Tidak ada perubahan nilai',
+        reason:String(form.correctionReason || '').trim()
+      });
+      this.productionModalOpen = false;
+      this.productionCorrection = false;
+      this.productionEditId = null;
+      this.productionSelectedId = original.id;
+      this.persist();
+      this.notify('Koreksi produksi ' + original.code + ' berhasil disimpan');
+    },
+    get canCorrectProduction() { return ['Admin','Manager','Developer'].includes(this.role); },
+    viewProduction(production) {
+      this.productionSelectedId = production.id;
+      this.productionDetailTab = 'summary';
+      this.productionDetailOpen = true;
+    },
+    openProductionByRef(refId) {
+      const production = this.productions.find(item => item.id === refId);
+      if (production) this.viewProduction(production);
+    },
+    openProductionCorrection(production) {
+      if (!this.canCorrectProduction) { this.notify('Role Anda tidak berhak mengoreksi produksi', 'error'); return; }
+      if (!production || production.status !== 'posted') { this.notify('Produksi ini tidak dapat dikoreksi', 'error'); return; }
+      this.productionEditId = production.id;
+      this.productionCorrection = true;
+      this.productionForm = {
+        warehouseId:production.warehouseId,
+        productId:production.productId,
+        date:production.date,
+        qty:production.qty,
+        description:production.description || '',
+        correctionReason:'',
+        materials:(production.materials || []).map(row => ({
+          materialId:row.materialId,
+          standardQty:Number(row.standardQty) || 0,
+          qty:Number(row.qty) || 0,
+          manual:Number(row.qty) !== Number(row.standardQty),
+          fromRecipe:row.fromRecipe !== false,
+          note:row.note || '',
+          materialOpen:false,
+          materialSearch:''
+        }))
+      };
+      this.productionDetailOpen = false;
+      this.productionModalOpen = true;
+    },
+    productionChangedCount(production) {
+      return (production.materials || []).filter(row => Number(row.qty) !== Number(row.standardQty) || row.fromRecipe === false).length;
+    },
+    productionDifferenceLabel(production) {
+      const count = this.productionChangedCount(production);
+      return count ? count + ' bahan berbeda' : 'Sesuai standar';
+    },
+    stockHistoryTypeLabel(type) {
+      return {
+        'production-result':'Produksi (hasil)',
+        'production-usage':'Produksi (pemakaian)',
+        'production-correction':'Koreksi Produksi'
+      }[type] || 'Stock Masuk';
+    },
+    materialMovementLabel(type) {
+      return {
+        receipt:'Penerimaan Barang',
+        'purchase-return':'Return Pembelian',
+        'purchase-return-void':'Pembatalan Return',
+        'purchase-return-replacement':'Ganti Barang',
+        'production-usage':'Produksi (pemakaian)',
+        'production-correction':'Koreksi Produksi'
+      }[type] || type;
+    },
+    get filteredMaterialMovements() {
+      const q = this.materialStockSearch.toLowerCase();
+      return [...this.stockMovements]
+        .filter(movement => {
+          const material = this.material(movement.materialId);
+          if (this.materialStockWarehouse && movement.warehouseId !== this.materialStockWarehouse) return false;
+          if (q && !(material.code + ' ' + material.name + ' ' + (movement.refNumber || '')).toLowerCase().includes(q)) return false;
+          return true;
+        })
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    },
 
     /* ---------- FINANCE OPERASIONAL ---------- */
     financeTab: 'income', financeSearch: '',
@@ -4155,7 +5657,7 @@ function app() {
       journal.status = 'void';
       journal.voidReason = reason || 'Revisi transaksi';
       journal.history = journal.history || [];
-      journal.history.push({ action:'void', by:this.currentUser, at:todayISO(), note:reason || 'Revisi transaksi' });
+      journal.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:todayISO(), note:reason || 'Revisi transaksi' });
     },
     saveFinance() {
       const list = this.financeTab === 'income' ? this.incomes : this.expenses;
@@ -4203,6 +5705,119 @@ function app() {
       }
       this.financeModalOpen = false;
       this.persist();
+    },
+
+    /* ---------- PAYABLES / UTANG ---------- */
+    payableSearch: '', payableStatus: '', payableSupplier: '',
+    payableDetailOpen: false, payableSelectedId: null,
+    payablePaymentOpen: false, payablePaymentId: null,
+    payablePaymentForm: { date:todayISO(), cashAccountId:'acc1', amount:0, note:'', proof:'' },
+    get filteredPayables() {
+      const q = this.payableSearch.toLowerCase();
+      return this.payables.filter(payable => {
+        if (q && !(payable.code + ' ' + (payable.poCode || '') + ' ' + (payable.receiptCode || '') + ' ' + this.supplierName(payable.supplierId)).toLowerCase().includes(q)) return false;
+        if (this.payableStatus && payable.status !== this.payableStatus) return false;
+        if (this.payableSupplier && payable.supplierId !== this.payableSupplier) return false;
+        return true;
+      });
+    },
+    get selectedPayable() {
+      return this.payables.find(payable => payable.id === this.payableSelectedId) || this.payables[0] || {};
+    },
+    get payablePayments() {
+      return this.payables.flatMap(payable => (payable.payments || []).map(payment => ({
+        ...payment,
+        payableId:payable.id,
+        payableCode:payable.code,
+        supplierId:payable.supplierId,
+        poCode:payable.poCode
+      })));
+    },
+    get payableUnpaidTotal() {
+      return this.payables.reduce((sum, payable) => sum + (Number(payable.unpaid) || 0), 0);
+    },
+    get payablePaidTotal() {
+      return this.payables.reduce((sum, payable) => sum + (Number(payable.paid) || 0), 0);
+    },
+    get payableTotalValue() {
+      return this.payables.reduce((sum, payable) => sum + (Number(payable.total) || 0), 0);
+    },
+    payableStatusBadge(status) {
+      return { unpaid:'badge-red', partial:'badge-yellow', paid:'badge-green' }[status] || 'badge-slate';
+    },
+    payableStatusLabel(status) {
+      return { unpaid:'Belum Dibayar', partial:'Dibayar Sebagian', paid:'Lunas' }[status] || status;
+    },
+    viewPayable(payable) {
+      this.payableSelectedId = payable.id;
+      this.payableDetailOpen = true;
+    },
+    openPayablePayment(payable) {
+      if (!payable || payable.status === 'paid' || Number(payable.unpaid) <= 0) {
+        this.notify('Utang ini sudah lunas', 'error');
+        return;
+      }
+      this.payablePaymentId = payable.id;
+      this.payablePaymentForm = {
+        date:todayISO(),
+        cashAccountId:this.cashAccountOptions()[0]?.id || 'acc1',
+        amount:Number(payable.unpaid) || 0,
+        note:'',
+        proof:''
+      };
+      this.payablePaymentOpen = true;
+    },
+    savePayablePayment(confirmed = false) {
+      const payable = this.payables.find(item => item.id === this.payablePaymentId);
+      if (!payable) { this.notify('Utang tidak ditemukan', 'error'); return; }
+      const amount = Number(this.payablePaymentForm.amount) || 0;
+      const unpaid = Number(payable.unpaid) || 0;
+      if (!this.payablePaymentForm.date) { this.notify('Tanggal pembayaran wajib diisi', 'error'); return; }
+      if (amount <= 0) { this.notify('Nominal pembayaran harus lebih dari 0', 'error'); return; }
+      if (amount > unpaid + 0.0001) { this.notify('Nominal melebihi sisa utang ' + this.rp(unpaid), 'error'); return; }
+      const cash = this.accountById(this.payablePaymentForm.cashAccountId);
+      if (!cash.id || !cash.isCashBank || !cash.status) { this.notify('Pilih akun Kas/Bank yang aktif', 'error'); return; }
+      if (!confirmed) {
+        this.askSave('save-payable-payment', payable.id, 'Pembayaran utang ' + payable.code + ' sebesar ' + this.rp(amount) + ' akan disimpan dan jurnal dibuat otomatis.', 'Simpan');
+        return;
+      }
+      const date = this.payablePaymentForm.date;
+      const code = docCode('PP', date, nextDocSeq(this.payablePayments, 'PP', date));
+      const paymentId = 'pp' + Date.now();
+      const journal = this.createSystemJournal({
+        date,
+        description:'Pembayaran utang ' + payable.code,
+        source:'payable-payment',
+        sourceId:paymentId,
+        lines:[
+          { accountId:'acc7', debit:amount, credit:0, memo:'Pelunasan utang ' + payable.code },
+          { accountId:cash.id, debit:0, credit:amount, memo:'Kas keluar ' + code }
+        ]
+      });
+      const payment = {
+        id:paymentId,
+        code,
+        date,
+        amount,
+        cashAccountId:cash.id,
+        cashAccountName:cash.name,
+        note:this.payablePaymentForm.note || '',
+        proof:this.payablePaymentForm.proof || '',
+        journalId:journal ? journal.id : '',
+        by:this.currentUser,
+        byRole:this.role,
+        createdAt:todayISO()
+      };
+      payable.payments = payable.payments || [];
+      payable.payments.unshift(payment);
+      payable.paid = (Number(payable.paid) || 0) + amount;
+      payable.unpaid = Math.max(0, unpaid - amount);
+      payable.status = payable.unpaid <= 0 ? 'paid' : 'partial';
+      payable.history = payable.history || [];
+      payable.history.push({ action:'payment', by:this.currentUser, byRole:this.role, at:todayISO(), note:code });
+      this.payablePaymentOpen = false;
+      this.persist();
+      this.notify('Pembayaran utang ' + code + ' berhasil disimpan');
     },
 
     /* ---------- RECEIVABLES / COLLECTIONS ---------- */
@@ -4522,8 +6137,684 @@ function app() {
         'clear-transactions',
         null,
         'Hapus semua transaksi?',
-        'Order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, jurnal, dan utang akan dihapus. Master data tetap; stok barang mentah direset ke 0.'
+        'Order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, Return Pembelian, jurnal, dan utang akan dihapus. Master data tetap; stok barang mentah direset ke 0.'
       );
+    },
+    fillDummyData() {
+      this.askConfirm(
+        'seed-dummy',
+        null,
+        'Isi data dummy?',
+        'Data transaksi saat ini akan diganti dengan data demo lengkap: pembelian, penerimaan, produksi, order, surat jalan, piutang, utang, dan keuangan. Master data serta resep tetap.',
+        false,
+        'Isi Data'
+      );
+    },
+    seedDummyData() {
+      const requiredMaterials = ['mat1','mat2','mat3','mat4','mat5','mat6','mat7'];
+      const requiredProducts = ['p1','p2','p3'];
+      const requiredCustomers = ['c1','c2','c3','c4','c5','c6','c7'];
+      if (!requiredMaterials.every(id => this.material(id).id)
+        || !requiredProducts.every(id => this.product(id).id)
+        || !requiredCustomers.every(id => this.customer(id).id)
+        || !this.warehouses.some(w => w.id === 'wh1')) {
+        this.notify('Master data demo belum lengkap. Gunakan Reset Data Demo terlebih dahulu.', 'error');
+        return;
+      }
+      const now = todayISO();
+      const d = (n) => shiftISO(now, n);
+      const actor = (name, role) => ({ by:name, byRole:role });
+      const seq = {};
+      const code = (prefix, iso) => {
+        const key = prefix + '|' + String(iso || now).slice(0, 7);
+        seq[key] = (seq[key] || 0) + 1;
+        return docCode(prefix, iso || now, seq[key]);
+      };
+      let productionSeq = 0;
+      const productionCode = (iso) => {
+        productionSeq += 1;
+        return 'PRD-' + String(iso || now).slice(0, 4) + '-' + String(productionSeq).padStart(4, '0');
+      };
+      const accId = (accountCode) => (this.accounts.find(account => account.code === accountCode) || {}).id || '';
+      const post = (date, description, source, sourceId, lines) => {
+        const journal = this.createSystemJournal({ date, description, source, sourceId, lines });
+        return journal ? journal.id : '';
+      };
+      const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','productions','productionLogs','journals'];
+      reset.forEach(key => { this[key] = []; });
+      this.materials.forEach(material => {
+        material.stock = 0;
+        material.stockValue = 0;
+        material.avgCost = Number(material.purchasePrice) || 0;
+      });
+      this.products.forEach((product, index) => { product.stock = index === 0 ? 800 : 300; });
+      const addMaterialStock = (materialId, warehouseId, qty, value, type, refType, refId, refNumber, date, unitCost) => {
+        const material = this.material(materialId);
+        if (!material.id) return;
+        material.stock = Math.max(0, (Number(material.stock) || 0) + qty);
+        material.stockValue = Math.max(0, (Number(material.stockValue) || 0) + value);
+        material.avgCost = material.stock > 0 ? material.stockValue / material.stock : unitCost;
+        this.stockMovements.unshift({
+          id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+          date,
+          materialId,
+          warehouseId,
+          type,
+          qty,
+          value,
+          unitCost,
+          refType,
+          refId,
+          refNumber,
+          createdAt:date
+        });
+      };
+      const makeOrder = (customerId, specs, status, paymentStatus, date, extra = {}) => {
+        const customer = this.customer(customerId);
+        const items = specs.map(([productId, qty]) => {
+          const product = this.product(productId);
+          const price = customer.priceType === 'out' ? product.outSale : product.inSale;
+          return { productId, qty, price, discPercent:0 };
+        });
+        const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+        const tax = Math.round(subtotal * 0.11);
+        const total = subtotal + tax;
+        items.forEach(item => {
+          const product = this.product(item.productId);
+          if (product.id) product.stock = Math.max(0, (Number(product.stock) || 0) - item.qty);
+        });
+        const order = {
+          id:'o' + Date.now() + Math.random().toString(16).slice(2),
+          code:code('INV', date),
+          customerId,
+          sales:customer.sales,
+          orderBy:extra.orderBy || 'Admin',
+          status,
+          payment:paymentStatus,
+          delivery:'full',
+          radius:extra.radius || 'onsite',
+          date,
+          schedule:date,
+          dueDate:shiftISO(date, 14),
+          subtotal,
+          discount:0,
+          tax,
+          total,
+          customDiscount:0,
+          paymentMethod:extra.paymentMethod || 'Transfer',
+          stockApplied:true,
+          items
+        };
+        this.orders.unshift(order);
+        return order;
+      };
+      const makeDelivery = (orders, status, date, createdBy) => {
+        const list = orders.filter(order => order && order.id);
+        if (!list.length) return null;
+        const delivery = {
+          id:'d' + Date.now() + Math.random().toString(16).slice(2),
+          code:code('DO', date),
+          orderIds:list.map(order => order.id),
+          periodStart:date,
+          periodEnd:shiftISO(date, 7),
+          driver:'Budi Santoso',
+          car:'L300 - DD 1234 AB',
+          warehouseId:'wh1',
+          status,
+          total:list.reduce((sum, order) => sum + order.total, 0),
+          createdBy
+        };
+        this.deliveries.unshift(delivery);
+        return delivery;
+      };
+      const makeReceivable = (order, cash, transfer, dueDate) => {
+        const receivable = {
+          id:'rc' + Date.now() + Math.random().toString(16).slice(2),
+          orderId:order.id,
+          orderCode:order.code,
+          customerId:order.customerId,
+          sales:order.sales,
+          schedule:order.schedule,
+          due:dueDate || order.dueDate,
+          total:order.total,
+          cash,
+          transfer,
+          unpaid:Math.max(0, order.total - cash - transfer)
+        };
+        this.receivables.unshift(receivable);
+        return receivable;
+      };
+      const makeCollection = (sales, date, status, items, paid) => {
+        const total = items.reduce((sum, item) => sum + item.total, 0);
+        const unpaid = Math.max(0, total - paid);
+        const collection = {
+          id:'cl' + Date.now() + Math.random().toString(16).slice(2),
+          code:code('CL', date),
+          sales,
+          date,
+          status,
+          itemIds:items.map(item => item.id),
+          total,
+          paid,
+          unpaid
+        };
+        this.collections.unshift(collection);
+        return collection;
+      };
+      const addFinance = (kind, amount, date, accountCode, cashAccountCode, description, person) => {
+        const journalId = post(
+          date,
+          description,
+          kind,
+          '',
+          kind === 'income'
+            ? [{ accountId:accId(cashAccountCode), debit:amount, credit:0, memo:'Kas masuk' }, { accountId:accId(accountCode), debit:0, credit:amount, memo:description }]
+            : [{ accountId:accId(accountCode), debit:amount, credit:0, memo:description }, { accountId:accId(cashAccountCode), debit:0, credit:amount, memo:'Kas keluar' }]
+        );
+        const item = {
+          id:'f' + Date.now() + Math.random().toString(16).slice(2),
+          code:code(kind === 'income' ? 'IC' : 'OC', date),
+          accountId:accId(accountCode),
+          cashAccountId:accId(cashAccountCode),
+          amount,
+          date,
+          description,
+          proof:'',
+          by:person,
+          journalId
+        };
+        (kind === 'income' ? this.incomes : this.expenses).unshift(item);
+        return item;
+      };
+
+      const pr1Date = d(-20);
+      const po1Date = d(-18);
+      const gr1Date = d(-17);
+      const pr1Items = [
+        { materialId:'mat2', qty:50000, note:'Cup produksi' },
+        { materialId:'mat5', qty:40000, note:'Lid produksi' },
+        { materialId:'mat6', qty:30000, note:'Straw produksi' },
+        { materialId:'mat4', qty:3000, note:'Karton box' },
+        { materialId:'mat7', qty:6000, note:'Lakban' }
+      ];
+      const pr1 = {
+        id:'pr' + Date.now() + '1',
+        code:code('PR', pr1Date),
+        date:pr1Date,
+        requesterId:'u5',
+        requester:'Rina',
+        purpose:'Restock bahan kemasan untuk produksi bulan ini',
+        status:'completed',
+        items:pr1Items.map(item => ({ ...item, orderedQty:item.qty })),
+        history:[
+          { action:'submitted', ...actor('Rina','Manager'), at:pr1Date, note:'' },
+          { action:'approved', ...actor('Sari','Supervisor'), at:shiftISO(pr1Date,1), note:'' },
+          { action:'po-approved', ...actor('Rina','Manager'), at:po1Date, note:'PO/2026/11/0001' }
+        ],
+        rejectReason:''
+      };
+      this.purchaseRequests.unshift(pr1);
+      const po1Items = [
+        { materialId:'mat2', qty:50000, price:250 },
+        { materialId:'mat5', qty:40000, price:50 },
+        { materialId:'mat6', qty:30000, price:30 },
+        { materialId:'mat4', qty:3000, price:3500 },
+        { materialId:'mat7', qty:6000, price:5000 }
+      ];
+      const po1Total = po1Items.reduce((sum, item) => sum + item.qty * item.price, 0);
+      const po1AdditionalCosts = [
+        { description:'Ongkos kirim', amount:750000, qty:1, subtotal:750000 },
+        { description:'Biaya buruh bongkar', amount:250000, qty:2, subtotal:500000 }
+      ];
+      const po1AdditionalTotal = po1AdditionalCosts.reduce((sum, row) => sum + row.subtotal, 0);
+      const po1GrandTotal = po1Total + po1AdditionalTotal;
+      const po1 = {
+        id:'po' + Date.now() + '1',
+        code:code('PO', po1Date),
+        date:po1Date,
+        supplierId:'sup1',
+        prId:pr1.id,
+        prCode:pr1.code,
+        paymentTerms:'30 hari',
+        notes:'Pengadaan bahan kemasan produksi',
+        status:'fully_received',
+        items:po1Items.map(item => ({ ...item, receivedQty:item.qty, returnedQty:0 })),
+        additionalCosts:po1AdditionalCosts,
+        additionalTotal:po1AdditionalTotal,
+        subtotal:po1Total,
+        total:po1GrandTotal,
+        createdBy:'Rina',
+        createdById:'u5',
+        history:[
+          { action:'submitted', ...actor('Rina','Manager'), at:po1Date, note:'' },
+          { action:'approved', ...actor('Sari','Supervisor'), at:shiftISO(po1Date,1), note:'' },
+          { action:'received', ...actor('Rina','Manager'), at:gr1Date, note:'GR/2026/11/0001' }
+        ],
+        rejectReason:''
+      };
+      this.purchaseOrders.unshift(po1);
+      const gr1 = {
+        id:'gr' + Date.now() + '1',
+        code:code('GR', gr1Date),
+        date:gr1Date,
+        poId:po1.id,
+        poCode:po1.code,
+        supplierId:po1.supplierId,
+        warehouseId:'wh1',
+        deliveryNote:'SJ-SKM-1024',
+        status:'posted',
+        items:po1Items.map(item => ({ ...item })),
+        total:po1Total,
+        additionalCost:po1AdditionalTotal,
+        apTotal:po1GrandTotal,
+        journalId:'',
+        payableId:'',
+        createdBy:'Rina',
+        createdById:'u5',
+        postedAt:gr1Date,
+        history:[{ action:'draft', ...actor('Rina','Manager'), at:gr1Date, note:'' }, { action:'posted', ...actor('Rina','Manager'), at:gr1Date, note:'' }]
+      };
+      this.receipts.unshift(gr1);
+      po1Items.forEach(item => addMaterialStock(item.materialId, 'wh1', item.qty, item.qty * item.price, 'receipt', 'receipt', gr1.id, gr1.code, gr1Date, item.price));
+      gr1.journalId = post(gr1Date, 'Penerimaan barang ' + gr1.code, 'receipt', gr1.id, [
+        { accountId:accId('1-1400'), debit:po1Total, credit:0, memo:'Persediaan ' + gr1.code },
+        { accountId:accId('5-1100'), debit:po1AdditionalTotal, credit:0, memo:'Biaya tambahan ' + gr1.code },
+        { accountId:accId('2-1100'), debit:0, credit:po1GrandTotal, memo:'Utang supplier ' + gr1.code }
+      ]);
+      const ap1 = {
+        id:'ap' + Date.now() + '1',
+        code:code('AP', gr1Date),
+        supplierId:'sup1',
+        receiptId:gr1.id,
+        receiptCode:gr1.code,
+        poId:po1.id,
+        poCode:po1.code,
+        date:gr1Date,
+        dueDate:shiftISO(gr1Date, 30),
+        total:po1GrandTotal,
+        paid:0,
+        unpaid:po1GrandTotal,
+        status:'unpaid',
+        payments:[],
+        history:[{ action:'created', ...actor('Rina','Manager'), at:gr1Date, note:gr1.code }]
+      };
+      this.payables.unshift(ap1);
+      gr1.payableId = ap1.id;
+      const apPayDate = d(-5);
+      const apPayAmount = 5000000;
+      ap1.paid = apPayAmount;
+      ap1.unpaid = ap1.total - apPayAmount;
+      ap1.status = 'partial';
+      const apPayCode = code('PP', apPayDate);
+      ap1.payments.unshift({
+        id:'pp' + Date.now() + '1',
+        code:apPayCode,
+        date:apPayDate,
+        amount:apPayAmount,
+        cashAccountId:accId('1-1200'),
+        cashAccountName:'Bank BCA',
+        note:'Pembayaran sebagian',
+        proof:'',
+        journalId:post(apPayDate, 'Pembayaran utang ' + ap1.code, 'payable-payment', ap1.id, [
+          { accountId:accId('2-1100'), debit:apPayAmount, credit:0, memo:'Pelunasan utang' },
+          { accountId:accId('1-1200'), debit:0, credit:apPayAmount, memo:'Kas keluar' }
+        ]),
+        by:'Rina',
+        byRole:'Manager',
+        createdAt:apPayDate
+      });
+      ap1.history.push({ action:'payment', ...actor('Rina','Manager'), at:apPayDate, note:apPayCode });
+
+      const pr2Date = d(-14);
+      const po2Date = d(-12);
+      const gr2Date = d(-10);
+      const pr2 = {
+        id:'pr' + Date.now() + '2',
+        code:code('PR', pr2Date),
+        date:pr2Date,
+        requesterId:'u5',
+        requester:'Rina',
+        purpose:'Restock botol dan label produksi',
+        status:'processing',
+        items:[{ materialId:'mat1', qty:20000, note:'Botol PET', orderedQty:20000 }, { materialId:'mat3', qty:15000, note:'Label', orderedQty:15000 }],
+        history:[
+          { action:'submitted', ...actor('Rina','Manager'), at:pr2Date, note:'' },
+          { action:'approved', ...actor('Sari','Supervisor'), at:shiftISO(pr2Date,1), note:'' },
+          { action:'po-approved', ...actor('Rina','Manager'), at:po2Date, note:'PO/2026/11/0002' }
+        ],
+        rejectReason:''
+      };
+      this.purchaseRequests.unshift(pr2);
+      const po2 = {
+        id:'po' + Date.now() + '2',
+        code:code('PO', po2Date),
+        date:po2Date,
+        supplierId:'sup2',
+        prId:pr2.id,
+        prCode:pr2.code,
+        paymentTerms:'14 hari',
+        notes:'Pengadaan botol dan label',
+        status:'partially_received',
+        items:[
+          { materialId:'mat1', qty:20000, price:900, receivedQty:12000, returnedQty:0 },
+          { materialId:'mat3', qty:15000, price:100, receivedQty:5000, returnedQty:0 }
+        ],
+        subtotal:19500000,
+        total:19500000,
+        createdBy:'Rina',
+        createdById:'u5',
+        history:[
+          { action:'submitted', ...actor('Rina','Manager'), at:po2Date, note:'' },
+          { action:'approved', ...actor('Sari','Supervisor'), at:shiftISO(po2Date,1), note:'' },
+          { action:'received', ...actor('Rina','Manager'), at:gr2Date, note:'GR/2026/11/0002' }
+        ],
+        rejectReason:''
+      };
+      this.purchaseOrders.unshift(po2);
+      const gr2 = {
+        id:'gr' + Date.now() + '2',
+        code:code('GR', gr2Date),
+        date:gr2Date,
+        poId:po2.id,
+        poCode:po2.code,
+        supplierId:po2.supplierId,
+        warehouseId:'wh1',
+        deliveryNote:'SJ-AB-2048',
+        status:'posted',
+        items:[{ materialId:'mat1', qty:12000, price:900 }, { materialId:'mat3', qty:5000, price:100 }],
+        total:11300000,
+        journalId:'',
+        payableId:'',
+        createdBy:'Rina',
+        createdById:'u5',
+        postedAt:gr2Date,
+        history:[{ action:'draft', ...actor('Rina','Manager'), at:gr2Date, note:'' }, { action:'posted', ...actor('Rina','Manager'), at:gr2Date, note:'' }]
+      };
+      this.receipts.unshift(gr2);
+      addMaterialStock('mat1', 'wh1', 12000, 10800000, 'receipt', 'receipt', gr2.id, gr2.code, gr2Date, 900);
+      addMaterialStock('mat3', 'wh1', 5000, 500000, 'receipt', 'receipt', gr2.id, gr2.code, gr2Date, 100);
+      gr2.journalId = post(gr2Date, 'Penerimaan barang ' + gr2.code, 'receipt', gr2.id, [
+        { accountId:accId('1-1400'), debit:11300000, credit:0, memo:'Persediaan ' + gr2.code },
+        { accountId:accId('2-1100'), debit:0, credit:11300000, memo:'Utang supplier ' + gr2.code }
+      ]);
+      const ap2 = {
+        id:'ap' + Date.now() + '2',
+        code:code('AP', gr2Date),
+        supplierId:'sup2',
+        receiptId:gr2.id,
+        receiptCode:gr2.code,
+        poId:po2.id,
+        poCode:po2.code,
+        date:gr2Date,
+        dueDate:shiftISO(gr2Date, 14),
+        total:11300000,
+        paid:0,
+        unpaid:11300000,
+        status:'unpaid',
+        payments:[],
+        history:[{ action:'created', ...actor('Rina','Manager'), at:gr2Date, note:gr2.code }]
+      };
+      this.payables.unshift(ap2);
+      gr2.payableId = ap2.id;
+      const gr3 = {
+        id:'gr' + Date.now() + '3',
+        code:code('GR', d(-2)),
+        date:d(-2),
+        poId:po2.id,
+        poCode:po2.code,
+        supplierId:po2.supplierId,
+        warehouseId:'wh1',
+        deliveryNote:'SJ-AB-2051',
+        status:'draft',
+        items:[{ materialId:'mat3', qty:5000, price:100 }],
+        total:500000,
+        journalId:'',
+        payableId:'',
+        createdBy:'Sari',
+        createdById:'u4',
+        postedAt:'',
+        history:[{ action:'draft', ...actor('Sari','Supervisor'), at:d(-2), note:'' }]
+      };
+      this.receipts.unshift(gr3);
+
+      const pr3Date = d(-5);
+      const pr3 = {
+        id:'pr' + Date.now() + '3',
+        code:code('PR', pr3Date),
+        date:pr3Date,
+        requesterId:'u2',
+        requester:'Fahri',
+        purpose:'Kebutuhan bahan kemasan bulan depan',
+        status:'submitted',
+        items:[{ materialId:'mat2', qty:25000, note:'Cup', orderedQty:0 }, { materialId:'mat4', qty:500, note:'Karton', orderedQty:0 }],
+        history:[{ action:'submitted', ...actor('Fahri','Sales'), at:pr3Date, note:'' }],
+        rejectReason:''
+      };
+      this.purchaseRequests.unshift(pr3);
+      const pr4Date = d(-2);
+      const pr4 = {
+        id:'pr' + Date.now() + '4',
+        code:code('PR', pr4Date),
+        date:pr4Date,
+        requesterId:'u1',
+        requester:'Admin',
+        purpose:'Rencana restock lid awal bulan',
+        status:'draft',
+        items:[{ materialId:'mat5', qty:10000, note:'Lid', orderedQty:0 }],
+        history:[{ action:'draft', ...actor('Admin','Admin'), at:pr4Date, note:'' }],
+        rejectReason:''
+      };
+      this.purchaseRequests.unshift(pr4);
+      const po3Date = d(-1);
+      const po3 = {
+        id:'po' + Date.now() + '3',
+        code:code('PO', po3Date),
+        date:po3Date,
+        supplierId:'sup3',
+        prId:'',
+        prCode:'',
+        paymentTerms:'Cash',
+        notes:'Pembelian tambahan label dan lakban',
+        status:'pending_approval',
+        items:[{ materialId:'mat2', qty:5000, price:255, receivedQty:0, returnedQty:0 }, { materialId:'mat7', qty:1000, price:5200, receivedQty:0, returnedQty:0 }],
+        subtotal:6475000,
+        total:6475000,
+        createdBy:'Admin',
+        createdById:'u1',
+        history:[{ action:'submitted', ...actor('Admin','Admin'), at:po3Date, note:'' }],
+        rejectReason:''
+      };
+      this.purchaseOrders.unshift(po3);
+      const po4Date = now;
+      const po4 = {
+        id:'po' + Date.now() + '4',
+        code:code('PO', po4Date),
+        date:po4Date,
+        supplierId:'sup1',
+        prId:'',
+        prCode:'',
+        paymentTerms:'30 hari',
+        notes:'Draft pembelian karton box',
+        status:'draft',
+        items:[{ materialId:'mat4', qty:100, price:3500, receivedQty:0, returnedQty:0 }],
+        subtotal:350000,
+        total:350000,
+        createdBy:'Admin',
+        createdById:'u1',
+        history:[{ action:'draft', ...actor('Admin','Admin'), at:po4Date, note:'' }],
+        rejectReason:''
+      };
+      this.purchaseOrders.unshift(po4);
+
+      const return1Date = d(-4);
+      const return1 = {
+        id:'prt' + Date.now() + '1',
+        code:code('PRT', return1Date),
+        date:return1Date,
+        poId:po1.id,
+        poCode:po1.code,
+        supplierId:'sup1',
+        warehouseId:'wh1',
+        notes:'Cup penyok saat penerimaan',
+        items:[{ materialId:'mat2', qty:100, price:250, condition:'damaged', action:'credit', note:'Cup penyok' }],
+        total:25000,
+        replaceTotal:0,
+        creditTotal:25000,
+        status:'posted',
+        replacementStatus:'none',
+        journalId:'',
+        apAdjustments:[],
+        createdBy:'Rina',
+        createdById:'u5',
+        postedAt:return1Date,
+        history:[{ action:'posted', ...actor('Rina','Manager'), at:return1Date, note:'' }]
+      };
+      const po1Mat2 = po1.items.find(item => item.materialId === 'mat2');
+      if (po1Mat2) po1Mat2.returnedQty = 100;
+      addMaterialStock('mat2', 'wh1', -100, -25000, 'purchase-return', 'purchase-return', return1.id, return1.code, return1Date, 250);
+      ap1.total = Math.max(0, ap1.total - 25000);
+      ap1.unpaid = Math.max(0, ap1.unpaid - 25000);
+      ap1.status = ap1.unpaid <= 0 ? 'paid' : 'partial';
+      ap1.history.push({ action:'purchase-return-credit', ...actor('Rina','Manager'), at:return1Date, note:return1.code });
+      return1.apAdjustments.push({ payableId:ap1.id, payableCode:ap1.code, amount:25000 });
+      return1.journalId = post(return1Date, 'Return pembelian ' + return1.code, 'purchase-return', return1.id, [
+        { accountId:accId('2-1100'), debit:25000, credit:0, memo:'Potongan utang supplier' },
+        { accountId:accId('1-1400'), debit:0, credit:25000, memo:'Persediaan keluar' }
+      ]);
+      this.purchaseReturns.unshift(return1);
+      const return2Date = d(-3);
+      const return2 = {
+        id:'prt' + Date.now() + '2',
+        code:code('PRT', return2Date),
+        date:return2Date,
+        poId:po1.id,
+        poCode:po1.code,
+        supplierId:'sup1',
+        warehouseId:'wh1',
+        notes:'LID pecah, menunggu penggantian',
+        items:[{ materialId:'mat5', qty:50, price:50, condition:'damaged', action:'replace', note:'LID pecah' }],
+        total:2500,
+        replaceTotal:2500,
+        creditTotal:0,
+        status:'posted',
+        replacementStatus:'pending',
+        journalId:'',
+        apAdjustments:[],
+        createdBy:'Rina',
+        createdById:'u5',
+        postedAt:return2Date,
+        history:[{ action:'posted', ...actor('Rina','Manager'), at:return2Date, note:'' }]
+      };
+      const po1Mat5 = po1.items.find(item => item.materialId === 'mat5');
+      if (po1Mat5) po1Mat5.returnedQty = 50;
+      addMaterialStock('mat5', 'wh1', -50, -2500, 'purchase-return', 'purchase-return', return2.id, return2.code, return2Date, 50);
+      return2.journalId = post(return2Date, 'Return pembelian ' + return2.code, 'purchase-return', return2.id, [
+        { accountId:accId('1-1500'), debit:2500, credit:0, memo:'Klaim ganti barang' },
+        { accountId:accId('1-1400'), debit:0, credit:2500, memo:'Persediaan keluar' }
+      ]);
+      this.purchaseReturns.unshift(return2);
+
+      const makeProduction = (date, qty, overrides = {}, description = '') => {
+        const product = this.product('p1');
+        const rows = this.recipes.filter(recipe => recipe.productId === product.id).map(recipe => {
+          const material = this.material(recipe.materialId);
+          const standardQty = (Number(recipe.qtyPerUnit) || 0) * qty;
+          const used = overrides[recipe.materialId] !== undefined ? overrides[recipe.materialId] : standardQty;
+          return {
+            materialId:recipe.materialId,
+            standardQty,
+            qty:used,
+            price:Number(material.avgCost) || Number(material.purchasePrice) || 0,
+            note:used !== standardQty ? 'Penyesuaian lapangan' : '',
+            fromRecipe:true
+          };
+        });
+        const totalCost = rows.reduce((sum, row) => sum + row.qty * row.price, 0);
+        const prod = {
+          id:'prd' + Date.now() + Math.random().toString(16).slice(2),
+          code:productionCode(date),
+          date,
+          productId:product.id,
+          warehouseId:'wh1',
+          qty,
+          description,
+          status:'posted',
+          materials:rows,
+          totalCost,
+          costPerUnit:qty > 0 ? totalCost / qty : 0,
+          createdBy:'Rina',
+          createdById:'u5',
+          createdByRole:'Manager',
+          createdAt:date,
+          updatedAt:date
+        };
+        product.stock = (Number(product.stock) || 0) + qty;
+        rows.forEach(row => addMaterialStock(row.materialId, 'wh1', -row.qty, -(row.qty * row.price), 'production-usage', 'production', prod.id, prod.code, date, row.price));
+        this.stockHistory.unshift({ id:'sh' + Date.now() + 'r' + productionSeq, code:prod.code, date, warehouseId:'wh1', description:'Produksi (hasil) ' + prod.code, by:'Rina', byRole:'Manager', type:'production-result', refType:'production', refId:prod.id, refNumber:prod.code, items:[{ productId:product.id, qty }] });
+        this.stockHistory.unshift({ id:'sh' + Date.now() + 'u' + productionSeq, code:prod.code, date, warehouseId:'wh1', description:'Produksi (pemakaian) ' + prod.code, by:'Rina', byRole:'Manager', type:'production-usage', refType:'production', refId:prod.id, refNumber:prod.code, items:rows.map(row => ({ materialId:row.materialId, qty:-row.qty })) });
+        this.productions.unshift(prod);
+        this.productionLogs.unshift({ id:'plog' + Date.now() + Math.random().toString(16).slice(2), productionId:prod.id, at:date, user:'Rina', role:'Manager', action:'buat', detail:'Produksi ' + prod.code + ' dibuat: ' + this.fmt(qty) + ' ' + product.unit + '.', reason:'' });
+        return prod;
+      };
+      const prod1 = makeProduction(d(-7), 500, {}, 'Batch produksi awal bulan');
+      const prod2 = makeProduction(d(-2), 200, { mat2:9500 }, 'Batch produksi shift 2');
+
+      const order1Date = d(-6);
+      const order1 = makeOrder('c1', [['p1', 10], ['p2', 5]], 'pending', 'unpaid', order1Date, { orderBy:'Fahri' });
+      const order2 = makeOrder('c2', [['p2', 20]], 'already', 'unpaid', d(-5), { orderBy:'Zainudin' });
+      const order3 = makeOrder('c3', [['p1', 30], ['p3', 10]], 'shipping', 'partial', d(-4), { orderBy:'Fahri', radius:'offsite' });
+      const order4 = makeOrder('c4', [['p3', 15]], 'success', 'paid', d(-3), { orderBy:'Zainudin' });
+      const order5 = makeOrder('c5', [['p1', 25]], 'success', 'partial', d(-2), { orderBy:'Fahri' });
+      const order6 = makeOrder('c6', [['p2', 8]], 'partial', 'partial', d(-1), { orderBy:'Zainudin' });
+      const order7 = makeOrder('c7', [['p1', 12]], 'cancel', 'unpaid', d(-1), { orderBy:'Fahri' });
+      makeDelivery([order3], 'shipping', d(-3), 'Rina');
+      makeDelivery([order4, order5], 'success', d(-1), 'Sari');
+      makeDelivery([order2], 'pending', now, 'Rina');
+      const rec1 = makeReceivable(order5, 300000, 100000, shiftISO(order5.date, 14));
+      const rec2 = makeReceivable(order4, order4.total, 0, shiftISO(order4.date, 14));
+      const rec3 = makeReceivable(order6, 0, 0, shiftISO(order6.date, 14));
+      const col1 = makeCollection('Fahri', d(-1), 'pending', [rec1], 400000);
+      const col2 = makeCollection('Zainudin', d(-1), 'processing', [rec3], 0);
+      const col3 = makeCollection('Zainudin', d(-1), 'success', [rec2], rec2.total);
+      this.payments.unshift({ id:'pm' + Date.now() + '1', orderId:order4.id, orderCode:order4.code, customerId:order4.customerId, amount:rec2.total, cash:rec2.total, transfer:0, date:d(-1), proof:'', by:'Sari' });
+      this.payments.unshift({ id:'pm' + Date.now() + '2', orderId:order5.id, orderCode:order5.code, customerId:order5.customerId, amount:400000, cash:300000, transfer:100000, date:d(-1), proof:'', by:'Fahri' });
+      this.returns.unshift({
+        id:'r' + Date.now(),
+        code:code('RTN', d(-1)),
+        orderId:order5.id,
+        productId:'p1',
+        name:this.productName('p1'),
+        qty:1,
+        price:this.product('p1').inSale,
+        type:'change',
+        condition:'damaged',
+        action:'discard',
+        status:'pending',
+        description:'Kemasan penyok saat diterima pelanggan',
+        by:'Sari',
+        date:d(-1)
+      });
+      this.opnames.unshift({ id:'op' + Date.now(), code:code('OP', d(-6)), date:d(-6), productId:'p2', warehouseId:'wh1', qty:-5, description:'Barang rusak di gudang', by:'Sari' });
+
+      addFinance('income', 750000, d(-6), '4-9100', '1-1100', 'Pendapatan jasa pengiriman', 'Admin');
+      addFinance('income', 1250000, d(-4), '4-9200', '1-1200', 'Komisi mitra distributor', 'Admin');
+      addFinance('expense', 500000, d(-5), '5-1100', '1-1100', 'Operasional gudang', 'Admin');
+      addFinance('expense', 4000000, d(-3), '5-1200', '1-1200', 'Gaji karyawan bulan ini', 'Admin');
+      addFinance('expense', 350000, d(-2), '5-1300', '1-1100', 'BBM dan transportasi', 'Admin');
+
+      this.selectedOrderId = order3.id;
+      this.selectedDeliveryId = this.deliveries[0]?.id || null;
+      this.selectedCollectionId = col1.id;
+      this.prSelectedId = pr2.id;
+      this.poSelectedId = po2.id;
+      this.receiptSelectedId = gr2.id;
+      this.purchaseReturnSelectedId = return1.id;
+      this.productionSelectedId = prod1.id;
+      this.stockTab = 'production';
+      this.materialStockTab = 'active';
+      this.persist();
+      this.notify('Data dummy berhasil diisi. Silakan jelajahi modul aplikasi.');
+      this.go('dashboard');
     },
     resetDemo() {
       this.askConfirm('reset-data', null, 'Reset data demo?', 'Semua perubahan (order, pembayaran, stok, pengguna) akan dikembalikan ke data awal.');
@@ -4531,13 +6822,17 @@ function app() {
     settingsTab: 'profile',
     settingsForm: { name:'Admin', username:'admin', email:'admin@abimineral.com' },
     passwordForm: { current:'', next:'', confirmation:'' },
-    saveProfile() {
+    saveProfile(confirmed = false) {
       const user = this.currentUserRecord;
       if (!user) { this.notify('Sesi login tidak ditemukan', 'error'); return; }
       if (!this.settingsForm.name || !this.settingsForm.username) { this.notify('Nama dan username wajib diisi', 'error'); return; }
       const username = String(this.settingsForm.username).trim().toLowerCase();
       if (this.users.some(u => u.id !== user.id && String(u.username).toLowerCase() === username)) {
         this.notify('Username sudah dipakai pengguna lain', 'error');
+        return;
+      }
+      if (!confirmed) {
+        this.askSave('save-profile', null, 'Profil ' + this.settingsForm.name + ' akan disimpan.', 'Simpan');
         return;
       }
       user.name = this.settingsForm.name;
@@ -4547,7 +6842,7 @@ function app() {
       this.persist();
       this.notify('Profil berhasil disimpan');
     },
-    savePassword() {
+    savePassword(confirmed = false) {
       const user = this.currentUserRecord;
       if (!user) { this.notify('Sesi login tidak ditemukan', 'error'); return; }
       if (String(user.password || DEMO_PASSWORD) !== this.passwordForm.current) {
@@ -4560,6 +6855,10 @@ function app() {
       }
       if (this.passwordForm.next !== this.passwordForm.confirmation) {
         this.notify('Konfirmasi kata sandi tidak sama', 'error');
+        return;
+      }
+      if (!confirmed) {
+        this.askSave('save-password', null, 'Kata sandi akun akan diperbarui.', 'Simpan');
         return;
       }
       user.password = this.passwordForm.next;
