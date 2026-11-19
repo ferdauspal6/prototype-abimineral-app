@@ -741,6 +741,14 @@
       "w": 1440
     },
     {
+      "id": "opening-balance",
+      "name": "Saldo Awal",
+      "src": "index.html?canvas=opening-balance",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "account-modal",
       "name": "Modal Akun",
       "src": "index.html?canvas=account-modal",

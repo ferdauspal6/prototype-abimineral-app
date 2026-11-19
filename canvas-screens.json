@@ -80,6 +80,7 @@
   { "id": "purchase-return-detail", "name": "Detail Return Pembelian", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-returns", "setup": "purchase-return-detail" },
 
   { "id": "coa", "name": "Chart of Accounts", "group": "keuangan", "groupName": "Keuangan", "page": "coa" },
+  { "id": "opening-balance", "name": "Saldo Awal", "group": "keuangan", "groupName": "Keuangan", "page": "opening-balance" },
   { "id": "account-modal", "name": "Modal Akun", "group": "keuangan", "groupName": "Keuangan", "page": "coa", "setup": "account-modal" },
   { "id": "journals", "name": "Jurnal Umum", "group": "keuangan", "groupName": "Keuangan", "page": "journals" },
   { "id": "journal-create", "name": "Buat Jurnal", "group": "keuangan", "groupName": "Keuangan", "page": "journal-create", "setup": "journal-create" },

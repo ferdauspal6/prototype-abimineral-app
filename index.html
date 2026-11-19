@@ -2194,6 +2194,123 @@
         <div x-show="filteredAccounts.length === 0" class="card p-10 text-center"><svg class="icon icon-xl text-slate-300 mx-auto"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-3">Akun tidak ditemukan</div></div>
       </section>
 
+      <!-- OPENING BALANCE -->
+      <section x-show="page === 'opening-balance'">
+        <div class="card p-4 mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="section-title">Saldo Awal</div>
+              <div class="text-[11px] text-slate-400">Input saldo awal akun neraca. Pendapatan dan beban tidak termasuk.</div>
+            </div>
+            <div class="seg" x-show="!openingPostedJournal">
+              <button class="seg-btn" :class="{ 'active': openingMode === 'quick' }" @click="openingMode = 'quick'">Cepat</button>
+              <button class="seg-btn" :class="{ 'active': openingMode === 'full' }" @click="openingMode = 'full'">Lengkap</button>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="label">Tanggal Saldo Awal <span class="req">*</span></label>
+              <input type="date" class="input" x-model="openingDate" :disabled="!!openingPostedJournal">
+            </div>
+            <div class="md:col-span-2">
+              <label class="label">Catatan</label>
+              <input class="input" x-model="openingNote" placeholder="Contoh: Saldo awal migrasi sistem" :disabled="!!openingPostedJournal">
+            </div>
+          </div>
+          <p class="mt-2 text-[11px] text-slate-400" x-show="openingMode === 'quick' && !openingPostedJournal">Mode cepat: isi saldo Kas dan Bank. Selisih otomatis masuk ke akun Saldo Awal.</p>
+          <p class="mt-2 text-[11px] text-slate-400" x-show="openingMode === 'full' && !openingPostedJournal">Mode lengkap: isi seluruh akun Aset, Kewajiban, dan Ekuitas. Selisih otomatis masuk ke akun Saldo Awal.</p>
+        </div>
+
+        <div x-show="openingPostedJournal" class="space-y-4">
+          <div class="card p-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2"><div class="section-title">Saldo Awal Sudah Diposting</div><span class="badge badge-green">Posted</span></div>
+                <div class="text-[11px] text-slate-400 mt-1"><span x-text="openingJournalView.code"></span> • <span x-text="dateLong(openingJournalView.date)"></span></div>
+                <div class="text-xs text-slate-500 mt-1" x-text="openingJournalView.description"></div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button class="btn btn-outline btn-sm" @click="viewJournal(openingJournalView)">Lihat Jurnal</button>
+                <button class="btn btn-danger btn-sm" @click="voidOpeningBalance()">Void Saldo Awal</button>
+              </div>
+            </div>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Total Debit</div><div class="font-bold text-base" x-text="rp(journalTotals(openingJournalView).debit)"></div></div>
+              <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Total Kredit</div><div class="font-bold text-base" x-text="rp(journalTotals(openingJournalView).credit)"></div></div>
+              <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Dibuat Oleh</div><div class="font-bold text-base" x-text="openingJournalView.createdBy || '-'"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="section-title">Rincian Jurnal Saldo Awal</div><span class="badge badge-slate" x-text="(openingJournalView.lines || []).length + ' baris'"></span></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Kode</th><th>Akun</th><th class="num">Debit</th><th class="num">Kredit</th></tr></thead>
+                <tbody>
+                  <template x-for="(line, index) in (openingJournalView.lines || [])" :key="index">
+                    <tr><td class="font-semibold" x-text="accountCode(line.accountId)"></td><td x-text="accountName(line.accountId)"></td><td class="num" x-text="line.debit ? rp(line.debit) : '-'"></td><td class="num" x-text="line.credit ? rp(line.credit) : '-'"></td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div x-show="!openingPostedJournal" class="space-y-4">
+          <div class="card">
+            <div class="card-header"><div><div class="section-title" x-text="openingMode === 'quick' ? 'Saldo Kas & Bank' : 'Saldo Akun Neraca'"></div><div class="text-[11px] text-slate-400" x-text="openingMode === 'quick' ? 'Masukkan saldo positif. Saldo awal bank negatif gunakan mode lengkap.' : 'Isi debit atau kredit sesuai saldo akun.'"></div></div><span class="badge badge-slate" x-text="openingRows.length + ' akun'"></span></div>
+            <div class="table-wrap" x-show="openingMode === 'quick'">
+              <table class="data-table">
+                <thead><tr><th>Kode</th><th>Akun</th><th class="num">Saldo</th></tr></thead>
+                <tbody>
+                  <template x-for="account in openingQuickAccounts" :key="account.id">
+                    <tr>
+                      <td class="font-semibold" x-text="account.code"></td>
+                      <td x-text="account.name"></td>
+                      <td class="num"><input type="number" min="0" class="input input-sm w-44 text-right" :value="openingQuickAmount(account.id)" @input="setOpeningQuick(account.id, $event.target.value)"></td>
+                    </tr>
+                  </template>
+                  <tr x-show="openingQuickAccounts.length === 0"><td colspan="3"><div class="empty py-6"><div class="font-semibold">Belum ada akun Kas/Bank</div><div class="text-xs text-slate-400">Tandai akun sebagai Kas/Bank di Chart of Accounts.</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-wrap" x-show="openingMode === 'full'">
+              <table class="data-table">
+                <thead><tr><th>Kode</th><th>Akun</th><th>Tipe</th><th>Normal</th><th class="num">Debit</th><th class="num">Kredit</th></tr></thead>
+                <tbody>
+                  <template x-for="account in openingFullAccounts" :key="account.id">
+                    <tr>
+                      <td class="font-semibold" x-text="account.code"></td>
+                      <td x-text="account.name"></td>
+                      <td class="text-slate-500" x-text="accountTypeLabel(account.type)"></td>
+                      <td class="text-slate-500" x-text="accountNormalLabel(account.normalBalance)"></td>
+                      <td class="num"><input type="number" min="0" class="input input-sm w-40 text-right" :value="openingDebit(account.id)" @input="setOpeningFull(account.id, 'debit', $event.target.value)"></td>
+                      <td class="num"><input type="number" min="0" class="input input-sm w-40 text-right" :value="openingCredit(account.id)" @input="setOpeningFull(account.id, 'credit', $event.target.value)"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+            <div class="border-t border-slate-200 p-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Total Debit</div><div class="font-bold text-base" x-text="rp(openingTotals.debit)"></div></div>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Total Kredit</div><div class="font-bold text-base" x-text="rp(openingTotals.credit)"></div></div>
+                <div class="rounded-lg border border-slate-200 bg-blue-50 px-3 py-2"><div class="text-slate-400">Penyeimbang Saldo Awal</div><div class="font-bold text-base" x-text="openingBalancingAmount ? (openingBalancingSide === 'debit' ? 'Debit ' : 'Kredit ') + rp(openingBalancingAmount) : rp(0)"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="openingPreviousJournals.length > 0" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+            <div class="font-semibold">Perhatian: sudah ada <span x-text="openingPreviousJournals.length"></span> jurnal posted sebelum tanggal saldo awal.</div>
+            <div class="mt-1">Pastikan saldo awal tidak menghitung ulang transaksi yang sudah tercatat.</div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-[11px] text-slate-400">Saldo awal hanya memengaruhi akun neraca dan tidak masuk Laba Rugi.</div>
+            <button class="btn btn-primary" @click="confirmOpeningBalance()" :disabled="!openingHasAmounts">Posting Saldo Awal <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
+          </div>
+        </div>
+      </section>
+
       <!-- JOURNALS -->
       <section x-show="page === 'journals'">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -4031,7 +4148,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261121c"></script>
+<script src="assets/app.js?v=20261121e"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

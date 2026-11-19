@@ -48,6 +48,7 @@ const PAGE_PERMISSION = {
   'purchase-returns': 'Return Pembelian',
   'purchase-return-create': 'Return Pembelian',
   coa: 'Chart of Accounts',
+  'opening-balance': 'Laporan Keuangan',
   journals: 'Jurnal Umum',
   'journal-create': 'Jurnal Umum',
   ledger: 'Laporan Keuangan',
@@ -215,7 +216,8 @@ function seedData() {
     { id:'acc15', code:'5-1200', name:'Beban Gaji', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Beban gaji karyawan' },
     { id:'acc16', code:'5-1300', name:'Beban Transportasi', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'BBM dan transportasi' },
     { id:'acc17', code:'5-1400', name:'Beban Selisih Persediaan', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Selisih stock opname' },
-    { id:'acc21', code:'5-1500', name:'Beban Pemeliharaan', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Perawatan gudang dan kendaraan' }
+    { id:'acc21', code:'5-1500', name:'Beban Pemeliharaan', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Perawatan gudang dan kendaraan' },
+    { id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun penyeimbang saldo awal' }
   ];
 
   const journals = [];
@@ -1182,6 +1184,7 @@ function app() {
           { page: 'finance-income', label: 'Pendapatan Lainnya', icon: 'i-banknote', match: ['finance-income'] },
           { page: 'finance-expense', label: 'Pengeluaran Lainnya', icon: 'i-banknote-down', match: ['finance-expense'] },
           { page: 'coa', label: 'Chart of Accounts', icon: 'i-clipboard', match: ['coa'] },
+          { page: 'opening-balance', label: 'Saldo Awal', icon: 'i-coins', match: ['opening-balance'] },
           { page: 'journals', label: 'Jurnal Umum', icon: 'i-file', match: ['journals','journal-create'] },
           { page: 'ledger', label: 'Buku Besar', icon: 'i-chart', match: ['ledger'] },
           { page: 'reports', label: 'Laporan', icon: 'i-receipt', match: ['reports'] }
@@ -1233,6 +1236,7 @@ function app() {
         'purchase-returns': { title: 'Return Pembelian', crumb: 'Pembelian / Return' },
         'purchase-return-create': { title: 'Buat Return Pembelian', crumb: 'Pembelian / Return / Buat' },
         coa: { title: 'Chart of Accounts', crumb: 'Keuangan / Chart of Accounts' },
+        'opening-balance': { title: 'Saldo Awal', crumb: 'Keuangan / Saldo Awal' },
         journals: { title: 'Jurnal Umum', crumb: 'Keuangan / Jurnal Umum' },
         'journal-create': { title: 'Buat Jurnal', crumb: 'Keuangan / Jurnal Umum / Buat' },
         ledger: { title: 'Buku Besar', crumb: 'Keuangan / Buku Besar' },
@@ -1640,6 +1644,7 @@ function app() {
       this.canvasMode = params.has('canvas');
       this.canvasScreenId = params.get('canvas');
       this.loadStore();
+      this.ensureOpeningBalanceAccount();
       this.syncOrderAudit();
       if (this.canvasMode && !this.currentUserId) {
         const user = this.users.find(item => (item.roles || []).includes('Admin')) || this.users[0];
@@ -2077,6 +2082,19 @@ function app() {
       }
       if (action === 'save-journal-form') {
         this.saveJournal(id === 'post', true);
+      }
+      if (action === 'post-opening') {
+        this.saveOpeningBalance();
+      }
+      if (action === 'void-opening') {
+        const journal = this.journals.find(item => item.id === id && item.source === 'opening');
+        if (journal && journal.status === 'posted') {
+          journal.status = 'void';
+          journal.voidReason = 'Void saldo awal';
+          journal.history = journal.history || [];
+          journal.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Void saldo awal' });
+          this.notify('Saldo awal berhasil di-void');
+        }
       }
       if (action === 'save-purchase-return') {
         this.savePurchaseReturn(true);
@@ -4228,7 +4246,7 @@ function app() {
       const match = String(terms || '').match(/(\d+)/);
       return shiftISO(date || todayISO(), match ? Number(match[1]) : 0);
     },
-    createSystemJournal({ date, description, source, sourceId, lines }) {
+    createSystemJournal({ date, description, source, sourceId, lines, by, byRole }) {
       const debit = lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
       const credit = lines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
       if (Math.abs(debit - credit) > 0.0001 || debit <= 0) return null;
@@ -4241,11 +4259,11 @@ function app() {
         sourceId:sourceId || '',
         status:'posted',
         lines,
-        postedBy:'Sistem',
+        postedBy:by || 'Sistem',
         postedAt:todayISO(),
         voidReason:'',
-        createdBy:'Sistem',
-        history:[{ action:'posted', by:'Sistem', at:todayISO(), note:'Jurnal otomatis' }]
+        createdBy:by || 'Sistem',
+        history:[{ action:'posted', by:by || 'Sistem', byRole:byRole || 'System', at:todayISO(), note:'Jurnal otomatis' }]
       };
       this.journals.unshift(journal);
       return journal;
@@ -4686,6 +4704,16 @@ function app() {
     accountById(id) { return this.accounts.find(account => account.id === id) || {}; },
     accountName(id) { return this.accountById(id).name || '-'; },
     accountCode(id) { return this.accountById(id).code || '-'; },
+    ensureOpeningBalanceAccount() {
+      if (this.accounts.some(account => account.code === '3-1100')) return false;
+      this.accounts.push({
+        id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit',
+        parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true,
+        description:'Akun penyeimbang saldo awal'
+      });
+      this.accounts.sort((a, b) => String(a.code).localeCompare(String(b.code)));
+      return true;
+    },
     accountTypeLabel(type) {
       return { asset:'Aset', liability:'Kewajiban', equity:'Ekuitas', revenue:'Pendapatan', expense:'Beban' }[type] || type;
     },
@@ -4849,7 +4877,8 @@ function app() {
         expense:'Pengeluaran Lainnya',
         'purchase-return':'Return Pembelian',
         'purchase-return-replacement':'Ganti Barang',
-        'payable-payment':'Pembayaran Utang'
+        'payable-payment':'Pembayaran Utang',
+        opening:'Saldo Awal'
       }[source] || source;
     },
     journalAccountOptions() {
@@ -5001,6 +5030,128 @@ function app() {
     deleteJournal(journal) {
       if (journal.status !== 'draft') { this.notify('Hanya jurnal draft yang dapat dihapus', 'error'); return; }
       this.askConfirm('delete-journal', journal.id, 'Hapus jurnal?', 'Draft jurnal ' + journal.code + ' akan dihapus.');
+    },
+
+    /* ---------- OPENING BALANCE ---------- */
+    openingMode: 'quick',
+    openingDate: todayISO(),
+    openingQuickAmounts: {},
+    openingFullAmounts: {},
+    openingNote: '',
+    get openingAccount() { return this.accounts.find(account => account.code === '3-1100') || {}; },
+    get openingPostedJournal() { return this.journals.find(journal => journal.source === 'opening' && journal.status === 'posted') || null; },
+    get openingJournalView() { return this.openingPostedJournal || {}; },
+    get openingQuickAccounts() {
+      return this.accounts
+        .filter(account => account.isCashBank && account.type === 'asset' && account.status)
+        .sort((a, b) => String(a.code).localeCompare(String(b.code)));
+    },
+    get openingFullAccounts() {
+      return this.accounts
+        .filter(account => ['asset', 'liability', 'equity'].includes(account.type) && account.code !== '3-1100')
+        .sort((a, b) => String(a.code).localeCompare(String(b.code)));
+    },
+    openingQuickAmount(id) { return Number(this.openingQuickAmounts[id]) || 0; },
+    setOpeningQuick(id, value) {
+      this.openingQuickAmounts = { ...this.openingQuickAmounts, [id]: Math.max(0, Number(value) || 0) };
+    },
+    openingFullRow(id) { return this.openingFullAmounts[id] || { debit:0, credit:0 }; },
+    openingDebit(id) { return Number(this.openingFullRow(id).debit) || 0; },
+    openingCredit(id) { return Number(this.openingFullRow(id).credit) || 0; },
+    setOpeningFull(id, side, value) {
+      const row = { ...this.openingFullRow(id) };
+      const amount = Math.max(0, Number(value) || 0);
+      if (side === 'debit') {
+        row.debit = amount;
+        if (amount > 0) row.credit = 0;
+      } else {
+        row.credit = amount;
+        if (amount > 0) row.debit = 0;
+      }
+      this.openingFullAmounts = { ...this.openingFullAmounts, [id]: row };
+    },
+    get openingRows() {
+      if (this.openingMode === 'quick') {
+        return this.openingQuickAccounts
+          .map(account => ({ accountId:account.id, debit:this.openingQuickAmount(account.id), credit:0 }))
+          .filter(row => row.debit > 0);
+      }
+      return this.openingFullAccounts
+        .map(account => ({ accountId:account.id, debit:this.openingDebit(account.id), credit:this.openingCredit(account.id) }))
+        .filter(row => row.debit > 0 || row.credit > 0);
+    },
+    get openingTotals() {
+      return this.openingRows.reduce((sum, row) => ({
+        debit:sum.debit + row.debit,
+        credit:sum.credit + row.credit
+      }), { debit:0, credit:0 });
+    },
+    get openingBalancingAmount() { return Math.abs(this.openingTotals.debit - this.openingTotals.credit); },
+    get openingBalancingSide() {
+      const difference = this.openingTotals.debit - this.openingTotals.credit;
+      if (difference > 0) return 'credit';
+      if (difference < 0) return 'debit';
+      return '';
+    },
+    get openingPostingLines() {
+      const lines = this.openingRows.map(row => ({
+        accountId:row.accountId,
+        debit:row.debit,
+        credit:row.credit,
+        memo:'Saldo awal'
+      }));
+      const amount = this.openingBalancingAmount;
+      if (amount > 0 && this.openingAccount.id) {
+        lines.push({
+          accountId:this.openingAccount.id,
+          debit:this.openingBalancingSide === 'debit' ? amount : 0,
+          credit:this.openingBalancingSide === 'credit' ? amount : 0,
+          memo:'Saldo awal'
+        });
+      }
+      return lines.filter(line => line.debit > 0 || line.credit > 0);
+    },
+    get openingHasAmounts() { return this.openingRows.length > 0; },
+    get openingPreviousJournals() {
+      return this.journals.filter(journal =>
+        journal.status === 'posted' && journal.source !== 'opening' && journal.date < this.openingDate
+      );
+    },
+    resetOpeningForm() {
+      this.openingMode = 'quick';
+      this.openingDate = todayISO();
+      this.openingQuickAmounts = {};
+      this.openingFullAmounts = {};
+      this.openingNote = '';
+    },
+    confirmOpeningBalance() {
+      if (this.openingPostedJournal) { this.notify('Saldo awal sudah diposting. Void terlebih dahulu untuk mengubah.', 'error'); return; }
+      if (!this.openingDate) { this.notify('Tanggal saldo awal wajib diisi', 'error'); return; }
+      if (!this.openingRows.length) { this.notify('Isi minimal satu saldo akun', 'error'); return; }
+      this.askConfirm('post-opening', null, 'Posting saldo awal?', 'Saldo awal akan membuat jurnal pembuka dan langsung memengaruhi Neraca Saldo, Neraca, dan Buku Besar.', false, 'Posting');
+    },
+    saveOpeningBalance() {
+      if (this.openingPostedJournal) { this.notify('Saldo awal sudah diposting. Void terlebih dahulu untuk mengubah.', 'error'); return; }      if (!this.openingDate) { this.notify('Tanggal saldo awal wajib diisi', 'error'); return; }
+      if (!this.openingRows.length) { this.notify('Isi minimal satu saldo akun', 'error'); return; }
+      if (!this.openingAccount.id) { this.notify('Akun Saldo Awal tidak ditemukan', 'error'); return; }
+      const lines = this.openingPostingLines;
+      const journal = this.createSystemJournal({
+        date:this.openingDate,
+        description:'Saldo awal per ' + this.openingDate + (this.openingNote ? ' — ' + this.openingNote : ''),
+        source:'opening',
+        sourceId:'opening-balance',
+        lines,
+        by:this.currentUser,
+        byRole:this.role
+      });
+      if (!journal) { this.notify('Saldo awal belum seimbang', 'error'); return; }
+      this.persist();
+      this.notify('Saldo awal berhasil diposting');
+    },
+    voidOpeningBalance() {
+      const journal = this.openingPostedJournal;
+      if (!journal) return;
+      this.askConfirm('void-opening', journal.id, 'Void saldo awal?', 'Jurnal saldo awal ' + journal.code + ' akan di-void. Laporan akan kembali tanpa saldo awal sampai diposting ulang.', true, 'Void');
     },
 
     /* ---------- LEDGER & TRIAL BALANCE ---------- */

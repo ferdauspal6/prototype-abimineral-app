@@ -170,6 +170,21 @@ Laporan:
 
 **Apa itu Neraca Saldo (trial balance):** daftar saldo akhir seluruh akun pada satu tanggal, sebelum jurnal penutup. Fungsinya memastikan total debit sama dengan total kredit. Neraca Saldo bukan laporan laba/rugi dan bukan neraca; ia hanya alat kontrol keseimbangan pembukuan.
 
+### 2.6.1 Saldo Awal
+
+Menu: **Keuangan → Saldo Awal**.
+Permission: `Laporan Keuangan` (Admin, Manager, Developer).
+
+- **Mode Cepat**: input saldo Kas dan Bank. Selisih otomatis menjadi saldo awal ekuitas.
+- **Mode Lengkap**: input seluruh akun Aset, Kewajiban, dan Ekuitas.
+- Akun penyeimbang: **3-1100 Saldo Awal**.
+- Total debit dan kredit ditampilkan; selisih otomatis masuk ke akun penyeimbang.
+- Posting membuat satu jurnal `source=opening` dan langsung memengaruhi Neraca Saldo, Neraca, dan Buku Besar.
+- Jurnal saldo awal tidak masuk Laba Rugi dan tidak dihitung sebagai uang masuk kas.
+- Jika sudah ada jurnal posted sebelum tanggal saldo awal, sistem menampilkan peringatan.
+- Saldo awal hanya boleh satu yang posted; untuk mengubah, gunakan **Void Saldo Awal** lalu posting ulang.
+- Jurnal saldo awal menyimpan pembuat dan waktu posting.
+
 ### 2.7 L4 — Penerimaan Barang
 
 - Penerimaan dibuat dari PO `approved`, `sent`, atau `partially_received`.
@@ -371,6 +386,7 @@ Urutan grup:
    - Pendapatan Lainnya
    - Pengeluaran Lainnya
    - Chart of Accounts
+   - Saldo Awal
    - Jurnal Umum
    - Buku Besar
    - Laporan
