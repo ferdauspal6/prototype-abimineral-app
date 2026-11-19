@@ -813,6 +813,14 @@
       "w": 1440
     },
     {
+      "id": "reports-pendapatan",
+      "name": "Laporan — Pendapatan",
+      "src": "index.html?canvas=reports-pendapatan",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "payables",
       "name": "Utang",
       "src": "index.html?canvas=payables",

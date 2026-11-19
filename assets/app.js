@@ -1591,6 +1591,7 @@ function app() {
         case 'report-trial': this.reportTab = 'trial'; this.page = 'reports'; break;
         case 'report-profit': this.reportTab = 'profit'; this.page = 'reports'; break;
         case 'report-balance': this.reportTab = 'balance'; this.page = 'reports'; break;
+        case 'report-revenue': this.reportTab = 'revenue'; this.page = 'reports'; break;
         case 'journal-create': this.startJournalCreate(); break;
         case 'journal-detail': {
           const row = first(this.journals);
@@ -1639,6 +1640,7 @@ function app() {
       this.canvasMode = params.has('canvas');
       this.canvasScreenId = params.get('canvas');
       this.loadStore();
+      this.syncOrderAudit();
       if (this.canvasMode && !this.currentUserId) {
         const user = this.users.find(item => (item.roles || []).includes('Admin')) || this.users[0];
         if (user) {
@@ -5171,6 +5173,51 @@ function app() {
         totalKewajibanEkuitas, difference, seimbang:Math.abs(difference) < 0.005
       };
     },
+    get revenueReport() {
+      const from = this.reportFrom;
+      const to = this.reportTo;
+      const inRange = date => (!from || date >= from) && (!to || date <= to);
+      const orders = this.orders
+        .filter(order => inRange(order.date) && !['cancel','failed'].includes(order.status))
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const netSales = order => Math.max(0, (Number(order.total) || 0) - (Number(order.tax) || 0));
+      const salesValue = orders.reduce((sum, order) => sum + netSales(order), 0);
+      const channels = [
+        { channel:'Sales', orders:0, value:0 },
+        { channel:'Sales Kantor', orders:0, value:0 }
+      ];
+      const users = {};
+      orders.forEach(order => {
+        const channel = this.orderSalesChannel(order);
+        const user = channel === 'Sales' ? this.orderSalesPerson(order) : this.orderCreatorName(order);
+        const value = netSales(order);
+        const channelRow = channels.find(row => row.channel === channel) || channels[0];
+        channelRow.orders += 1;
+        channelRow.value += value;
+        const key = channel + '|' + user;
+        if (!users[key]) users[key] = { channel, user, orders:0, value:0 };
+        users[key].orders += 1;
+        users[key].value += value;
+      });
+      const otherRows = this.accounts
+        .filter(account => account.type === 'revenue')
+        .map(account => {
+          const movement = this.reportMovement(account.id, from, to);
+          return { account, value:movement.credit - movement.debit };
+        })
+        .filter(row => row.value !== 0)
+        .sort((a, b) => String(a.account.code).localeCompare(String(b.account.code)));
+      const otherTotal = otherRows.reduce((sum, row) => sum + row.value, 0);
+      const total = salesValue + otherTotal;
+      const pct = value => total ? Math.round(value / total * 1000) / 10 : 0;
+      return {
+        from, to, orders, salesValue, salesPct:pct(salesValue),
+        otherRows, otherTotal, otherPct:pct(otherTotal),
+        total,
+        channels:channels.filter(row => row.orders > 0),
+        users:Object.values(users).sort((a, b) => a.channel.localeCompare(b.channel) || b.value - a.value)
+      };
+    },
     openReportLedger(accountId) {
       if (!accountId) return;
       this.ledgerAccountId = accountId;
@@ -5187,7 +5234,17 @@ function app() {
       const cell = value => '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
       let lines = [];
       let filename = 'laporan-';
-      if (this.reportTab === 'profit') {
+      if (this.reportTab === 'revenue') {
+        const data = this.revenueReport;
+        lines.push(['Sumber','Keterangan','Nilai'].map(cell).join(';'));
+        lines.push(['Penjualan Order','Penjualan netto tanpa PPN', data.salesValue].map(cell).join(';'));
+        data.otherRows.forEach(row => lines.push(['Pendapatan Lain', row.account.code + ' — ' + row.account.name, row.value].map(cell).join(';')));
+        lines.push(['TOTAL','', data.total].map(cell).join(';'));
+        lines.push('');
+        lines.push(['Channel','User','Order','Nilai'].map(cell).join(';'));
+        data.users.forEach(row => lines.push([row.channel, row.user, row.orders, row.value].map(cell).join(';')));
+        filename += 'pendapatan-' + this.reportFrom + '_' + this.reportTo;
+      } else if (this.reportTab === 'profit') {
         const data = this.reportProfitLoss;
         lines.push(['Section','Kode','Akun','Nilai'].map(cell).join(';'));
         const add = (section, rows, sign = 1) => rows.forEach(row => lines.push([section, row.account.code, row.account.name, row.value * sign].map(cell).join(';')));
@@ -5406,6 +5463,7 @@ function app() {
       }
       const c = this.selectedCustomer;
       if (!c.id) { this.notify('Pelanggan tidak ditemukan', 'error'); return; }
+      const salesChannel = this.role === 'Sales' ? 'Sales' : 'Sales Kantor';
       const id = 'o' + Date.now();
       const items = this.cartRows.map(row => ({ productId:row.product.id, qty:row.qty, price:row.price, discPercent:row.discPercent }));
       this.cartBonuses.forEach(bonus => items.push({ productId:bonus.product.id, qty:bonus.qty, price:0, discPercent:100, bonus:true }));
@@ -5419,6 +5477,11 @@ function app() {
         customerId:c.id,
         sales:c.sales,
         orderBy:this.role === 'Sales' ? c.sales : this.currentUser,
+        createdById:this.currentUserId,
+        createdBy:this.currentUser,
+        createdByRole:this.role,
+        salesChannel,
+        salesPerson:salesChannel === 'Sales' ? this.currentUser : 'Sales Kantor',
         status:'pending',
         payment:'unpaid',
         delivery:'full',
@@ -5451,6 +5514,45 @@ function app() {
     selectedOrderId: 'o1',
     viewOrder(id) { this.selectedOrderId = id; this.go('order-detail'); },
     viewInvoice(id) { this.selectedOrderId = id; this.go('invoice'); },
+    orderCreatorName(order) {
+      return (order && (order.createdBy || order.orderBy)) || '-';
+    },
+    orderCreatorRole(order) {
+      if (!order) return 'Admin';
+      if (order.createdByRole) return order.createdByRole;
+      const name = order.createdBy || order.orderBy || '';
+      const user = this.users.find(item => item.name === name || item.username === name);
+      if (user && (user.roles || []).includes('Sales')) return 'Sales';
+      return user ? ((user.roles || [])[0] || 'Sales Kantor') : 'Sales Kantor';
+    },
+    orderSalesChannel(order) {
+      if (order && order.salesChannel) return order.salesChannel;
+      return this.orderCreatorRole(order) === 'Sales' ? 'Sales' : 'Sales Kantor';
+    },
+    orderSalesPerson(order) {
+      if (order && order.salesPerson) return order.salesPerson;
+      return this.orderSalesChannel(order) === 'Sales' ? this.orderCreatorName(order) : 'Sales Kantor';
+    },
+    syncOrderAudit() {
+      let changed = false;
+      this.orders.forEach(order => {
+        const name = order.createdBy || order.orderBy || 'Admin';
+        const user = this.users.find(item => item.name === name || item.username === name);
+        const role = order.createdByRole || (user ? ((user.roles || [])[0] || 'Admin') : 'Admin');
+        const channel = order.salesChannel || (role === 'Sales' ? 'Sales' : 'Sales Kantor');
+        const salesPerson = order.salesPerson || (channel === 'Sales' ? name : 'Sales Kantor');
+        const userId = order.createdById || (user ? user.id : null);
+        if (order.createdBy !== name || order.createdByRole !== role || order.salesChannel !== channel || order.salesPerson !== salesPerson || order.createdById !== userId) {
+          order.createdBy = name;
+          order.createdByRole = role;
+          order.salesChannel = channel;
+          order.salesPerson = salesPerson;
+          order.createdById = userId;
+          changed = true;
+        }
+      });
+      return changed;
+    },
     confirmOrder(o) {
       if (!o || !o.id) return;
       o.status = 'already';
@@ -6933,6 +7035,10 @@ function app() {
         const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
         const tax = Math.round(subtotal * 0.11);
         const total = subtotal + tax;
+        const creator = extra.orderBy || 'Admin';
+        const creatorUser = this.users.find(user => user.name === creator || user.username === creator);
+        const creatorRole = extra.createdByRole || (creatorUser ? (creatorUser.roles || [])[0] : 'Admin');
+        const salesChannel = creatorRole === 'Sales' ? 'Sales' : 'Sales Kantor';
         items.forEach(item => {
           const product = this.product(item.productId);
           if (product.id) product.stock = Math.max(0, (Number(product.stock) || 0) - item.qty);
@@ -6942,7 +7048,12 @@ function app() {
           code:code('INV', date),
           customerId,
           sales:customer.sales,
-          orderBy:extra.orderBy || 'Admin',
+          orderBy:creator,
+          createdById:creatorUser ? creatorUser.id : null,
+          createdBy:creator,
+          createdByRole:creatorRole,
+          salesChannel,
+          salesPerson:salesChannel === 'Sales' ? creator : 'Sales Kantor',
           status,
           payment:paymentStatus,
           delivery:'full',

@@ -154,10 +154,14 @@ Buku Besar:
 - Nomor jurnal bisa diklik untuk membuka detail.
 
 Laporan:
-- Satu halaman dengan 3 tab: **Neraca Saldo**, **Laba Rugi**, dan **Neraca**.
+- Satu halaman dengan 4 tab: **Neraca Saldo**, **Laba Rugi**, **Neraca**, dan **Pendapatan**.
 - **Neraca Saldo**: posisi per tanggal; kolom Kode, Nama Akun, Tipe, Debit, Kredit; total debit dan kredit; badge Seimbang; toggle akun saldo 0; export CSV.
 - **Laba Rugi**: rentang tanggal; section Pendapatan, HPP, Laba Kotor, Beban Operasional, Laba Bersih.
 - **Neraca**: posisi per tanggal; Aset Lancar/Tetap, Kewajiban Jangka Pendek/Panjang, Ekuitas, Laba Berjalan, total kewajiban + ekuitas, dan baris pengecekan.
+- **Pendapatan**: rentang tanggal; ringkasan sumber (Penjualan Order dan Pendapatan Lain), rincian pendapatan lain per akun, penjualan per channel/user, dan rincian order.
+- Channel penjualan: **Sales** untuk order dari role Sales, **Sales Kantor** untuk order dari role lain.
+- Setiap order menyimpan `createdById`, `createdBy`, `createdByRole`, `salesChannel`, dan `salesPerson`.
+- Nilai penjualan memakai netto sebelum PPN; order batal tidak dihitung.
 - Neraca Saldo memastikan total debit = total kredit. Neraca memastikan aset = kewajiban + ekuitas.
 - Kode/nama akun bisa diklik untuk drill-down ke Buku Besar.
 - Cetak memakai A4 portrait dan hanya mencetak tab aktif.
@@ -847,7 +851,7 @@ Permission: `Order Admin`
   - Tombol **+ Buat Order**.
 - Tabel:
   - Checkbox select-all.
-  - `Order ID`, `Pelanggan` (nama + alamat), `Tanggal`, `Nilai Transaksi` (rata kanan), `Sales` (avatar), `Order by` (avatar), `Order Radius`, `Delivery`, `Status`, `Action`.
+  - `Order ID`, `Pelanggan` (nama + alamat), `Tanggal`, `Nilai Transaksi` (rata kanan), `Sales` (avatar), `Dibuat Oleh` (avatar + channel Sales/Sales Kantor), `Order Radius`, `Delivery`, `Status`, `Action`.
   - Radius: badge Onsite hijau / Offsite merah.
   - Delivery: badge Penuh hijau / Parsial abu.
   - Status badge sesuai tabel status.
