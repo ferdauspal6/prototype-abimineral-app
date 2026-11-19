@@ -2612,29 +2612,146 @@ function app() {
       return count;
     },
     get info() {
+      const scope = this.role === 'Sales' ? this.currentUser : '';
+      const inScope = order => !scope || order.sales === scope;
+      const orders = this.orders.filter(inScope);
+      const orderIds = new Set(orders.map(order => order.id));
+      const deliveries = scope ? this.deliveries.filter(d => (d.orderIds || []).some(id => orderIds.has(id))) : this.deliveries;
+      const returns = scope ? this.returns.filter(r => orderIds.has(r.orderId)) : this.returns;
+      const collections = scope ? this.collections.filter(c => c.sales === scope) : this.collections;
       const delivery = {
-        pending: this.deliveries.filter(d => d.status === 'pending').length,
-        partial: this.deliveries.filter(d => d.status === 'shipping').length,
-        success: this.deliveries.filter(d => d.status === 'success').length
+        pending: deliveries.filter(d => d.status === 'pending').length,
+        partial: deliveries.filter(d => d.status === 'shipping').length,
+        success: deliveries.filter(d => d.status === 'success').length
       };
       const billing = {
-        pending: this.collections.filter(c => c.status !== 'success').length,
-        success: this.collections.filter(c => c.status === 'success').length
+        pending: collections.filter(c => c.status !== 'success').length,
+        success: collections.filter(c => c.status === 'success').length
       };
       const invoice = {
-        pending: this.orders.filter(o => o.status === 'pending').length,
-        ready: this.orders.filter(o => o.status === 'already').length,
-        shipping: this.orders.filter(o => o.status === 'shipping').length,
-        partial: this.orders.filter(o => o.payment === 'partial').length,
-        success: this.orders.filter(o => o.status === 'success').length,
-        cancel: this.orders.filter(o => o.status === 'cancel').length
+        pending: orders.filter(o => o.status === 'pending').length,
+        ready: orders.filter(o => o.status === 'already').length,
+        shipping: orders.filter(o => o.status === 'shipping').length,
+        partial: orders.filter(o => o.payment === 'partial').length,
+        success: orders.filter(o => o.status === 'success').length,
+        cancel: orders.filter(o => o.status === 'cancel').length
       };
-      const returns = {
-        pending: this.returns.filter(r => r.status === 'pending').length,
-        return: this.returns.filter(r => r.status === 'return').length,
-        discard: this.returns.filter(r => r.status === 'discard').length
+      const returnsSummary = {
+        pending: returns.filter(r => r.status === 'pending').length,
+        return: returns.filter(r => r.status === 'return').length,
+        discard: returns.filter(r => r.status === 'discard').length
       };
-      return { delivery, billing, invoice, return:returns };
+      return { delivery, billing, invoice, return:returnsSummary };
+    },
+    get dashboardAccess() {
+      return {
+        finance: this.canAccessPage('journals') || this.canAccessPage('finance-income') || this.canAccessPage('finance-expense'),
+        recap: this.canAccessPage('orders') || this.canAccessPage('receivables'),
+        operations: this.canAccessPage('orders'),
+        receivables: this.canAccessPage('receivables'),
+        stock: this.canAccessPage('stock'),
+        pr: this.canAccessPage('purchase-requests'),
+        po: this.canAccessPage('purchase-orders'),
+        receipts: this.canAccessPage('receipts'),
+        accounting: this.canAccessPage('journals'),
+        users: this.canAccessPage('users'),
+        customers: this.canAccessPage('customers')
+      };
+    },
+    get dashboardScopeLabel() {
+      if (this.role === 'Sales') return 'Data Saya';
+      if (this.role === 'Supervisor') return 'Operasional';
+      if (this.role === 'Logistik') return 'Logistik';
+      return 'Semua Data';
+    },
+    get orderMonthStats() {
+      const key = todayISO().slice(0, 7);
+      const rows = this.orders.filter(o =>
+        String(o.date || o.schedule || '').slice(0, 7) === key && !['cancel','failed'].includes(o.status)
+      );
+      return {
+        count: rows.length,
+        value: rows.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
+        pending: rows.filter(o => o.status === 'pending').length,
+        shipping: rows.filter(o => o.status === 'shipping').length,
+        success: rows.filter(o => o.status === 'success').length
+      };
+    },
+    get salesDashboardStats() {
+      const scope = this.currentUser;
+      const key = todayISO().slice(0, 7);
+      const rows = this.orders.filter(o =>
+        o.sales === scope
+        && String(o.date || o.schedule || '').slice(0, 7) === key
+        && !['cancel','failed'].includes(o.status)
+      );
+      return {
+        orders: rows.length,
+        revenue: rows.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+      };
+    },
+    get myVisitsToday() {
+      const day = this.weekdayName(todayISO());
+      return this.customers.filter(c => c.sales === this.currentUser && c.day === day);
+    },
+    get stockDashboardStats() {
+      const key = todayISO().slice(0, 7);
+      const posted = this.productions.filter(p =>
+        String(p.date || '').slice(0, 7) === key && p.status === 'posted'
+      );
+      return {
+        lowProducts: this.lowStock.length,
+        lowMaterials: this.lowStockMaterials.length,
+        productionMonth: posted.length,
+        totalProducts: this.products.length,
+        totalMaterials: this.materials.length
+      };
+    },
+    get receiptDashboardStats() {
+      return {
+        draft: this.receipts.filter(r => r.status === 'draft').length,
+        posted: this.receipts.filter(r => r.status === 'posted').length,
+        total: this.receipts.length
+      };
+    },
+    get userDashboardStats() {
+      return {
+        active: this.users.length,
+        roles: this.roles.length
+      };
+    },
+    get dashboardKpis() {
+      const money = v => this.rp(Number(v) || 0);
+      const count = v => this.fmt(Number(v) || 0);
+      const deltaText = v => this.signed(v) + '% dari bulan lalu';
+      const deltaClass = v => Number(v) >= 0 ? 'text-emerald-600' : 'text-red-600';
+      const s = this.summary;
+      const incomeKpi = { label:'Pendapatan', value:money(s.income), icon:'i-trending-up', iconClass:'text-emerald-500', sub:deltaText(s.incomeDelta), subClass:deltaClass(s.incomeDelta) };
+      const netKpi = { label:'Laba Bersih', value:money(s.net), icon:'i-file', iconClass:'text-blue-500', sub:deltaText(s.netDelta), subClass:deltaClass(s.netDelta) };
+      const receivableKpi = { label:'Piutang', value:money(s.receivable), icon:'i-wallet', iconClass:'text-amber-500', sub:'belum tertagih', subClass:'text-amber-600' };
+      const payableKpi = { label:'Utang', value:money(this.payableUnpaidTotal), icon:'i-coins', iconClass:'text-red-500', sub:'sisa utang supplier', subClass:'text-red-500' };
+      const prKpi = { label:'PR Menunggu', value:count(this.prStats.submitted), icon:'i-clipboard', iconClass:'text-indigo-500', sub:'menunggu approval', subClass:'text-amber-600' };
+      const orderKpi = { label:'Order Bulan Ini', value:count(this.orderMonthStats.count), icon:'i-cart', iconClass:'text-blue-500', sub:'order tercatat', subClass:'text-slate-400' };
+      const deliveryKpi = { label:'Surat Jalan', value:count(this.info.delivery.pending), icon:'i-truck', iconClass:'text-purple-500', sub:'belum diproses', subClass:'text-amber-600' };
+      const lowStockKpi = { label:'Stock Menipis', value:count(this.stockDashboardStats.lowProducts), icon:'i-boxes', iconClass:'text-red-500', sub:'produk di bawah minimum', subClass:'text-red-500' };
+      const lowMaterialKpi = { label:'Bahan Menipis', value:count(this.stockDashboardStats.lowMaterials), icon:'i-box', iconClass:'text-amber-500', sub:'bahan baku di bawah minimum', subClass:'text-amber-600' };
+      const receiptKpi = { label:'Penerimaan Draft', value:count(this.receiptDashboardStats.draft), icon:'i-truck', iconClass:'text-teal-500', sub:'belum diposting', subClass:'text-slate-400' };
+      const salesRevenueKpi = { label:'Nilai Order Saya', value:money(this.salesDashboardStats.revenue), icon:'i-trending-up', iconClass:'text-emerald-500', sub:'bulan ini', subClass:'text-slate-400' };
+      const salesOrderKpi = { label:'Order Saya', value:count(this.salesDashboardStats.orders), icon:'i-cart', iconClass:'text-blue-500', sub:'bulan ini', subClass:'text-slate-400' };
+      const salesCustomerKpi = { label:'Pelanggan Saya', value:count(this.customers.filter(c => c.sales === this.currentUser).length), icon:'i-users', iconClass:'text-sky-500', sub:'pelanggan terdaftar', subClass:'text-slate-400' };
+      const visitsKpi = { label:'Kunjungan Hari Ini', value:count(this.myVisitsToday.length), icon:'i-calendar', iconClass:'text-blue-500', sub:'jadwal hari ini', subClass:'text-slate-400' };
+      const map = {
+        Admin: [incomeKpi, netKpi, receivableKpi, payableKpi],
+        Manager: [incomeKpi, netKpi, receivableKpi, prKpi],
+        Developer: [incomeKpi, netKpi, receivableKpi, prKpi],
+        Supervisor: [orderKpi, deliveryKpi, receivableKpi, lowStockKpi],
+        Sales: [salesRevenueKpi, salesOrderKpi, salesCustomerKpi, visitsKpi],
+        Logistik: [lowStockKpi, lowMaterialKpi, prKpi, receiptKpi]
+      };
+      if (map[this.role]) return map[this.role];
+      if (this.dashboardAccess.finance) return [incomeKpi, netKpi, receivableKpi, payableKpi];
+      if (this.dashboardAccess.operations) return [orderKpi, deliveryKpi, receivableKpi, lowStockKpi];
+      return [lowStockKpi, lowMaterialKpi, prKpi, receiptKpi];
     },
     get popularProducts() {
       const cutoff = shiftISO(todayISO(), -60);
@@ -2661,7 +2778,7 @@ function app() {
     },
     get recapData() {
       const date = this.dashboardDate;
-      const sales = this.dashboardSales;
+      const sales = this.role === 'Sales' ? this.currentUser : this.dashboardSales;
       const matchSales = (value) => !sales || sales === 'all' || value === sales;
       if (this.dashRecapTab === 'income') {
         const rows = this.orders.filter(o => o.schedule === date && o.status !== 'cancel' && matchSales(o.sales));

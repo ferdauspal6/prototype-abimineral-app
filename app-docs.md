@@ -587,34 +587,33 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 Route: `/dashboard`
 Permission: login; widget tambahan hanya jika `Dashboard`.
 
-**Susunan desktop**
-1. **5 kartu ringkasan** (grid 2 kolom mobile, 5 kolom desktop):
-   - **Pendapatan** — ikon trending up hijau; nominal; persentase vs bulan lalu.
-   - **Pengeluaran** — ikon trending down merah; nominal; persentase (hijau bila lebih kecil).
-   - **Laba Kotor** — ikon circle check ungu.
-   - **Laba Bersih** — ikon folder check biru.
-   - **Piutang** — ikon wallet oranye.
-   - Untuk Sales: hanya kartu Pendapatan dan Piutang.
-2. Grid 2 kolom:
-   - **Informasi Pendapatan** (line chart):
-     - Tombol rentang tanggal di kanan atas (popover 2 bulan).
-     - Dua garis: Pendapatan dan Pengeluaran.
-     - Legend, tooltip, sumbu Y singkat (`rb`, `jt`, `m`).
-   - **Rekap Harian**:
-     - Tab **Pendapatan** / **Uang Masuk**.
-     - Filter sales (kecuali Sales) dan tanggal.
-     - Total besar di kanan.
-     - Baris: Kredit (hanya tab Pendapatan), Tunai, Transfer; nominal hijau.
-     - Catatan kecil sumber rekap.
-   - **Informasi Lainnya** (hanya `Dashboard`): 4 kotak:
-     - Surat Jalan Pengiriman: Belum Diproses / Selesai Parsial / Selesai (Closed).
-     - Surat Jalan Penagihan: Belum Diproses / Selesai (Closed).
-     - Invoice: Belum Diproses / Siap Dikirim / Dikirim / Selesai Parsial / Selesai (Closed) / Dibatalkan.
-     - Return: Belum Diproses / Kembali ke Stock / Buang Stock.
-   - **Informasi Stock** (hanya `Dashboard`):
-     - Tab: **Menipis**, **Populer**, **Ditahan**.
-     - Daftar baris: nama produk + qty + satuan.
-     - Empty state teks "Tidak ada data".
+**KPI per role (selalu 4 kartu)**
+| Role | KPI |
+|---|---|
+| Sales | Nilai Order Saya, Order Saya, Pelanggan Saya, Kunjungan Hari Ini |
+| Admin | Pendapatan, Laba Bersih, Piutang, Utang |
+| Manager | Pendapatan, Laba Bersih, Piutang, PR Menunggu |
+| Supervisor | Order Bulan Ini, Surat Jalan, Piutang, Stock Menipis |
+| Logistik | Stock Menipis, Bahan Menipis, PR Menunggu, Penerimaan Draft |
+| Developer | Pendapatan, Laba Bersih, Piutang, PR Menunggu |
+
+**Modul dashboard**
+| Modul | Tampil untuk |
+|---|---|
+| Grafik Pendapatan vs Pengeluaran | Role dengan akses keuangan: Admin, Manager, Developer |
+| Rekap Harian | Role dengan akses Order/Piutang |
+| Informasi Operasional (delivery, billing, invoice, return) | Role dengan akses Order |
+| Informasi Stock + Produksi bulan ini | Role dengan akses Stock |
+| Pembelian: PR, PO, Penerimaan | Sesuai permission masing-masing |
+| Akuntansi | Role dengan akses Jurnal |
+| Pengguna & Role | Role dengan akses Pengguna |
+| Kunjungan Hari Ini | Sales |
+
+- Dashboard mengikuti permission halaman, bukan hanya nama role.
+- Sales hanya melihat order, pelanggan, rekap, dan piutang miliknya sendiri.
+- Logistik tidak melihat pendapatan, laba, piutang, utang, order, atau akuntansi.
+- Supervisor tetap melihat Rekap Harian operasional tanpa laba/rugi.
+- Badge kanan atas: **Data Saya**, **Operasional**, **Logistik**, atau **Semua Data**.
 
 **State & interaksi prototype**
 - Filter tanggal dan sales mengubah angka (mock).
