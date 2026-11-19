@@ -379,11 +379,14 @@ Item aktif ditandai background biru `sidebar-accent` dan teks putih. Menu dengan
 - Kanan: tombol **Laporan** (ikon download) dan avatar/nama pengguna dengan dropdown:
   - Pengaturan / Profil
   - Logout
-- Di mobile: bottom navigation 4 item:
-  1. **Beranda** → `/dashboard`
-  2. **Order** → `/dashboard/order/customer`
-  3. **Pelanggan** → `/dashboard/customer`
-  4. **Akun** → `/settings/profile`
+- Di mobile: bottom navigation mengikuti role, maksimal 5 item:
+  - **Sales**: Beranda, Order, Pelanggan, Akun.
+  - **Admin**: Beranda, Order, Stock, Piutang, Akun.
+  - **Manager**: Beranda, Order, Pembelian, Stock, Akun.
+  - **Supervisor**: Beranda, Order, Stock, Piutang, Akun.
+  - **Logistik**: Beranda, Stock, PR, Penerimaan, Akun.
+  - **Developer**: Beranda, Order, Stock, Pengguna, Akun.
+  - Setiap item difilter lagi berdasarkan permission role.
 
 ### 5.3 Peta halaman
 
@@ -1562,7 +1565,8 @@ Semua template memakai:
 ### 13.1 Breakpoint perilaku
 
 - **< 768px (mobile)**
-  - Sidebar diganti bottom navigation 4 item.
+  - Sidebar diganti bottom navigation sesuai role, maksimal 5 item.
+  - Sales memakai 4 item; role lain memakai 5 item dengan **Akun** di posisi terakhir.
   - Tabel lebar dapat di-scroll horizontal atau diganti kartu (khusus alur Sales).
   - Alur order Sales memakai kartu produk dan fixed bottom summary.
   - Toolbar filter membungkus.

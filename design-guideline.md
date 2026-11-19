@@ -99,7 +99,14 @@ Token warna didefinisikan di `assets/app.css`:
 - User menu: role switcher, Akun Saya, Alur Operasional, Export/Import, Hapus Transaksi, Reset, Keluar.
 
 ### Mobile
-- Bottom nav 4 item: Beranda, Order, Pelanggan, Akun.
+- Bottom nav mengikuti role, maksimal 5 item dan selalu diakhiri **Akun**:
+  - Sales: Beranda, Order, Pelanggan, Akun.
+  - Admin: Beranda, Order, Stock, Piutang, Akun.
+  - Manager: Beranda, Order, Pembelian, Stock, Akun.
+  - Supervisor: Beranda, Order, Stock, Piutang, Akun.
+  - Logistik: Beranda, Stock, PR, Penerimaan, Akun.
+  - Developer: Beranda, Order, Stock, Pengguna, Akun.
+- Jumlah kolom mengikuti jumlah item (4 atau 5).
 - Tabel boleh horizontal scroll.
 
 ---

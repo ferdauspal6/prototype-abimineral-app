@@ -1124,8 +1124,36 @@ function app() {
       const names = (this.roles || []).map(r => r.name);
       return order.filter(n => names.includes(n)).concat(names.filter(n => !order.includes(n)));
     },
-    get navGroups() {
-      const groups = [
+    get bottomNavItems() {
+      const home = { label:'Beranda', icon:'i-dashboard', page:'dashboard', match:['dashboard'] };
+      const order = {
+        label:'Order', icon:'i-cart',
+        page: this.role === 'Sales' ? 'order-customer' : 'orders',
+        match:['order-customer','order-create','order-success','orders','order-detail','invoice','bulk-invoice','deliveries','delivery-create','delivery-check','delivery-detail','delivery-invoice','returns']
+      };
+      const customers = { label:'Pelanggan', icon:'i-users', page:'customers', match:['customers'] };
+      const stock = { label:'Stock', icon:'i-boxes', page:'stock', match:['stock'] };
+      const receivables = { label:'Piutang', icon:'i-wallet', page:'receivables', match:['receivables','collection-create','collection-confirm'] };
+      const purchasing = {
+        label:'Pembelian', icon:'i-clipboard', page:'purchase-requests',
+        match:['purchase-requests','purchase-request-create','purchase-request-preview','purchase-orders','purchase-order-create','purchase-order-preview','receipts','receipt-create','receipt-preview','purchase-returns','purchase-return-create']
+      };
+      const pr = { label:'PR', icon:'i-clipboard', page:'purchase-requests', match:['purchase-requests','purchase-request-create','purchase-request-preview'] };
+      const receipts = { label:'Penerimaan', icon:'i-truck', page:'receipts', match:['receipts','receipt-create','receipt-preview'] };
+      const users = { label:'Pengguna', icon:'i-users', page:'users', match:['users','roles'] };
+      const account = { label:'Akun', icon:'i-user', page:'settings', match:['settings'] };
+      const layouts = {
+        Sales: [home, order, customers, account],
+        Admin: [home, order, stock, receivables, account],
+        Manager: [home, order, purchasing, stock, account],
+        Supervisor: [home, order, stock, receivables, account],
+        Logistik: [home, stock, pr, receipts, account],
+        Developer: [home, order, stock, users, account]
+      };
+      return (layouts[this.role] || [home, order, customers, account])
+        .filter(item => this.canAccessPage(item.page));
+    },
+    get navGroups() {      const groups = [
         { title: '', items: [
           { page: 'dashboard', label: 'Dashboard', icon: 'i-dashboard', match: ['dashboard'] }
         ]},

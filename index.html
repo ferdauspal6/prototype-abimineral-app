@@ -2824,11 +2824,13 @@
 
   <!-- MOBILE BOTTOM NAV -->
   <nav class="bottom-nav no-print" x-show="page !== 'login'">
-    <div class="grid grid-cols-4 py-1.5">
-      <a href="#" class="flex flex-col items-center justify-center py-1.5 text-[10px] gap-0.5" :class="{ active: page === 'dashboard' }" @click.prevent="go('dashboard')"><svg class="icon"><use href="#i-dashboard"></use></svg><span>Beranda</span></a>
-      <a href="#" class="flex flex-col items-center justify-center py-1.5 text-[10px] gap-0.5" :class="{ active: ['order-customer','order-create','orders'].includes(page) }" @click.prevent="go(role === 'Sales' ? 'order-customer' : 'orders')"><svg class="icon"><use href="#i-cart"></use></svg><span>Order</span></a>
-      <a href="#" class="flex flex-col items-center justify-center py-1.5 text-[10px] gap-0.5" :class="{ active: page === 'customers' }" @click.prevent="go('customers')"><svg class="icon"><use href="#i-users"></use></svg><span>Pelanggan</span></a>
-      <a href="#" class="flex flex-col items-center justify-center py-1.5 text-[10px] gap-0.5" :class="{ active: page === 'settings' }" @click.prevent="go('settings')"><svg class="icon"><use href="#i-user"></use></svg><span>Akun</span></a>
+    <div class="grid py-1.5" :style="{ gridTemplateColumns: 'repeat(' + bottomNavItems.length + ', minmax(0, 1fr))' }">
+      <template x-for="item in bottomNavItems" :key="item.page">
+        <a href="#" class="flex flex-col items-center justify-center py-1.5 text-[10px] gap-0.5" :class="{ active: item.match.includes(page) }" @click.prevent="go(item.page)">
+          <svg class="icon"><use :href="'#' + item.icon"></use></svg>
+          <span x-text="item.label"></span>
+        </a>
+      </template>
     </div>
   </nav>
 
@@ -3764,7 +3766,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261120w"></script>
+<script src="assets/app.js?v=20261120y"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
