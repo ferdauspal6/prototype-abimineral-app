@@ -3317,6 +3317,23 @@ function app() {
       setTimeout(() => this.printPR(), 120);
     },
     printPO() { return this.printPR(); },
+    printBulkInvoice() {
+      const styleId = 'bulk-invoice-page-style';
+      let style = document.getElementById(styleId);
+      if (!style) {
+        style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = '@page { size: A5 landscape; margin: 6mm; }';
+        document.head.appendChild(style);
+      }
+      document.body.classList.add('print-pr', 'print-invoice-a5');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-pr', 'print-invoice-a5');
+        const current = document.getElementById(styleId);
+        if (current) current.remove();
+      }, 300);
+    },
     exportPOPDF() {
       this.notify('Pada dialog print, pilih "Save as PDF" untuk menyimpan file.');
       setTimeout(() => this.printPR(), 120);

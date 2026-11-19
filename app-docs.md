@@ -19,7 +19,7 @@ ABI Mineral App adalah sistem distribusi penjualan barang mineral/retail yang me
 3. Order menghasilkan invoice dan dapat dikonfirmasi.
 4. Order tidak dikunci oleh stok. Jika qty melebihi stok, muncul konfirmasi **“Stock barang di system tidak mencukup, tetap lanjutkan order ?”** dan order tetap dapat disubmit.
 5. Order dikelompokkan menjadi surat jalan (delivery order) berdasarkan armada, driver, gudang, dan periode.
-6. Order list memiliki aksi bulk melalui menu **Action**: cetak, konfirmasi, dan hapus. Cetak membuka preview multi-invoice sebelum print.
+6. Order list memiliki aksi bulk melalui menu **Action**: cetak, konfirmasi, dan hapus. Cetak membuka preview multi-invoice A5 landscape tanpa logo sebelum print.
 7. Saat surat jalan diselesaikan, sistem mencatat pembayaran tunai/transfer dan membuat piutang bila ada sisa.
 8. Piutang dikelompokkan menjadi surat jalan penagihan (collection), lalu dibayar dan dicatat riwayat pembayarannya.
 9. Return barang dari pelanggan diproses (ganti barang atau potong harga).
@@ -880,7 +880,8 @@ Route: `/dashboard/order/detail/{order}`
 
 - Single: `/dashboard/order/invoice?id=INV/...`
 - Multi: `/dashboard/order/invoice?ids=id1,id2,...`
-- Layout print A5 landscape, margin 8mm.
+- Layout print **A5 landscape**, margin 6mm.
+- Tanpa logo ABI; header invoice hanya memuat nama dan alamat perusahaan agar cocok untuk printer dot matrix.
 - Multi invoice memiliki page break antar order.
 - Tombol **Print** memakai `react-to-print`.
 - Sales tidak melihat tombol print pada invoice single.
