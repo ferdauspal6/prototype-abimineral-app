@@ -30,6 +30,7 @@
   <symbol id="i-package" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
   <symbol id="i-boxes" viewBox="0 0 24 24"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></symbol>
+  <symbol id="i-calculator" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></symbol>
   <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></symbol>
   <symbol id="i-banknote" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol>
   <symbol id="i-banknote-down" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 9v5"/><path d="m9.5 11.5 2.5 2.5 2.5-2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
@@ -2311,6 +2312,266 @@
         </div>
       </section>
 
+      <!-- HPP -->
+      <section x-show="page === 'hpp'">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="seg">
+            <button class="seg-btn" :class="{ 'active': hppTab === 'daily' }" @click="hppTab = 'daily'">HPP Harian</button>
+            <button class="seg-btn" :class="{ 'active': hppTab === 'monthly' }" @click="hppTab = 'monthly'; loadHppMonthly()">Biaya Bulanan</button>
+            <button class="seg-btn" :class="{ 'active': hppTab === 'settings' }" @click="hppTab = 'settings'; loadHppSettingsForm()">Pengaturan</button>
+          </div>
+        </div>
+
+        <div x-show="hppTab === 'daily'">
+          <div class="flex flex-wrap items-center gap-2 mb-3">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / produk..." x-model="hppSearch"></div>
+            <input type="date" class="input w-40" x-model="hppDateFrom" title="Dari tanggal">
+            <input type="date" class="input w-40" x-model="hppDateTo" title="Sampai tanggal">
+            <select class="select w-48" x-model="hppProduct"><option value="">Semua Produk</option><template x-for="product in products" :key="product.id"><option :value="product.id" x-text="product.name"></option></template></select>
+            <select class="select w-36" x-model="hppStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="final">Final</option><option value="superseded">Digantikan</option></select>
+            <button class="btn btn-primary ml-auto" @click="startHppCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat HPP</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>No</th><th>Tanggal</th><th>Produk</th><th class="num">Hasil</th><th class="num">HPP / Krt</th><th class="num">Total HPP</th><th>Status</th><th>Versi</th><th>Dibuat Oleh</th><th class="actions">Action</th></tr></thead>
+              <tbody>
+                <template x-for="row in hppFilteredList" :key="row.id">
+                  <tr>
+                    <td><button class="font-semibold text-blue-600 hover:underline" @click="viewHpp(row)" x-text="row.code"></button></td>
+                    <td x-text="dateShort(row.date)"></td>
+                    <td><div class="font-semibold" x-text="productName(row.productId)"></div><span class="sub" x-text="fmt(row.outputQty) + ' Krt'"></span></td>
+                    <td class="num" x-text="fmt(row.outputQty) + ' Krt'"></td>
+                    <td class="num font-semibold" x-text="rp2(row.hppPerDus)"></td>
+                    <td class="num" x-text="rp(row.totalHpp)"></td>
+                    <td><span class="badge" :class="hppStatusBadge(row.status)" x-text="hppStatusLabel(row.status)"></span><span x-show="row.appliedAt" class="badge badge-green ml-1">Harga modal</span></td>
+                    <td><span class="badge badge-slate" x-text="'v' + row.version"></span></td>
+                    <td x-text="row.createdBy"></td>
+                    <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'hpp', row)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
+                  </tr>
+                </template>
+                <tr x-show="hppFilteredList.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calculator"></use></svg><div class="font-semibold mt-2">Belum ada HPP</div><div class="text-xs text-slate-400">Buat HPP dari dokumen produksi yang sudah posted.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div x-show="hppTab === 'monthly'">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="label mb-0">Periode</label>
+              <input type="month" class="input w-44" x-model="hppMonthlyPeriod" @change="loadHppMonthly()">
+              <span class="text-[11px] text-slate-400">Satu baris per komponen per bulan.</span>
+            </div>
+            <button class="btn btn-outline" @click="askCopyHppMonthly()"><svg class="icon icon-sm"><use href="#i-refresh"></use></svg> Salin dari bulan sebelumnya</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Komponen</th><th class="num">Nilai Bulanan</th><th>Info</th><th>Sumber</th><th>Tipe</th><th>Catatan</th><th class="actions">Riwayat</th></tr></thead>
+              <tbody>
+                <template x-for="component in hppComponents" :key="component.key">
+                  <tr>
+                    <td><div class="font-semibold" x-text="component.label"></div><span class="sub" x-show="component.key === 'bpjs'" title="Hanya porsi perusahaan">Porsi perusahaan</span></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-44 text-right" x-model.number="hppMonthlyForm[component.key].value"></td>
+                    <td>
+                      <div class="flex flex-wrap items-center gap-1">
+                        <input x-show="component.employee" type="number" min="0" class="input input-sm w-24" placeholder="Pegawai" x-model="hppMonthlyForm[component.key].employeeCount">
+                        <input x-show="component.kwh" type="number" min="0" class="input input-sm w-28" placeholder="kWh" x-model="hppMonthlyForm[component.key].kwh">
+                        <span x-show="component.kwh" class="text-[10px] text-slate-400" x-text="hppMonthlyForm.listrik.kwh > 0 ? 'Tarif ' + rp2(hppMonthlyForm.listrik.value / hppMonthlyForm.listrik.kwh) + '/kWh' : 'Isi kWh'"></span>
+                      </div>
+                    </td>
+                    <td><select class="select input-sm w-32" x-model="hppMonthlyForm[component.key].sourceType"><option value="manual">Manual</option><option value="payroll" disabled title="Tersedia setelah modul HR dibuat">Payroll</option><option value="jurnal" disabled title="Tersedia pada tahap berikutnya">Jurnal</option></select></td>
+                    <td><select class="select input-sm w-32" x-model="hppMonthlyForm[component.key].type"><option value="estimasi">Estimasi</option><option value="aktual">Aktual</option></select></td>
+                    <td><input class="input input-sm" placeholder="Opsional" x-model="hppMonthlyForm[component.key].note"></td>
+                    <td class="actions"><button class="icon-btn icon-btn-sm" @click="openHppHistory(component.key)" title="Riwayat"><svg class="icon icon-sm"><use href="#i-clock"></use></svg></button></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
+            <div class="text-[11px] text-slate-400">BPJS hanya porsi perusahaan. Payroll dan Jurnal belum aktif.</div>
+            <button class="btn btn-primary" @click="saveHppMonthly()">Simpan Biaya Bulanan</button>
+          </div>
+        </div>
+
+        <div x-show="hppTab === 'settings'">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="card p-4">
+              <div class="section-title mb-3">Parameter HPP</div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div><label class="label" title="Pembagi untuk mengubah biaya bulanan menjadi biaya harian">Hari kerja / bulan</label><input type="number" min="1" max="31" class="input" x-model.number="hppSettingsForm.workingDays"></div>
+                <div><label class="label">Liter air / Krt</label><input type="number" min="0" step="0.1" class="input" x-model.number="hppSettingsForm.waterLitersPerKrt"></div>
+                <div><label class="label">Harga air / m³</label><input type="number" min="0" class="input" x-model.number="hppSettingsForm.waterPricePerM3"></div>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 mt-4">
+                <button class="btn btn-outline" @click="runHppSelfTest()">Uji Perhitungan</button>
+                <button class="btn btn-primary" @click="saveHppSettings()">Simpan Pengaturan</button>
+              </div>
+              <div x-show="hppSelfTestResult" class="mt-3 rounded-xl border p-3 text-xs" :class="hppSelfTestResult && hppSelfTestResult.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'">
+                <div class="font-semibold" x-text="hppSelfTestResult && hppSelfTestResult.ok ? 'Self-test berhasil' : 'Self-test gagal'"></div>
+                <div x-show="hppSelfTestResult" x-text="hppSelfTestResult ? 'HPP: ' + rp2(hppSelfTestResult.result.hpp) + ' • Bahan: ' + rp2(hppSelfTestResult.result.material) + ' • Produksi: ' + rp2(hppSelfTestResult.result.production) : ''"></div>
+              </div>
+            </div>
+            <div class="card p-4">
+              <div class="section-title mb-3">Riwayat Pengaturan</div>
+              <div class="space-y-2">
+                <template x-for="(item, index) in (hppSettings.history || [])" :key="index">
+                  <div class="rounded-lg border border-slate-200 px-3 py-2 text-xs"><div class="font-semibold" x-text="item.by + ' • ' + dateShort(item.at)"></div><div class="text-slate-500" x-text="(item.changes || []).join(' | ')"></div></div>
+                </template>
+                <div x-show="!(hppSettings.history || []).length" class="text-center text-xs text-slate-400 py-4">Belum ada perubahan pengaturan.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HPP CREATE -->
+      <section x-show="page === 'hpp-create'">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <button class="icon-btn" @click="go('hpp')"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+            <div><div class="section-title" x-text="hppEditId ? 'Edit Draft HPP' : 'Buat HPP'"></div><div class="text-[11px] text-slate-400">Hitung HPP per Krt dari produksi dan biaya bulanan.</div></div>
+          </div>
+          <span class="badge badge-slate" x-text="hppForm && hppForm.date ? dateShort(hppForm.date) : '-'"></span>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4" x-show="hppForm">
+          <div class="xl:col-span-2 space-y-4">
+            <div class="card p-4">
+              <div class="section-title mb-3">A. Data Dasar</div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div><label class="label">Tanggal Produksi <span class="req">*</span></label><input type="date" class="input" x-model="hppForm.date" @change="onHppDateChange()"></div>
+                <div><label class="label">Produk <span class="req">*</span></label><select class="select" x-model="hppForm.productId"><option value="">Pilih produk</option><template x-for="product in products.filter(p => p.status)" :key="product.id"><option :value="product.id" x-text="product.name"></option></template></select></div>
+                <div><label class="label">Hasil Produksi</label><div class="input bg-slate-50 text-right font-semibold" x-text="fmt(hppOutputQty) + ' Krt'"></div></div>
+                <div><label class="label" title="Bagian biaya harian yang dibebankan ke produk ini">Alokasi Biaya (%)</label><input type="number" min="0" max="100" class="input" x-model.number="hppForm.allocationPercent"></div>
+                <div><label class="label" title="Hanya informasi dan tidak memengaruhi HPP">Bonusan (Krt)</label><input type="number" min="0" class="input" x-model.number="hppForm.bonusQty"></div>
+                <div><label class="label">Keterangan Bonus</label><input class="input" x-model="hppForm.bonusNote" placeholder="Opsional"></div>
+              </div>
+              <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2"><span class="font-semibold">Dokumen Produksi (PRD)</span><span class="badge badge-slate" x-text="hppProductionDocs.length + ' dokumen'"></span></div>
+                <div class="mt-2 space-y-1">
+                  <template x-for="production in hppProductionDocs" :key="production.id">
+                    <div class="flex items-center justify-between gap-2"><button class="text-blue-600 hover:underline" @click="openProductionByRef(production.id)" x-text="production.code"></button><span x-text="fmt(production.qty) + ' Krt'"></span></div>
+                  </template>
+                  <div x-show="hppProductionDocs.length === 0" class="text-slate-500" x-text="hppForm.date && hppForm.productId ? 'Belum ada produksi untuk produk ini pada tanggal tersebut.' : 'Pilih tanggal dan produk untuk mengambil produksi.'"></div>
+                </div>
+              </div>
+              <div x-show="hppAllocationWarning" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Total alokasi HPP lain pada tanggal ini melebihi 100%.</div>
+            </div>
+
+            <div class="card p-4">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3"><div class="section-title">B. Bahan Baku</div><div class="seg"><button class="seg-btn" :class="{ 'active': hppForm.materialMode === 'actual' }" @click="hppForm.materialMode = 'actual'">Aktual</button><button class="seg-btn" :class="{ 'active': hppForm.materialMode === 'standard' }" @click="hppForm.materialMode = 'standard'">Standar</button></div></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Bahan</th><th class="num">Qty / Krt</th><th class="num">Harga / pcs</th><th class="num">Subtotal / Krt</th><th>Status</th><th>Alasan Override</th></tr></thead>
+                  <tbody>
+                    <template x-for="row in hppMaterialRows" :key="row.materialId">
+                      <tr>
+                        <td><div class="font-semibold" x-text="row.name"></div><span class="sub" x-text="row.code + ' • ' + fmt(row.qtyTotal) + ' ' + row.unit"></span></td>
+                        <td class="num" x-text="fmt2(row.qtyPerDus)"></td>
+                        <td class="num"><input type="number" min="0" step="0.01" class="input input-sm w-36 text-right" :value="hppMaterialPrice(row.materialId)" @input="setHppMaterialPrice(row.materialId, $event.target.value)"></td>
+                        <td class="num" x-text="rp2(row.subtotalPerDus)"></td>
+                        <td><span class="badge" :class="row.priceOverridden ? 'badge-yellow' : (row.priceMissing ? 'badge-red' : 'badge-green')" x-text="row.priceOverridden ? 'Diubah' : (row.priceMissing ? 'Belum ada harga beli' : 'Otomatis')"></span><button x-show="row.priceOverridden" class="ml-1 text-[11px] text-blue-600 hover:underline" @click="resetHppMaterialPrice(row.materialId)">Reset</button></td>
+                        <td><input class="input input-sm" placeholder="Wajib jika diubah" :value="row.overrideReason" @input="setHppMaterialReason(row.materialId, $event.target.value)"></td>
+                      </tr>
+                    </template>
+                    <tr x-show="hppMaterialRows.length === 0"><td colspan="6"><div class="empty py-6"><div class="font-semibold">Belum ada bahan</div><div class="text-xs text-slate-400">Pilih produksi atau lengkapi resep produk.</div></div></td></tr>
+                    <tr class="bg-slate-100 font-bold"><td colspan="3" class="text-right">Total bahan per Krt</td><td class="num" x-text="rp2(hppMaterialTotal)"></td><td colspan="2"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card p-4">
+              <div class="section-title mb-3">C. Biaya Produksi</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <template x-for="row in hppCostRows" :key="row.component">
+                  <div class="rounded-xl border border-slate-200 p-3">
+                    <div class="flex items-start justify-between gap-2"><div><div class="font-semibold text-sm" x-text="row.label"></div><div class="text-[10px] text-slate-400" x-show="row.period" x-text="'Periode ' + monthLongLabel(row.period)"></div></div><span class="badge" :class="row.missing ? 'badge-red' : (row.type === 'aktual' ? 'badge-green' : 'badge-yellow')" x-text="row.missing ? 'Belum diisi' : (row.type === 'aktual' ? 'Aktual' : 'Estimasi')"></span></div>
+                    <div class="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                      <div><label class="label">Periode Sumber</label><input type="month" class="input input-sm" x-show="row.period !== ''" :value="row.period" @change="setHppCostPeriod(row.component, $event.target.value)"></div>
+                      <div><label class="label">Nilai Bulanan</label><div class="input input-sm bg-slate-50 text-right" x-text="row.value != null ? rp(row.value) : '-'"></div></div>
+                    </div>
+                    <div class="mt-2 text-[11px] text-slate-500" x-text="row.formula"></div>
+                    <div class="mt-1 text-xs font-bold text-slate-800" x-text="rp2(row.perDus) + ' / Krt'"></div>
+                    <div x-show="row.component === 'listrik' && row.kwh" class="text-[10px] text-slate-400" x-text="'kWh ' + fmt(row.kwh) + ' • tarif ' + rp2(row.tariff) + '/kWh'"></div>
+                    <div x-show="row.missing" class="mt-2 text-[11px] text-red-600"><button class="text-blue-600 hover:underline" @click="hppMonthlyPeriod = row.period; hppTab = 'monthly'; loadHppMonthly(); go('hpp')">Isi Biaya Bulanan</button></div>
+                    <div x-show="row.component === 'penyusutan'" class="mt-2"><label class="label">Penyusutan hari itu (Rp)</label><input type="number" min="0" class="input input-sm text-right" x-model.number="hppForm.depreciationTotal"></div>
+                  </div>
+                </template>
+              </div>
+              <div class="mt-3 text-right font-semibold" x-text="'Total biaya produksi / Krt: ' + rp2(hppCostTotal)"></div>
+            </div>
+          </div>
+
+          <div class="card p-4 h-fit xl:sticky xl:top-20">
+            <div class="section-title mb-3">D. Ringkasan</div>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Hasil produksi</span><b x-text="fmt(hppOutputQty) + ' Krt'"></b></div>
+              <div class="flex justify-between"><span class="text-slate-500">Bahan baku / Krt</span><span x-text="rp2(hppMaterialTotal)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Biaya produksi / Krt</span><span x-text="rp2(hppCostTotal)"></span></div>
+              <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-bold"><span>HPP / Krt</span><span x-text="rp2(hppPerDus)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total HPP</span><span x-text="rp(hppTotal)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Harga Modal saat ini</span><span x-text="rp2(hppProductCost)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Selisih</span><span :class="hppCostDifference >= 0 ? 'text-emerald-600' : 'text-red-600'" x-text="rp2(hppCostDifference) + ' (' + fmt2(hppCostDifferencePct) + '%)'"></span></div>
+            </div>
+            <div class="mt-4 space-y-1 text-[11px] text-slate-500">
+              <template x-for="row in hppCostRows" :key="row.component"><div class="flex justify-between"><span x-text="row.label"></span><span x-text="rp2(row.perDus)"></span></div></template>
+            </div>
+            <div class="mt-4 space-y-2">
+              <button class="btn btn-outline w-full" @click="go('hpp')">Batal</button>
+              <button class="btn btn-outline w-full" @click="saveHppDraft()" :disabled="hppOutputQty <= 0">Simpan Draft</button>
+              <button class="btn btn-primary w-full" @click="askHppFinalize()" :disabled="!hppCanFinalize">Finalisasi</button>
+              <div class="text-[10px] text-slate-400" x-show="!hppCanFinalize">Lengkapi produksi, harga bahan, dan biaya bulanan untuk finalisasi.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HPP DETAIL -->
+      <section x-show="page === 'hpp-detail'">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <button class="icon-btn" @click="go('hpp')"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+            <div><div class="section-title" x-text="selectedHpp.code || 'HPP'"></div><div class="text-[11px] text-slate-400" x-text="selectedHpp.date ? dateShort(selectedHpp.date) + ' • ' + productName(selectedHpp.productId) + ' • v' + selectedHpp.version : ''"></div></div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="badge" :class="hppStatusBadge(selectedHpp.status)" x-text="hppStatusLabel(selectedHpp.status)"></span>
+            <button x-show="selectedHpp.status === 'draft'" class="btn btn-outline btn-sm" @click="editHpp(selectedHpp)">Edit Draft</button>
+            <button x-show="selectedHpp.status === 'final'" class="btn btn-outline btn-sm" @click="openHppRevision(selectedHpp)">Revisi</button>
+            <button x-show="selectedHpp.status === 'final'" class="btn btn-primary btn-sm" @click="askHppApply(selectedHpp)">Terapkan ke Harga Modal</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div class="card kpi"><div class="kpi-label">Hasil</div><div class="kpi-value text-lg" x-text="fmt(selectedHpp.outputQty) + ' Krt'"></div></div>
+          <div class="card kpi"><div class="kpi-label">HPP / Krt</div><div class="kpi-value text-lg" x-text="rp2(selectedHpp.hppPerDus)"></div></div>
+          <div class="card kpi"><div class="kpi-label">Bahan / Krt</div><div class="kpi-value text-lg" x-text="rp2(selectedHpp.materialPerDus)"></div></div>
+          <div class="card kpi"><div class="kpi-label">Biaya Produksi / Krt</div><div class="kpi-value text-lg" x-text="rp2(selectedHpp.productionCostPerDus)"></div></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card">
+            <div class="card-header"><div class="section-title">Bahan Baku</div><span class="badge badge-slate" x-text="(selectedHpp.materials || []).length + ' bahan'"></span></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Bahan</th><th class="num">Qty / Krt</th><th class="num">Harga</th><th class="num">Subtotal</th></tr></thead><tbody><template x-for="row in (selectedHpp.materials || [])" :key="row.materialId"><tr><td><div class="font-semibold" x-text="materialName(row.materialId)"></div><span class="sub" x-text="row.priceOverridden ? 'Harga diubah' : 'Harga sistem'"></span></td><td class="num" x-text="fmt2(row.qtyPerDus)"></td><td class="num" x-text="rp2(row.price)"></td><td class="num" x-text="rp2(row.qtyPerDus * row.price)"></td></tr></template></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="section-title">Biaya Produksi</div><span class="badge badge-slate" x-text="(selectedHpp.costs || []).length + ' komponen'"></span></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Komponen</th><th>Periode</th><th>Tipe</th><th class="num">Per Krt</th></tr></thead><tbody><template x-for="row in (selectedHpp.costs || [])" :key="row.component"><tr><td x-text="hppComponentLabel(row.component)"></td><td class="text-xs text-slate-500" x-text="row.sourcePeriod ? monthLongLabel(row.sourcePeriod) : '-'"></td><td><span class="badge" :class="row.type === 'aktual' ? 'badge-green' : 'badge-yellow'" x-text="row.type === 'aktual' ? 'Aktual' : (row.type === 'estimasi' ? 'Estimasi' : '-')"></span></td><td class="num" x-text="rp2(row.perDus)"></td></tr></template></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="section-title">Dokumen Produksi</div></div>
+            <div class="card-body pt-0 space-y-2"><template x-for="production in selectedHppProductionDocs" :key="production.id"><div class="flex justify-between text-xs"><button class="text-blue-600 hover:underline" @click="openProductionByRef(production.id)" x-text="production.code"></button><span x-text="fmt(production.qty) + ' Krt'"></span></div></template><div x-show="!selectedHppProductionDocs.length" class="text-xs text-slate-400">Tidak ada dokumen.</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="section-title">Versi & Log</div></div>
+            <div class="card-body pt-0 space-y-2">
+              <template x-for="version in hppVersionRows(selectedHpp)" :key="version.id"><div class="flex justify-between text-xs"><span x-text="'v' + version.version"></span><span class="badge" :class="hppStatusBadge(version.status)" x-text="hppStatusLabel(version.status)"></span></div></template>
+              <div class="divider"></div>
+              <template x-for="log in hppLog.filter(item => item.hppId === selectedHpp.id)" :key="log.id"><div class="text-xs text-slate-500"><b x-text="log.by"></b> • <span x-text="log.action"></span> • <span x-text="dateShort(log.at)"></span><div x-text="log.note"></div></div></template>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 text-[11px] text-slate-400">Snapshot: perubahan Pengaturan, Biaya Bulanan, harga bahan, atau resep tidak mengubah dokumen ini.</div>
+      </section>
+
       <!-- JOURNALS -->
       <section x-show="page === 'journals'">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -3225,6 +3486,35 @@
   </div>
 
   <!-- MODALS -->
+
+  <!-- HPP REVISION MODAL -->
+  <div x-show="hppRevisionOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="hppRevisionOpen = false">
+    <div class="modal-panel modal-lg">
+      <div class="modal-head"><div><div class="modal-title">Revisi HPP</div><div class="modal-desc">Versi lama akan ditandai Digantikan dan versi baru dibuat sebagai Draft.</div></div><button class="icon-btn" @click="hppRevisionOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body">
+        <label class="label">Alasan Revisi <span class="req">*</span></label>
+        <textarea class="textarea" x-model="hppRevisionReason" placeholder="Contoh: koreksi harga bahan atau hasil produksi"></textarea>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="hppRevisionOpen = false">Batal</button><button class="btn btn-primary" @click="saveHppRevision()">Buat Revisi</button></div>
+    </div>
+  </div>
+
+  <!-- HPP HISTORY MODAL -->
+  <div x-show="hppHistoryOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="hppHistoryOpen = false">
+    <div class="modal-panel modal-lg">
+      <div class="modal-head"><div><div class="modal-title">Riwayat Biaya</div><div class="modal-desc" x-text="hppHistoryTitle"></div></div><button class="icon-btn" @click="hppHistoryOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-2">
+        <template x-for="(item, index) in hppHistoryRows" :key="index">
+          <div class="rounded-xl border border-slate-200 p-3 text-xs">
+            <div class="flex justify-between gap-2"><b x-text="item.by + ' • ' + item.byRole"></b><span class="text-slate-400" x-text="dateShort(item.at)"></span></div>
+            <div class="mt-1 text-slate-500" x-text="JSON.stringify(item.after)"></div>
+          </div>
+        </template>
+        <div x-show="hppHistoryRows.length === 0" class="text-center text-xs text-slate-400 py-4">Belum ada riwayat.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="hppHistoryOpen = false">Tutup</button></div>
+    </div>
+  </div>
 
   <!-- CUSTOMER MODAL -->
   <div x-show="customerModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="customerModalOpen = false">
@@ -4148,7 +4438,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261121e"></script>
+<script src="assets/app.js?v=20261121h"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

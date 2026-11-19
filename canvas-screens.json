@@ -81,6 +81,10 @@
 
   { "id": "coa", "name": "Chart of Accounts", "group": "keuangan", "groupName": "Keuangan", "page": "coa" },
   { "id": "opening-balance", "name": "Saldo Awal", "group": "keuangan", "groupName": "Keuangan", "page": "opening-balance" },
+  { "id": "hpp", "name": "HPP Harian", "group": "keuangan", "groupName": "Keuangan", "page": "hpp" },
+  { "id": "hpp-monthly", "name": "HPP — Biaya Bulanan", "group": "keuangan", "groupName": "Keuangan", "page": "hpp", "state": { "hppTab": "monthly" } },
+  { "id": "hpp-settings", "name": "HPP — Pengaturan", "group": "keuangan", "groupName": "Keuangan", "page": "hpp", "state": { "hppTab": "settings" } },
+  { "id": "hpp-create", "name": "HPP — Buat", "group": "keuangan", "groupName": "Keuangan", "page": "hpp-create", "setup": "hpp-create" },
   { "id": "account-modal", "name": "Modal Akun", "group": "keuangan", "groupName": "Keuangan", "page": "coa", "setup": "account-modal" },
   { "id": "journals", "name": "Jurnal Umum", "group": "keuangan", "groupName": "Keuangan", "page": "journals" },
   { "id": "journal-create", "name": "Buat Jurnal", "group": "keuangan", "groupName": "Keuangan", "page": "journal-create", "setup": "journal-create" },

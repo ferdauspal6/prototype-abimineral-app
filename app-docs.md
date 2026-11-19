@@ -185,6 +185,36 @@ Permission: `Laporan Keuangan` (Admin, Manager, Developer).
 - Saldo awal hanya boleh satu yang posted; untuk mengubah, gunakan **Void Saldo Awal** lalu posting ulang.
 - Jurnal saldo awal menyimpan pembuat dan waktu posting.
 
+### 2.6.2 HPP Harian
+
+Menu: **Keuangan → HPP**.
+Permission: `Laporan Keuangan` (Admin, Manager, Developer).
+
+Tab:
+
+1. **HPP Harian**
+2. **Biaya Bulanan**
+3. **Pengaturan**
+
+Aturan utama:
+
+- Satuan memakai **Krt**.
+- Hasil produksi diambil dari dokumen Produksi posted, bukan diketik.
+- HPP per Krt = bahan baku per Krt + biaya produksi per Krt.
+- Bahan memakai qty aktual dari PRD atau standar dari resep.
+- Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan.
+- Biaya bulanan: gaji, uang makan, BPJS, listrik, overhead.
+- Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
+- Air = `(liter per Krt ÷ 1.000) × harga per m³`.
+- Penyusutan = `nilai penyusutan ÷ hasil produksi × alokasi%`.
+- Satu HPP final per tanggal + produk.
+- Revisi membuat versi baru dan menandai versi lama **Digantikan**.
+- Draft boleh dihitung ulang dari data sumber; harga override dan penyusutan dipertahankan.
+- Final mengunci snapshot.
+- Terapkan ke Harga Modal memakai pembulatan rupiah dan dicatat di riwayat.
+- Order baru menyimpan `costAtOrder` agar perubahan Harga Modal tidak mengubah COGS historis.
+- Self-test internal memverifikasi contoh HPP 13.852,78.
+
 ### 2.7 L4 — Penerimaan Barang
 
 - Penerimaan dibuat dari PO `approved`, `sent`, atau `partially_received`.
@@ -387,6 +417,7 @@ Urutan grup:
    - Pengeluaran Lainnya
    - Chart of Accounts
    - Saldo Awal
+   - HPP
    - Jurnal Umum
    - Buku Besar
    - Laporan

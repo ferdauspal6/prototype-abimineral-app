@@ -1,8 +1,10 @@
 const rupiahFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 const numberFmt = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
+const rupiah2Fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const number2Fmt = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 14;
+const STORE_VERSION = 15;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
@@ -11,7 +13,8 @@ const DOMAIN_KEYS = [
   'collections', 'payments', 'users', 'roles', 'monthlyHistory',
   'categories', 'materials', 'suppliers', 'purchaseRequests', 'units', 'purchaseOrders',
   'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'accounts', 'journals',
-  'recipes', 'productions', 'productionLogs'
+  'recipes', 'productions', 'productionLogs',
+  'hppSettings', 'biayaProduksiBulanan', 'hppHarian', 'hppLog'
 ];
 
 const PAGE_PERMISSION = {
@@ -49,6 +52,9 @@ const PAGE_PERMISSION = {
   'purchase-return-create': 'Return Pembelian',
   coa: 'Chart of Accounts',
   'opening-balance': 'Laporan Keuangan',
+  hpp: 'Laporan Keuangan',
+  'hpp-create': 'Laporan Keuangan',
+  'hpp-detail': 'Laporan Keuangan',
   journals: 'Jurnal Umum',
   'journal-create': 'Jurnal Umum',
   ledger: 'Laporan Keuangan',
@@ -69,6 +75,19 @@ const PAGE_PERMISSION = {
 const PAGES = Object.keys(PAGE_PERMISSION).concat(['login']);
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const MONTH_LONG = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+function previousMonthKey(period) {
+  const parts = String(period || todayISO().slice(0, 7)).split('-');
+  let year = Number(parts[0]) || new Date().getFullYear();
+  let month = Number(parts[1]) || (new Date().getMonth() + 1);
+  month -= 1;
+  if (month < 1) { month = 12; year -= 1; }
+  return year + '-' + pad2(month);
+}
+function monthLongLabel(period) {
+  const parts = String(period || '').split('-');
+  return (MONTH_LONG[Number(parts[1]) - 1] || '') + ' ' + (parts[0] || '');
+}
 
 /* ---------- DATE & CODE HELPERS ---------- */
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -269,6 +288,17 @@ function seedData() {
   ];
 
   const monthlyHistory = [];
+  const hppSettings = {
+    workingDays: 26,
+    waterLitersPerKrt: 10.5,
+    waterPricePerM3: 7000,
+    updatedBy: '',
+    updatedAt: '',
+    history: []
+  };
+  const biayaProduksiBulanan = [];
+  const hppHarian = [];
+  const hppLog = [];
 
   return {
     customers, products, promos, orders, deliveries, returns, warehouses,
@@ -276,7 +306,8 @@ function seedData() {
     collections, payments, users, roles, monthlyHistory,
     categories, materials, suppliers, purchaseRequests, units, purchaseOrders,
     receipts, purchaseReturns, stockMovements, payables, accounts, journals, permissions,
-    recipes, productions, productionLogs
+    recipes, productions, productionLogs,
+    hppSettings, biayaProduksiBulanan, hppHarian, hppLog
   };
 }
 
@@ -335,6 +366,10 @@ function app() {
     recipes: seed.recipes,
     productions: seed.productions,
     productionLogs: seed.productionLogs,
+    hppSettings: seed.hppSettings,
+    biayaProduksiBulanan: seed.biayaProduksiBulanan,
+    hppHarian: seed.hppHarian,
+    hppLog: seed.hppLog,
     units: seed.units,
     accounts: seed.accounts,
     journals: seed.journals,
@@ -446,6 +481,11 @@ function app() {
       }
       if (parsed && parsed.version === 13 && parsed.data) {
         this.migrateFromV13(parsed);
+        this.saveStore();
+        return;
+      }
+      if (parsed && parsed.version === 14 && parsed.data) {
+        this.migrateFromV14(parsed);
         this.saveStore();
         return;
       }
@@ -966,6 +1006,40 @@ function app() {
         }
       }
     },
+    migrateFromV14(parsed) {
+      DOMAIN_KEYS.forEach(key => {
+        if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
+      });
+      const fresh = seedData();
+      this.hppSettings = Object.assign({}, fresh.hppSettings, this.hppSettings || {});
+      this.hppSettings.history = Array.isArray(this.hppSettings.history) ? this.hppSettings.history : [];
+      this.biayaProduksiBulanan = Array.isArray(this.biayaProduksiBulanan) ? this.biayaProduksiBulanan : [];
+      this.hppHarian = Array.isArray(this.hppHarian) ? this.hppHarian : [];
+      this.hppLog = Array.isArray(this.hppLog) ? this.hppLog : [];
+      this.ensureOpeningBalanceAccount();
+      (this.orders || []).forEach(order => {
+        if (order.costAtOrder !== undefined) return;
+        order.costAtOrder = (order.items || []).reduce((sum, item) => {
+          const product = (this.products || []).find(row => row.id === item.productId) || {};
+          return sum + (Number(product.cost) || 0) * (Number(item.qty) || 0);
+        }, 0);
+      });
+      this.savedAt = parsed.savedAt || null;
+      const session = parsed.session || {};
+      this.currentUserId = null;
+      if (session.userId && (this.users || []).some(user => user.id === session.userId)) {
+        const user = this.users.find(u => u.id === session.userId);
+        this.currentUserId = user.id;
+        this.role = (user.roles || [])[0] || session.role || 'Admin';
+      }
+      if (parsed.ui) {
+        this.collapsed = !!parsed.ui.collapsed;
+        this.sessionPage = parsed.ui.page || null;
+        if (parsed.ui.selectedOrderId && (this.orders || []).some(order => order.id === parsed.ui.selectedOrderId)) this.selectedOrderId = parsed.ui.selectedOrderId;
+        if (parsed.ui.selectedDeliveryId && (this.deliveries || []).some(delivery => delivery.id === parsed.ui.selectedDeliveryId)) this.selectedDeliveryId = parsed.ui.selectedDeliveryId;
+        if (parsed.ui.selectedCollectionId && (this.collections || []).some(collection => collection.id === parsed.ui.selectedCollectionId)) this.selectedCollectionId = parsed.ui.selectedCollectionId;
+      }
+    },
     migrateFromV13(parsed) {
       const fresh = seedData();
       DOMAIN_KEYS.forEach(key => {
@@ -1185,6 +1259,7 @@ function app() {
           { page: 'finance-expense', label: 'Pengeluaran Lainnya', icon: 'i-banknote-down', match: ['finance-expense'] },
           { page: 'coa', label: 'Chart of Accounts', icon: 'i-clipboard', match: ['coa'] },
           { page: 'opening-balance', label: 'Saldo Awal', icon: 'i-coins', match: ['opening-balance'] },
+          { page: 'hpp', label: 'HPP', icon: 'i-calculator', match: ['hpp','hpp-create','hpp-detail'] },
           { page: 'journals', label: 'Jurnal Umum', icon: 'i-file', match: ['journals','journal-create'] },
           { page: 'ledger', label: 'Buku Besar', icon: 'i-chart', match: ['ledger'] },
           { page: 'reports', label: 'Laporan', icon: 'i-receipt', match: ['reports'] }
@@ -1237,6 +1312,9 @@ function app() {
         'purchase-return-create': { title: 'Buat Return Pembelian', crumb: 'Pembelian / Return / Buat' },
         coa: { title: 'Chart of Accounts', crumb: 'Keuangan / Chart of Accounts' },
         'opening-balance': { title: 'Saldo Awal', crumb: 'Keuangan / Saldo Awal' },
+        hpp: { title: 'HPP', crumb: 'Keuangan / HPP' },
+        'hpp-create': { title: 'Buat HPP', crumb: 'Keuangan / HPP / Buat' },
+        'hpp-detail': { title: 'Detail HPP', crumb: 'Keuangan / HPP / Detail' },
         journals: { title: 'Jurnal Umum', crumb: 'Keuangan / Jurnal Umum' },
         'journal-create': { title: 'Buat Jurnal', crumb: 'Keuangan / Jurnal Umum / Buat' },
         ledger: { title: 'Buku Besar', crumb: 'Keuangan / Buku Besar' },
@@ -1596,6 +1674,15 @@ function app() {
         case 'report-profit': this.reportTab = 'profit'; this.page = 'reports'; break;
         case 'report-balance': this.reportTab = 'balance'; this.page = 'reports'; break;
         case 'report-revenue': this.reportTab = 'revenue'; this.page = 'reports'; break;
+        case 'hpp-create': {
+          const production = first(this.productions.filter(item => item.status === 'posted'));
+          this.startHppCreate();
+          if (production) {
+            this.hppForm.date = production.date;
+            this.hppForm.productId = production.productId;
+          }
+          break;
+        }
         case 'journal-create': this.startJournalCreate(); break;
         case 'journal-detail': {
           const row = first(this.journals);
@@ -1646,6 +1733,7 @@ function app() {
       this.loadStore();
       this.ensureOpeningBalanceAccount();
       this.syncOrderAudit();
+      this.initHpp();
       if (this.canvasMode && !this.currentUserId) {
         const user = this.users.find(item => (item.roles || []).includes('Admin')) || this.users[0];
         if (user) {
@@ -1761,6 +1849,8 @@ function app() {
     /* ---------- HELPERS ---------- */
     fmt(n) { return numberFmt.format(Number(n) || 0); },
     rp(n) { return rupiahFmt.format(Number(n) || 0); },
+    fmt2(n) { return number2Fmt.format(Number(n) || 0); },
+    rp2(n) { return rupiah2Fmt.format(Number(n) || 0); },
     short(n) {
       const v = Number(n) || 0;
       if (Math.abs(v) >= 1000000000) return (v / 1000000000).toFixed(1).replace('.0', '') + 'm';
@@ -1885,6 +1975,18 @@ function app() {
     },
     actionMenuItems(kind, row) {
       switch (kind) {
+        case 'hpp': {
+          const items = [{ label:'Lihat Detail', icon:'i-eye', run:() => this.viewHpp(row) }];
+          if (row.status === 'draft') {
+            items.push({ label:'Edit Draft', icon:'i-pencil', run:() => this.editHpp(row) });
+            items.push({ label:'Hapus', icon:'i-trash', danger:true, run:() => this.deleteHpp(row) });
+          }
+          if (row.status === 'final') {
+            items.push({ label:'Revisi', icon:'i-refresh', run:() => this.openHppRevision(row) });
+            items.push({ label:'Terapkan ke Harga Modal', icon:'i-check', run:() => this.askHppApply(row) });
+          }
+          return items;
+        }
         case 'orders': return [
           { label:'Konfirmasi', icon:'i-check', show:row.status === 'pending', run:() => this.confirmOrder(row) },
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewOrder(row.id) },
@@ -2031,6 +2133,7 @@ function app() {
         : { name:this.currentUser, username:'', email:'' };
     },
     orderCogs(order) {
+      if (order && order.costAtOrder !== undefined) return Number(order.costAtOrder) || 0;
       return (order.items || []).reduce((sum, item) => {
         const prod = this.product(item.productId);
         return sum + (Number(prod.cost) || 0) * (Number(item.qty) || 0);
@@ -2094,6 +2197,23 @@ function app() {
           journal.history = journal.history || [];
           journal.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Void saldo awal' });
           this.notify('Saldo awal berhasil di-void');
+        }
+      }
+      if (action === 'hpp-copy-monthly') {
+        this.applyHppMonthlyCopy(id);
+      }
+      if (action === 'hpp-finalize') {
+        this.persistHppFinal();
+      }
+      if (action === 'hpp-apply') {
+        this.applyHppCost(id);
+      }
+      if (action === 'hpp-delete') {
+        const row = this.hppHarian.find(item => item.id === id);
+        if (row && row.status === 'draft') {
+          this.hppHarian = this.hppHarian.filter(item => item.id !== id);
+          this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:id, action:'delete', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft dihapus' });
+          this.notify('Draft HPP dihapus');
         }
       }
       if (action === 'save-purchase-return') {
@@ -5154,6 +5274,616 @@ function app() {
       this.askConfirm('void-opening', journal.id, 'Void saldo awal?', 'Jurnal saldo awal ' + journal.code + ' akan di-void. Laporan akan kembali tanpa saldo awal sampai diposting ulang.', true, 'Void');
     },
 
+    /* ---------- HPP ---------- */
+    hppTab: 'daily',
+    hppSearch: '', hppStatus: '', hppProduct: '', hppDateFrom: '', hppDateTo: '',
+    hppMonthlyPeriod: todayISO().slice(0, 7),
+    hppMonthlyForm: {},
+    hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000 },
+    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialMode:'actual', materialOverrides:{}, depreciationTotal:0, costPeriods:{} },
+    hppEditId: null,
+    hppDetailId: null,
+    hppRevisionOpen: false,
+    hppRevisionId: null,
+    hppRevisionReason: '',
+    hppHistoryOpen: false,
+    hppHistoryTitle: '',
+    hppHistoryRows: [],
+    hppSelfTestResult: null,
+    get hppComponents() {
+      return [
+        { key:'gaji', label:'Gaji Produksi', employee:true },
+        { key:'uang_makan', label:'Uang Makan Produksi', employee:true },
+        { key:'bpjs', label:'BPJS Produksi', employee:false },
+        { key:'listrik', label:'Listrik', kwh:true },
+        { key:'overhead', label:'Overhead' }
+      ];
+    },
+    initHpp() {
+      this.loadHppSettingsForm();
+      this.loadHppMonthly();
+    },
+    loadHppSettingsForm() {
+      const settings = this.hppSettings || {};
+      this.hppSettingsForm = {
+        workingDays:Number(settings.workingDays) || 26,
+        waterLitersPerKrt:Number(settings.waterLitersPerKrt) || 10.5,
+        waterPricePerM3:Number(settings.waterPricePerM3) || 7000
+      };
+    },
+    saveHppSettings() {
+      const form = this.hppSettingsForm;
+      const workingDays = Number(form.workingDays) || 0;
+      const waterLitersPerKrt = Number(form.waterLitersPerKrt) || 0;
+      const waterPricePerM3 = Number(form.waterPricePerM3) || 0;
+      if (workingDays < 1 || workingDays > 31) { this.notify('Hari kerja harus antara 1 dan 31', 'error'); return; }
+      if (waterLitersPerKrt < 0 || waterPricePerM3 < 0) { this.notify('Parameter air tidak boleh negatif', 'error'); return; }
+      const old = {
+        workingDays:Number(this.hppSettings.workingDays) || 0,
+        waterLitersPerKrt:Number(this.hppSettings.waterLitersPerKrt) || 0,
+        waterPricePerM3:Number(this.hppSettings.waterPricePerM3) || 0
+      };
+      const changes = [];
+      if (old.workingDays !== workingDays) changes.push('Hari kerja: ' + old.workingDays + ' → ' + workingDays);
+      if (old.waterLitersPerKrt !== waterLitersPerKrt) changes.push('Liter air per Krt: ' + old.waterLitersPerKrt + ' → ' + waterLitersPerKrt);
+      if (old.waterPricePerM3 !== waterPricePerM3) changes.push('Harga air per m³: ' + old.waterPricePerM3 + ' → ' + waterPricePerM3);
+      if (!changes.length) { this.notify('Tidak ada perubahan pengaturan'); return; }
+      this.hppSettings = Object.assign({}, this.hppSettings, {
+        workingDays, waterLitersPerKrt, waterPricePerM3,
+        updatedBy:this.currentUser, updatedAt:todayISO()
+      });
+      this.hppSettings.history = this.hppSettings.history || [];
+      this.hppSettings.history.unshift({ at:todayISO(), by:this.currentUser, byRole:this.role, changes });
+      this.persist();
+      this.notify('Pengaturan HPP disimpan');
+    },
+    getBiayaBulanan(period, component) {
+      return (this.biayaProduksiBulanan || []).find(row => row.period === period && row.component === component) || null;
+    },
+    hppComponentLabel(key) {
+      const component = this.hppComponents.find(row => row.key === key);
+      return component ? component.label : key;
+    },
+    loadHppMonthly() {
+      const form = {};
+      this.hppComponents.forEach(component => {
+        const row = this.getBiayaBulanan(this.hppMonthlyPeriod, component.key);
+        form[component.key] = row ? {
+          value:Number(row.value) || 0,
+          employeeCount:row.employeeCount != null ? row.employeeCount : '',
+          kwh:row.kwh != null ? row.kwh : '',
+          sourceType:row.sourceType || 'manual',
+          type:row.type || 'estimasi',
+          note:row.note || ''
+        } : {
+          value:0, employeeCount:'', kwh:'', sourceType:'manual', type:'estimasi', note:''
+        };
+      });
+      this.hppMonthlyForm = form;
+    },
+    setHppMonthlyPeriod(value) {
+      this.hppMonthlyPeriod = value;
+      this.loadHppMonthly();
+    },
+    saveHppMonthly() {
+      const period = this.hppMonthlyPeriod;
+      if (!period) { this.notify('Pilih periode biaya', 'error'); return; }
+      let changed = 0;
+      this.hppComponents.forEach(component => {
+        const form = this.hppMonthlyForm[component.key] || {};
+        let row = this.getBiayaBulanan(period, component.key);
+        const next = {
+          value:Number(form.value) || 0,
+          employeeCount:form.employeeCount === '' ? null : Number(form.employeeCount) || 0,
+          kwh:form.kwh === '' ? null : Number(form.kwh) || 0,
+          sourceType:form.sourceType || 'manual',
+          type:form.type || 'estimasi',
+          note:form.note || ''
+        };
+        if (!row) {
+          row = {
+            id:'bpb' + Date.now() + Math.random().toString(16).slice(2),
+            period,
+            component:component.key,
+            ...next,
+            createdBy:this.currentUser,
+            updatedBy:this.currentUser,
+            updatedAt:todayISO(),
+            history:[]
+          };
+          this.biayaProduksiBulanan.push(row);
+          changed += 1;
+          return;
+        }
+        const before = {
+          value:Number(row.value) || 0,
+          employeeCount:row.employeeCount,
+          kwh:row.kwh,
+          sourceType:row.sourceType,
+          type:row.type,
+          note:row.note || ''
+        };
+        const different = ['value','employeeCount','kwh','sourceType','type','note'].some(key => String(before[key] == null ? '' : before[key]) !== String(next[key] == null ? '' : next[key]));
+        if (!different) return;
+        row.history = row.history || [];
+        row.history.unshift({ at:todayISO(), by:this.currentUser, byRole:this.role, before, after:next });
+        Object.assign(row, next, { updatedBy:this.currentUser, updatedAt:todayISO() });
+        changed += 1;
+      });
+      this.persist();
+      this.notify(changed ? 'Biaya bulanan disimpan' : 'Tidak ada perubahan biaya');
+    },
+    askCopyHppMonthly() {
+      const previous = previousMonthKey(this.hppMonthlyPeriod);
+      const rows = (this.biayaProduksiBulanan || []).filter(row => row.period === previous);
+      if (!rows.length) { this.notify('Belum ada data biaya pada ' + monthLongLabel(previous), 'error'); return; }
+      this.askConfirm('hpp-copy-monthly', previous, 'Salin biaya bulan sebelumnya?', 'Data ' + monthLongLabel(previous) + ' akan dimuat sebagai Estimasi. Simpan setelah memeriksa nilainya.', false, 'Salin');
+    },
+    applyHppMonthlyCopy(period) {
+      const rows = (this.biayaProduksiBulanan || []).filter(row => row.period === period);
+      if (!rows.length) { this.notify('Data bulan sebelumnya tidak ditemukan', 'error'); return; }
+      rows.forEach(row => {
+        this.hppMonthlyForm[row.component] = {
+          value:Number(row.value) || 0,
+          employeeCount:row.employeeCount != null ? row.employeeCount : '',
+          kwh:row.kwh != null ? row.kwh : '',
+          sourceType:'manual',
+          type:'estimasi',
+          note:'Salinan ' + monthLongLabel(period)
+        };
+      });
+      this.notify('Biaya ' + monthLongLabel(period) + ' dimuat sebagai Estimasi');
+    },
+    openHppHistory(component) {
+      const row = this.getBiayaBulanan(this.hppMonthlyPeriod, component);
+      if (!row || !(row.history || []).length) { this.notify('Belum ada riwayat perubahan untuk komponen ini'); return; }
+      this.hppHistoryTitle = this.hppComponentLabel(component) + ' • ' + monthLongLabel(this.hppMonthlyPeriod);
+      this.hppHistoryRows = row.history;
+      this.hppHistoryOpen = true;
+    },
+    get hppFilteredList() {
+      const q = String(this.hppSearch || '').toLowerCase();
+      return (this.hppHarian || []).filter(row => {
+        if (q && !(row.code + ' ' + this.productName(row.productId)).toLowerCase().includes(q)) return false;
+        if (this.hppStatus && row.status !== this.hppStatus) return false;
+        if (this.hppProduct && row.productId !== this.hppProduct) return false;
+        if (this.hppDateFrom && row.date < this.hppDateFrom) return false;
+        if (this.hppDateTo && row.date > this.hppDateTo) return false;
+        return true;
+      }).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.code).localeCompare(String(a.code)));
+    },
+    hppStatusLabel(status) { return { draft:'Draft', final:'Final', superseded:'Digantikan' }[status] || status; },
+    hppStatusBadge(status) { return { draft:'badge-slate', final:'badge-green', superseded:'badge-stone' }[status] || 'badge-slate'; },
+    nextHppCode() {
+      const year = todayISO().slice(0, 4);
+      const prefix = 'HPP-' + year + '-';
+      const max = (this.hppHarian || []).reduce((value, row) => {
+        const code = String(row.code || '');
+        if (!code.startsWith(prefix)) return value;
+        return Math.max(value, Number(code.slice(prefix.length)) || 0);
+      }, 0);
+      return prefix + String(max + 1).padStart(4, '0');
+    },
+    hppDefaultCostPeriods(date) {
+      const key = previousMonthKey(String(date || todayISO()).slice(0, 7));
+      const periods = {};
+      ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => { periods[component] = key; });
+      return periods;
+    },
+    startHppCreate() {
+      this.hppEditId = null;
+      this.hppForm = {
+        date:todayISO(), productId:'', allocationPercent:100,
+        bonusQty:0, bonusNote:'', materialMode:'actual',
+        materialOverrides:{}, depreciationTotal:0,
+        costPeriods:this.hppDefaultCostPeriods(todayISO())
+      };
+      this.go('hpp-create');
+    },
+    onHppDateChange() {
+      if (!this.hppForm) return;
+      this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
+    },
+    editHpp(row) {
+      if (!row || row.status !== 'draft') return;
+      this.hppEditId = row.id;
+      const overrides = {};
+      (row.materials || []).forEach(material => {
+        if (material.priceOverridden) overrides[material.materialId] = { price:material.price, reason:material.overrideReason || '' };
+      });
+      const periods = {};
+      ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => {
+        const cost = (row.costs || []).find(item => item.component === component);
+        periods[component] = cost ? cost.sourcePeriod : previousMonthKey(String(row.date).slice(0, 7));
+      });
+      this.hppForm = {
+        date:row.date, productId:row.productId,
+        allocationPercent:Number(row.allocationPercent) || 100,
+        bonusQty:Number(row.bonusQty) || 0, bonusNote:row.bonusNote || '',
+        materialMode:row.materialMode || 'actual',
+        materialOverrides:overrides,
+        depreciationTotal:Number(row.depreciationTotal) || 0,
+        costPeriods:periods
+      };
+      this.go('hpp-create');
+    },
+    get hppProductionDocs() {
+      if (!this.hppForm || !this.hppForm.date || !this.hppForm.productId) return [];
+      return (this.productions || []).filter(row => row.status === 'posted' && row.date === this.hppForm.date && row.productId === this.hppForm.productId);
+    },
+    get hppOutputQty() { return this.hppProductionDocs.reduce((sum, row) => sum + (Number(row.qty) || 0), 0); },
+    get hppProductionIds() { return this.hppProductionDocs.map(row => row.id); },
+    materialAveragePriceAt(materialId, asOf) {
+      const movements = (this.stockMovements || [])
+        .filter(row => row.materialId === materialId && (!asOf || row.date <= asOf))
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
+      let qty = 0;
+      let value = 0;
+      movements.forEach(row => {
+        const delta = Number(row.qty) || 0;
+        const rowValue = Number(row.value) || 0;
+        if (delta > 0) {
+          qty += delta;
+          value += rowValue || delta * (Number(row.unitCost) || 0);
+        } else if (delta < 0) {
+          const unit = qty > 0 ? value / qty : (Number(row.unitCost) || 0);
+          const used = Math.min(qty, Math.abs(delta));
+          qty -= used;
+          value -= used * unit;
+        }
+      });
+      return qty > 0 ? value / qty : null;
+    },
+    hppMaterialPrice(materialId) {
+      const override = this.hppForm && this.hppForm.materialOverrides[materialId];
+      if (override && override.price !== '' && override.price !== null && override.price !== undefined) return Number(override.price) || 0;
+      const average = this.materialAveragePriceAt(materialId, this.hppForm ? this.hppForm.date : '');
+      return average == null ? 0 : average;
+    },
+    hppMaterialPriceStatus(materialId) {
+      const override = this.hppForm && this.hppForm.materialOverrides[materialId];
+      if (override && override.price !== '' && override.price !== null && override.price !== undefined) return 'override';
+      return this.materialAveragePriceAt(materialId, this.hppForm ? this.hppForm.date : '') == null ? 'missing' : 'auto';
+    },
+    setHppMaterialPrice(materialId, value) {
+      if (!this.hppForm) return;
+      const current = this.hppForm.materialOverrides[materialId] || { price:'', reason:'' };
+      this.hppForm.materialOverrides = {
+        ...this.hppForm.materialOverrides,
+        [materialId]: { price:Math.max(0, Number(value) || 0), reason:current.reason || '' }
+      };
+    },
+    setHppMaterialReason(materialId, value) {
+      if (!this.hppForm) return;
+      const current = this.hppForm.materialOverrides[materialId] || { price:'', reason:'' };
+      this.hppForm.materialOverrides = { ...this.hppForm.materialOverrides, [materialId]: { ...current, reason:value } };
+    },
+    resetHppMaterialPrice(materialId) {
+      if (!this.hppForm) return;
+      const copy = { ...this.hppForm.materialOverrides };
+      delete copy[materialId];
+      this.hppForm.materialOverrides = copy;
+    },
+    get hppMaterialRows() {
+      if (!this.hppForm || !this.hppForm.productId || !this.hppForm.date || this.hppOutputQty <= 0) return [];
+      const output = this.hppOutputQty;
+      const totals = {};
+      if (this.hppForm.materialMode === 'standard') {
+        (this.recipes || []).filter(recipe => recipe.productId === this.hppForm.productId).forEach(recipe => {
+          totals[recipe.materialId] = (totals[recipe.materialId] || 0) + (Number(recipe.qtyPerUnit) || 0) * output;
+        });
+      } else {
+        this.hppProductionDocs.forEach(doc => (doc.materials || []).forEach(row => {
+          if (!row.materialId) return;
+          totals[row.materialId] = (totals[row.materialId] || 0) + (Number(row.qty) || 0);
+        }));
+      }
+      return Object.keys(totals).map(materialId => {
+        const material = this.material(materialId);
+        const qtyTotal = totals[materialId];
+        const qtyPerDus = output > 0 ? qtyTotal / output : 0;
+        const price = this.hppMaterialPrice(materialId);
+        const status = this.hppMaterialPriceStatus(materialId);
+        const override = this.hppForm.materialOverrides[materialId] || {};
+        return {
+          materialId, code:material.code || '-', name:material.name || '-', unit:material.unit || '',
+          qtyTotal, qtyPerDus, price, subtotalPerDus:qtyPerDus * price,
+          priceOverridden:status === 'override', priceMissing:status === 'missing' || price <= 0,
+          overrideReason:override.reason || '', status
+        };
+      }).sort((a, b) => String(a.code).localeCompare(String(b.code)));
+    },
+    get hppMaterialTotal() { return this.hppMaterialRows.reduce((sum, row) => sum + row.subtotalPerDus, 0); },
+    hppCostPeriod(component) {
+      return (this.hppForm && this.hppForm.costPeriods && this.hppForm.costPeriods[component]) || previousMonthKey(String(this.hppForm ? this.hppForm.date : todayISO()).slice(0, 7));
+    },
+    setHppCostPeriod(component, value) {
+      if (!this.hppForm) return;
+      this.hppForm.costPeriods = { ...this.hppForm.costPeriods, [component]:value };
+    },
+    get hppCostRows() {
+      if (!this.hppForm) return [];
+      const output = this.hppOutputQty;
+      const workingDays = Number(this.hppSettings.workingDays) || 0;
+      const allocation = Number(this.hppForm.allocationPercent) || 0;
+      const rows = [];
+      ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => {
+        const period = this.hppCostPeriod(component);
+        const source = this.getBiayaBulanan(period, component);
+        const value = source ? Number(source.value) || 0 : 0;
+        const perDus = output > 0 && workingDays > 0 ? (value / workingDays / output) * (allocation / 100) : 0;
+        rows.push({
+          component, label:this.hppComponentLabel(component), period, source,
+          value, type:source ? source.type : '', perDus, missing:!source,
+          kwh:source ? source.kwh : null,
+          tariff:source && Number(source.kwh) > 0 ? (Number(source.value) || 0) / Number(source.kwh) : 0,
+          formula:'(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(perDus)
+        });
+      });
+      const waterLiters = Number(this.hppSettings.waterLitersPerKrt) || 0;
+      const waterPrice = Number(this.hppSettings.waterPricePerM3) || 0;
+      const waterPerDus = (waterLiters / 1000) * waterPrice;
+      rows.push({
+        component:'air', label:'Air', period:'', source:null, value:null, type:'', perDus:waterPerDus, missing:false,
+        formula:'(' + this.fmt(waterLiters) + ' ÷ 1.000) × ' + this.fmt(waterPrice) + ' = ' + this.fmt2(waterPerDus)
+      });
+      const depreciation = Number(this.hppForm.depreciationTotal) || 0;
+      const depreciationPerDus = output > 0 ? (depreciation / output) * (allocation / 100) : 0;
+      rows.push({
+        component:'penyusutan', label:'Penyusutan', period:'', source:null, value:depreciation, type:'', perDus:depreciationPerDus, missing:false,
+        formula:'(' + this.fmt(depreciation) + ' ÷ ' + this.fmt(output) + ') × ' + this.fmt(allocation) + '% = ' + this.fmt2(depreciationPerDus)
+      });
+      return rows;
+    },
+    get hppCostTotal() { return this.hppCostRows.reduce((sum, row) => sum + row.perDus, 0); },
+    get hppPerDus() { return this.hppMaterialTotal + this.hppCostTotal; },
+    get hppTotal() { return this.hppPerDus * this.hppOutputQty; },
+    get hppProductCost() { return Number(this.product(this.hppForm ? this.hppForm.productId : '').cost) || 0; },
+    get hppCostDifference() { return this.hppPerDus - this.hppProductCost; },
+    get hppCostDifferencePct() { return this.hppProductCost ? (this.hppCostDifference / this.hppProductCost) * 100 : 0; },
+    get hppMissingCosts() { return this.hppCostRows.filter(row => row.missing); },
+    get hppAllocationWarning() {
+      if (!this.hppForm) return false;
+      const others = (this.hppHarian || []).filter(row =>
+        row.date === this.hppForm.date
+        && row.status !== 'superseded'
+        && row.id !== this.hppEditId
+        && row.productId !== this.hppForm.productId
+      );
+      return others.reduce((sum, row) => sum + (Number(row.allocationPercent) || 0), Number(this.hppForm.allocationPercent) || 0) > 100;
+    },
+    get hppCanFinalize() {
+      return !!this.hppForm
+        && !!this.hppForm.date
+        && !!this.hppForm.productId
+        && this.hppOutputQty > 0
+        && this.hppMaterialRows.length > 0
+        && this.hppMaterialRows.every(row => row.price > 0 && (!row.priceOverridden || String(row.overrideReason || '').trim()))
+        && this.hppMissingCosts.length === 0
+        && Number(this.hppForm.depreciationTotal) >= 0
+        && Number(this.hppForm.allocationPercent) >= 0
+        && Number(this.hppForm.allocationPercent) <= 100;
+    },
+    hppPayload(status) {
+      const form = this.hppForm;
+      const costs = this.hppCostRows;
+      return {
+        id:'hpp' + Date.now(),
+        code:this.nextHppCode(),
+        date:form.date,
+        productId:form.productId,
+        version:(this.hppHarian || []).filter(row => row.date === form.date && row.productId === form.productId).reduce((max, row) => Math.max(max, Number(row.version) || 0), 0) + 1,
+        status,
+        workingDays:Number(this.hppSettings.workingDays) || 0,
+        allocationPercent:Number(form.allocationPercent) || 0,
+        outputQty:this.hppOutputQty,
+        bonusQty:Number(form.bonusQty) || 0,
+        bonusNote:form.bonusNote || '',
+        materialMode:form.materialMode,
+        materialPerDus:this.hppMaterialTotal,
+        productionCostPerDus:this.hppCostTotal,
+        hppPerDus:this.hppPerDus,
+        totalHpp:this.hppTotal,
+        depreciationTotal:Number(form.depreciationTotal) || 0,
+        materials:this.hppMaterialRows.map(row => ({
+          materialId:row.materialId, qtyTotal:row.qtyTotal, qtyPerDus:row.qtyPerDus,
+          price:row.price, priceOverridden:row.priceOverridden,
+          overrideReason:row.overrideReason
+        })),
+        costs:costs.map(row => ({
+          component:row.component, sourcePeriod:row.period, sourceType:row.source ? row.source.sourceType : 'manual',
+          type:row.type || '', monthlyValue:row.value, divisor:Number(this.hppSettings.workingDays) || 0,
+          perDus:row.perDus, formula:row.formula, kwh:row.kwh || null
+        })),
+        productionIds:this.hppProductionIds,
+        snapshot:JSON.parse(JSON.stringify({
+          settings:{ ...this.hppSettings },
+          productionDocs:this.hppProductionDocs.map(row => ({ id:row.id, code:row.code, qty:row.qty, materials:row.materials })),
+          monthlyCosts:costs.map(row => ({ component:row.component, period:row.period, source:row.source ? { ...row.source } : null, value:row.value, type:row.type })),
+          materials:this.hppMaterialRows,
+          outputQty:this.hppOutputQty,
+          allocationPercent:Number(form.allocationPercent) || 0,
+          bonusQty:Number(form.bonusQty) || 0,
+          bonusNote:form.bonusNote || '',
+          materialMode:form.materialMode,
+          depreciationTotal:Number(form.depreciationTotal) || 0
+        })),
+        createdBy:this.currentUser,
+        createdById:this.currentUserId,
+        createdAt:todayISO(),
+        finalizedBy:'', finalizedAt:'',
+        supersededBy:'', supersededAt:'', revisionReason:'',
+        appliedBy:'', appliedAt:''
+      };
+    },
+    saveHppDraft() {
+      if (!this.hppForm) return;
+      if (!this.hppForm.date || !this.hppForm.productId) { this.notify('Tanggal dan produk wajib diisi', 'error'); return; }
+      if (this.hppOutputQty <= 0) { this.notify('Belum ada produksi untuk produk ini pada tanggal tersebut', 'error'); return; }
+      if (this.hppMaterialRows.length === 0) { this.notify('Bahan baku belum tersedia', 'error'); return; }
+      const payload = this.hppPayload('draft');
+      if (this.hppEditId) {
+        const row = this.hppHarian.find(item => item.id === this.hppEditId);
+        if (!row) { this.notify('Draft HPP tidak ditemukan', 'error'); return; }
+        Object.assign(row, payload, { id:row.id, code:row.code, version:row.version, createdAt:row.createdAt, createdBy:row.createdBy, createdById:row.createdById });
+        this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:row.id, action:'draft', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft diperbarui' });
+        this.hppDetailId = row.id;
+      } else {
+        this.hppHarian.unshift(payload);
+        this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:payload.id, action:'draft', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft dibuat' });
+        this.hppDetailId = payload.id;
+        this.hppEditId = payload.id;
+      }
+      this.persist();
+      this.notify('Draft HPP disimpan');
+      this.go('hpp-detail');
+    },
+    askHppFinalize() {
+      if (!this.hppCanFinalize) { this.notify('Lengkapi bahan, harga, dan biaya bulanan sebelum finalisasi', 'error'); return; }
+      const duplicate = this.hppHarian.find(row => row.date === this.hppForm.date && row.productId === this.hppForm.productId && row.status === 'final' && row.id !== this.hppEditId);
+      if (duplicate) { this.notify('Sudah ada HPP final untuk tanggal dan produk ini. Gunakan Revisi.', 'error'); return; }
+      this.askConfirm('hpp-finalize', null, 'Finalisasi HPP?', 'Dokumen akan dikunci dan tidak bisa diedit langsung. HPP per Krt: ' + this.rp2(this.hppPerDus) + '.', false, 'Finalisasi');
+    },
+    persistHppFinal() {
+      if (!this.hppForm) return;
+      if (!this.hppCanFinalize) { this.notify('Data HPP belum lengkap', 'error'); return; }
+      const payload = this.hppPayload('final');
+      payload.finalizedBy = this.currentUser;
+      payload.finalizedAt = todayISO();
+      let row;
+      if (this.hppEditId) {
+        row = this.hppHarian.find(item => item.id === this.hppEditId);
+        if (row) Object.assign(row, payload, { id:row.id, code:row.code, version:row.version, createdAt:row.createdAt, createdBy:row.createdBy, createdById:row.createdById });
+      } else {
+        row = payload;
+        this.hppHarian.unshift(row);
+      }
+      if (row) {
+        this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:row.id, action:'final', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Finalisasi HPP' });
+        this.hppDetailId = row.id;
+        this.persist();
+        this.notify('HPP berhasil difinalisasi');
+        this.go('hpp-detail');
+      }
+    },
+    viewHpp(row) { if (!row) return; this.hppDetailId = row.id; this.go('hpp-detail'); },
+    get selectedHpp() { return (this.hppHarian || []).find(row => row.id === this.hppDetailId) || {}; },
+    get selectedHppProductionDocs() {
+      return (this.selectedHpp.productionIds || []).map(id => (this.productions || []).find(row => row.id === id)).filter(Boolean);
+    },
+    hppVersionRows(row) {
+      if (!row) return [];
+      return (this.hppHarian || []).filter(item => item.date === row.date && item.productId === row.productId).sort((a, b) => Number(a.version) - Number(b.version));
+    },
+    openHppRevision(row) {
+      if (!row || row.status !== 'final') return;
+      this.hppRevisionId = row.id;
+      this.hppRevisionReason = '';
+      this.hppRevisionOpen = true;
+    },
+    saveHppRevision() {
+      const old = this.hppHarian.find(row => row.id === this.hppRevisionId);
+      if (!old) { this.notify('HPP tidak ditemukan', 'error'); return; }
+      if (!String(this.hppRevisionReason || '').trim()) { this.notify('Alasan revisi wajib diisi', 'error'); return; }
+      old.status = 'superseded';
+      old.supersededBy = this.currentUser;
+      old.supersededAt = todayISO();
+      old.revisionReason = this.hppRevisionReason.trim();
+      const next = JSON.parse(JSON.stringify(old));
+      next.id = 'hpp' + Date.now();
+      next.code = this.nextHppCode();
+      next.version = (Number(old.version) || 1) + 1;
+      next.status = 'draft';
+      next.createdBy = this.currentUser;
+      next.createdById = this.currentUserId;
+      next.createdAt = todayISO();
+      next.finalizedBy = '';
+      next.finalizedAt = '';
+      next.supersededBy = '';
+      next.supersededAt = '';
+      next.appliedBy = '';
+      next.appliedAt = '';
+      this.hppHarian.unshift(next);
+      this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:next.id, action:'revisi', by:this.currentUser, byRole:this.role, at:todayISO(), note:this.hppRevisionReason.trim() });
+      this.hppRevisionOpen = false;
+      this.hppEditId = next.id;
+      const overrides = {};
+      (next.materials || []).forEach(material => {
+        if (material.priceOverridden) overrides[material.materialId] = { price:material.price, reason:material.overrideReason || '' };
+      });
+      this.hppForm = {
+        date:next.date, productId:next.productId,
+        allocationPercent:next.allocationPercent,
+        bonusQty:next.bonusQty, bonusNote:next.bonusNote,
+        materialMode:next.materialMode,
+        materialOverrides:overrides,
+        depreciationTotal:next.depreciationTotal,
+        costPeriods:(next.costs || []).reduce((periods, cost) => { periods[cost.component] = cost.sourcePeriod; return periods; }, {})
+      };
+      this.persist();
+      this.notify('Revisi dibuat. Versi lama ditandai Digantikan.');
+      this.go('hpp-create');
+    },
+    askHppApply(row) {
+      if (!row || row.status !== 'final') { this.notify('Hanya HPP final yang dapat diterapkan', 'error'); return; }
+      const product = this.product(row.productId);
+      this.askConfirm('hpp-apply', row.id, 'Terapkan ke Harga Modal?', 'Produk ' + product.name + '. Harga modal lama ' + this.rp2(product.cost) + ' menjadi ' + this.rp2(Math.round(row.hppPerDus)) + '.', false, 'Terapkan');
+    },
+    applyHppCost(id) {
+      const row = this.hppHarian.find(item => item.id === id);
+      if (!row || row.status !== 'final') return;
+      const product = this.product(row.productId);
+      if (!product.id) return;
+      const oldCost = Number(product.cost) || 0;
+      const newCost = Math.round(row.hppPerDus);
+      product.cost = newCost;
+      product.costHistory = product.costHistory || [];
+      product.costHistory.unshift({ at:todayISO(), by:this.currentUser, old:oldCost, new:newCost, hppId:row.id, hppCode:row.code });
+      row.appliedBy = this.currentUser;
+      row.appliedAt = todayISO();
+      this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:row.id, action:'apply-cost', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Harga modal ' + oldCost + ' → ' + newCost });
+      this.persist();
+      this.notify('Harga modal produk diperbarui');
+    },
+    deleteHpp(row) {
+      if (!row || row.status !== 'draft') return;
+      this.askConfirm('hpp-delete', row.id, 'Hapus draft HPP?', 'Draft ' + row.code + ' akan dihapus.');
+    },
+    calculateHpp(input) {
+      const output = Number(input.outputQty) || 0;
+      const workingDays = Number(input.workingDays) || 0;
+      const allocation = Number(input.allocationPercent) || 0;
+      const material = (input.materials || []).reduce((sum, row) => sum + (Number(row.qtyPerDus) || 0) * (Number(row.price) || 0), 0);
+      const monthly = (input.monthlyCosts || []).reduce((sum, row) => {
+        if (output <= 0 || workingDays <= 0) return sum;
+        return sum + ((Number(row.value) || 0) / workingDays / output) * (allocation / 100);
+      }, 0);
+      const water = ((Number(input.waterLitersPerKrt) || 0) / 1000) * (Number(input.waterPricePerM3) || 0);
+      const depreciation = output > 0 ? ((Number(input.depreciationTotal) || 0) / output) * (allocation / 100) : 0;
+      return { material, monthly, water, depreciation, production:monthly + water + depreciation, hpp:material + monthly + water + depreciation };
+    },
+    runHppSelfTest() {
+      const result = this.calculateHpp({
+        outputQty:1515,
+        workingDays:26,
+        allocationPercent:100,
+        materials:[
+          { qtyPerDus:48, price:39 }, { qtyPerDus:48, price:132 }, { qtyPerDus:48, price:15 },
+          { qtyPerDus:1, price:3309 }, { qtyPerDus:2, price:31 }
+        ],
+        monthlyCosts:[
+          { value:32637692 }, { value:7720000 }, { value:3382080 }, { value:14567560 }, { value:0 }
+        ],
+        waterLitersPerKrt:10.5,
+        waterPricePerM3:7000,
+        depreciationTotal:0
+      });
+      const expected = 13852.78;
+      const ok = Math.abs(result.hpp - expected) <= 0.05;
+      this.hppSelfTestResult = { ok, result, expected };
+      this.notify(ok ? 'Self-test HPP berhasil: ' + this.rp2(result.hpp) : 'Self-test HPP gagal: ' + this.rp2(result.hpp), ok ? 'success' : 'error');
+    },
+
     /* ---------- LEDGER & TRIAL BALANCE ---------- */
     ledgerAccountId: 'acc1', ledgerFrom: '', ledgerTo: todayISO(),
     reportTab: 'trial', reportAsOf: todayISO(), reportFrom: todayISO().slice(0, 8) + '01', reportTo: todayISO(), reportShowZero: false,
@@ -5615,6 +6345,8 @@ function app() {
       const c = this.selectedCustomer;
       if (!c.id) { this.notify('Pelanggan tidak ditemukan', 'error'); return; }
       const salesChannel = this.role === 'Sales' ? 'Sales' : 'Sales Kantor';
+      const costAtOrder = this.cartRows.reduce((sum, row) => sum + (Number(row.product.cost) || 0) * row.qty, 0)
+        + this.cartBonuses.reduce((sum, bonus) => sum + (Number(bonus.product.cost) || 0) * bonus.qty, 0);
       const id = 'o' + Date.now();
       const items = this.cartRows.map(row => ({ productId:row.product.id, qty:row.qty, price:row.price, discPercent:row.discPercent }));
       this.cartBonuses.forEach(bonus => items.push({ productId:bonus.product.id, qty:bonus.qty, price:0, discPercent:100, bonus:true }));
@@ -5647,6 +6379,7 @@ function app() {
         customDiscount:Number(this.customDiscount) || 0,
         paymentMethod:this.paymentMethod,
         stockApplied:true,
+        costAtOrder,
         items
       };
       this.orders.unshift(order);
@@ -5699,6 +6432,13 @@ function app() {
           order.salesChannel = channel;
           order.salesPerson = salesPerson;
           order.createdById = userId;
+          changed = true;
+        }
+        if (order.costAtOrder === undefined) {
+          order.costAtOrder = (order.items || []).reduce((sum, item) => {
+            const product = this.product(item.productId);
+            return sum + (Number(product.cost) || 0) * (Number(item.qty) || 0);
+          }, 0);
           changed = true;
         }
       });
@@ -7219,6 +7959,7 @@ function app() {
           customDiscount:0,
           paymentMethod:extra.paymentMethod || 'Transfer',
           stockApplied:true,
+          costAtOrder:items.reduce((sum, item) => sum + (Number(this.product(item.productId).cost) || 0) * item.qty, 0),
           items
         };
         this.orders.unshift(order);
