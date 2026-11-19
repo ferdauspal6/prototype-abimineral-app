@@ -599,9 +599,11 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 2. **Produksi**: membuat produk jadi dari bahan baku berdasarkan resep; standar dapat disesuaikan dengan pemakaian aktual.
 3. **Riwayat**: pergerakan stock masuk, produksi, koreksi produksi; nomor PRD dapat diklik menuju detail.
 4. **Opname**: penyesuaian stok per produk/gudang; qty positif menambah, negatif mengurangi.
-5. **Barang → Riwayat**: pergerakan bahan baku dari penerimaan, return, dan produksi.
-6. **Master Barang**: status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
-7. **Master Gudang**: kode otomatis `ST-0001`.
+5. **Barang → Stock Aktif**: qty dan nilai bahan per gudang.
+6. **Barang → Riwayat**: pergerakan bahan baku dari penerimaan, return, produksi, dan opname.
+7. **Barang → Opname**: penyesuaian stok bahan baku per gudang; qty positif menambah, negatif mengurangi; tersimpan sebagai pergerakan `opname`.
+8. **Master Barang**: status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
+9. **Master Gudang**: kode otomatis `ST-0001`.
 
 ### 7.6 Keuangan & Laporan
 

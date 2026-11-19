@@ -223,6 +223,7 @@ function seedData() {
     { id:'acc5', code:'1-1500', name:'Piutang Supplier', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Kelebihan bayar / retur supplier' },
     { id:'acc6', code:'1-1600', name:'Peralatan', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Peralatan operasional' },
     { id:'acc7', code:'2-1100', name:'Utang Usaha', type:'liability', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun kontrol utang supplier' },
+    { id:'acc23', code:'2-1200', name:'Utang PPN', type:'liability', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun kontrol PPN keluaran' },
     { id:'acc8', code:'3-1000', name:'Modal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Modal pemilik' },
     { id:'acc10', code:'3-3000', name:'Laba Ditahan', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Akumulasi laba' },
     { id:'acc11', code:'4-1000', name:'Pendapatan Penjualan', type:'revenue', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Pendapatan penjualan' },
@@ -1386,7 +1387,7 @@ function app() {
       if (!this.canvasMode) return;
       const hasTransactions = this.orders.length || this.purchaseRequests.length || this.purchaseOrders.length;
       if (hasTransactions) return;
-      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-b';
+      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-f';
       try {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
@@ -2537,8 +2538,22 @@ function app() {
         this.notify('Riwayat stock dihapus');
       }
       if (action === 'delete-opname') {
-        this.opnames = this.opnames.filter(o => o.id !== id);
-        this.notify('Opname dihapus');
+        const opname = this.opnames.find(o => o.id === id);
+        if (opname) {
+          if (opname.materialId) {
+            const material = this.material(opname.materialId);
+            const unitCost = Number(opname.unitCost) || Number(material.avgCost) || Number(material.purchasePrice) || 0;
+            material.stock = Math.max(0, (Number(material.stock) || 0) - opname.qty);
+            material.stockValue = Math.max(0, (Number(material.stockValue) || 0) - opname.qty * unitCost);
+            material.avgCost = material.stock > 0 ? material.stockValue / material.stock : unitCost;
+            this.stockMovements = this.stockMovements.filter(movement => !(movement.refType === 'opname' && movement.refId === opname.id));
+          } else {
+            const product = this.product(opname.productId);
+            if (product.id) product.stock = Math.max(0, (Number(product.stock) || 0) - opname.qty);
+          }
+          this.opnames = this.opnames.filter(o => o.id !== id);
+          this.notify('Opname dihapus dan stok dikembalikan');
+        }
       }
       if (action === 'seed-dummy') {
         this.closeModals();
@@ -4825,14 +4840,25 @@ function app() {
     accountName(id) { return this.accountById(id).name || '-'; },
     accountCode(id) { return this.accountById(id).code || '-'; },
     ensureOpeningBalanceAccount() {
-      if (this.accounts.some(account => account.code === '3-1100')) return false;
-      this.accounts.push({
-        id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit',
-        parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true,
-        description:'Akun penyeimbang saldo awal'
-      });
-      this.accounts.sort((a, b) => String(a.code).localeCompare(String(b.code)));
-      return true;
+      let changed = false;
+      if (!this.accounts.some(account => account.code === '3-1100')) {
+        this.accounts.push({
+          id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit',
+          parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true,
+          description:'Akun penyeimbang saldo awal'
+        });
+        changed = true;
+      }
+      if (!this.accounts.some(account => account.code === '2-1200')) {
+        this.accounts.push({
+          id:'acc23', code:'2-1200', name:'Utang PPN', type:'liability', normalBalance:'credit',
+          parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true,
+          description:'Akun kontrol PPN keluaran'
+        });
+        changed = true;
+      }
+      if (changed) this.accounts.sort((a, b) => String(a.code).localeCompare(String(b.code)));
+      return changed;
     },
     accountTypeLabel(type) {
       return { asset:'Aset', liability:'Kewajiban', equity:'Ekuitas', revenue:'Pendapatan', expense:'Beban' }[type] || type;
@@ -5953,12 +5979,13 @@ function app() {
       this.ledgerTo = asOf || todayISO();
       this.go('ledger');
     },
-    reportMovement(accountId, from = '', to = '') {
+    reportMovement(accountId, from = '', to = '', excludeSource = '') {
       let debit = 0;
       let credit = 0;
       this.journals
         .filter(journal => journal.status === 'posted')
         .filter(journal => (!from || journal.date >= from) && (!to || journal.date <= to))
+        .filter(journal => !excludeSource || journal.source !== excludeSource)
         .forEach(journal => (journal.lines || []).forEach(line => {
           if (line.accountId !== accountId) return;
           debit += Number(line.debit) || 0;
@@ -6083,7 +6110,7 @@ function app() {
       const otherRows = this.accounts
         .filter(account => account.type === 'revenue')
         .map(account => {
-          const movement = this.reportMovement(account.id, from, to);
+          const movement = this.reportMovement(account.id, from, to, 'order');
           return { account, value:movement.credit - movement.debit };
         })
         .filter(row => row.value !== 0)
@@ -6767,6 +6794,8 @@ function app() {
     stockTab: 'active', stockSearch: '',
     stockModalOpen: false, stockForm: { productId:'p1', warehouseId:'wh1', date:todayISO(), qty:10, description:'' },
     materialStockTab: 'active',
+    materialOpnameModalOpen: false,
+    materialOpnameForm: { materialId:'mat1', warehouseId:'wh1', date:todayISO(), qty:0, description:'' },
     productionSearch: '', productionDateFrom: '', productionDateTo: '', productionProductFilter: '',
     productionModalOpen: false, productionEditId: null, productionCorrection: false,
     productionDetailOpen: false, productionSelectedId: null, productionDetailTab: 'summary',
@@ -6801,6 +6830,67 @@ function app() {
     openOpname() {
       this.opnameForm = { productId:'p1', warehouseId:'wh1', date:todayISO(), qty:1, description:'' };
       this.opnameModalOpen = true;
+    },
+    openMaterialOpname() {
+      this.materialOpnameForm = { materialId:'mat1', warehouseId:'wh1', date:todayISO(), qty:0, description:'' };
+      this.materialOpnameModalOpen = true;
+    },
+    get productOpnames() { return this.opnames.filter(row => !row.materialId); },
+    get materialOpnames() { return this.opnames.filter(row => !!row.materialId); },
+    get filteredMaterialOpnames() {
+      const q = this.materialStockSearch.toLowerCase();
+      return this.materialOpnames.filter(row => {
+        const material = this.material(row.materialId);
+        if (this.materialStockWarehouse && row.warehouseId !== this.materialStockWarehouse) return false;
+        if (q && !((material.code || '') + ' ' + (material.name || '') + ' ' + (row.code || '')).toLowerCase().includes(q)) return false;
+        return true;
+      });
+    },
+    get materialOpnameWarehouseQty() {
+      return this.materialStockAt(this.materialOpnameForm.materialId, this.materialOpnameForm.warehouseId);
+    },
+    saveMaterialOpname() {
+      const form = this.materialOpnameForm;
+      const material = this.material(form.materialId);
+      const qty = Number(form.qty) || 0;
+      if (!material.id || !form.warehouseId) { this.notify('Pilih barang dan gudang', 'error'); return; }
+      if (qty === 0) { this.notify('Quantity penyesuaian tidak boleh 0', 'error'); return; }
+      const currentQty = this.materialStockAt(material.id, form.warehouseId);
+      if (currentQty + qty < 0) { this.notify('Penyesuaian melebihi stok yang ada (' + this.fmt(currentQty) + ' ' + (material.unit || '') + ')', 'error'); return; }
+      const opname = {
+        id:'op' + Date.now(),
+        code:this.nextCode('OP', this.opnames),
+        date:form.date || todayISO(),
+        materialId:material.id,
+        warehouseId:form.warehouseId,
+        qty,
+        unitCost:Number(material.avgCost) || Number(material.purchasePrice) || 0,
+        description:form.description || 'Penyesuaian stok barang',
+        by:this.currentUser,
+        byRole:this.role,
+        kind:'material'
+      };
+      material.stock = (Number(material.stock) || 0) + qty;
+      material.stockValue = Math.max(0, (Number(material.stockValue) || 0) + qty * opname.unitCost);
+      material.avgCost = material.stock > 0 ? material.stockValue / material.stock : opname.unitCost;
+      this.stockMovements.unshift({
+        id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+        date:opname.date,
+        materialId:material.id,
+        warehouseId:opname.warehouseId,
+        type:'opname',
+        qty,
+        value:qty * opname.unitCost,
+        unitCost:opname.unitCost,
+        refType:'opname',
+        refId:opname.id,
+        refNumber:opname.code,
+        createdAt:opname.date
+      });
+      this.opnames.unshift(opname);
+      this.materialOpnameModalOpen = false;
+      this.persist();
+      this.notify('Stock opname barang berhasil disimpan');
     },
     saveOpname() {
       const prod = this.product(this.opnameForm.productId);
@@ -7287,7 +7377,8 @@ function app() {
         'purchase-return-void':'Pembatalan Return',
         'purchase-return-replacement':'Ganti Barang',
         'production-usage':'Produksi (pemakaian)',
-        'production-correction':'Koreksi Produksi'
+        'production-correction':'Koreksi Produksi',
+        opname:'Stock Opname'
       }[type] || type;
     },
     get filteredMaterialMovements() {
@@ -7889,6 +7980,15 @@ function app() {
       };
       const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','productions','productionLogs','journals'];
       reset.forEach(key => { this[key] = []; });
+      const openingEquity = accId('3-1100') || accId('3-1000');
+      if (openingEquity) {
+        post(d(-30), 'Saldo awal demo', 'opening-demo', 'opening-demo', [
+          { accountId:accId('1-1100'), debit:10000000, credit:0, memo:'Kas awal' },
+          { accountId:accId('1-1200'), debit:50000000, credit:0, memo:'Bank awal' },
+          { accountId:accId('1-1600'), debit:15000000, credit:0, memo:'Peralatan awal' },
+          { accountId:openingEquity, debit:0, credit:75000000, memo:'Saldo awal ekuitas' }
+        ]);
+      }
       this.materials.forEach(material => {
         material.stock = 0;
         material.stockValue = 0;
@@ -8050,7 +8150,7 @@ function app() {
       const pr1Items = [
         { materialId:'mat2', qty:50000, note:'Cup produksi' },
         { materialId:'mat5', qty:40000, note:'Lid produksi' },
-        { materialId:'mat6', qty:30000, note:'Straw produksi' },
+        { materialId:'mat6', qty:40000, note:'Straw produksi' },
         { materialId:'mat4', qty:3000, note:'Karton box' },
         { materialId:'mat7', qty:6000, note:'Lakban' }
       ];
@@ -8074,7 +8174,7 @@ function app() {
       const po1Items = [
         { materialId:'mat2', qty:50000, price:250 },
         { materialId:'mat5', qty:40000, price:50 },
-        { materialId:'mat6', qty:30000, price:30 },
+        { materialId:'mat6', qty:40000, price:30 },
         { materialId:'mat4', qty:3000, price:3500 },
         { materialId:'mat7', qty:6000, price:5000 }
       ];
@@ -8484,6 +8584,22 @@ function app() {
       const order5 = makeOrder('c5', [['p1', 25]], 'success', 'partial', d(-2), { orderBy:'Fahri' });
       const order6 = makeOrder('c6', [['p2', 8]], 'partial', 'partial', d(-1), { orderBy:'Zainudin' });
       const order7 = makeOrder('c7', [['p1', 12]], 'cancel', 'unpaid', d(-1), { orderBy:'Fahri' });
+      this.orders.filter(order => !['cancel','failed'].includes(order.status)).forEach(order => {
+        const tax = Number(order.tax) || 0;
+        const net = Math.max(0, (Number(order.total) || 0) - tax);
+        post(order.date, 'Penjualan ' + order.code, 'order', order.id, [
+          { accountId:accId('1-1300'), debit:Number(order.total) || 0, credit:0, memo:'Piutang penjualan' },
+          { accountId:accId('4-1000'), debit:0, credit:net, memo:'Pendapatan penjualan' },
+          { accountId:accId('2-1200'), debit:0, credit:tax, memo:'PPN keluaran' }
+        ]);
+        const cogs = (order.items || []).reduce((sum, item) => sum + (Number(this.product(item.productId).cost) || 0) * (Number(item.qty) || 0), 0);
+        if (cogs > 0) {
+          post(order.date, 'HPP ' + order.code, 'order-cogs', order.id, [
+            { accountId:accId('5-1000'), debit:cogs, credit:0, memo:'HPP penjualan' },
+            { accountId:accId('1-1400'), debit:0, credit:cogs, memo:'Persediaan keluar' }
+          ]);
+        }
+      });
       makeDelivery([order3], 'shipping', d(-3), 'Rina');
       makeDelivery([order4, order5], 'success', d(-1), 'Sari');
       makeDelivery([order2], 'pending', now, 'Rina');
@@ -8514,6 +8630,7 @@ function app() {
       this.opnames.unshift({ id:'op' + Date.now(), code:code('OP', d(-6)), date:d(-6), productId:'p2', warehouseId:'wh1', qty:-5, description:'Barang rusak di gudang', by:'Sari' });
 
       addFinance('income', 750000, d(-6), '4-9100', '1-1100', 'Pendapatan jasa pengiriman', 'Admin');
+      addFinance('income', 2500000, d(-3), '4-9000', '1-1100', 'Pendapatan proyek distributor', 'Admin');
       addFinance('income', 1250000, d(-4), '4-9200', '1-1200', 'Komisi mitra distributor', 'Admin');
       addFinance('expense', 500000, d(-5), '5-1100', '1-1100', 'Operasional gudang', 'Admin');
       addFinance('expense', 4000000, d(-3), '5-1200', '1-1200', 'Gaji karyawan bulan ini', 'Admin');
