@@ -12,6 +12,7 @@
   { "id": "order-create", "name": "Buat Order", "group": "penjualan", "groupName": "Penjualan", "page": "order-create" },
   { "id": "order-create-history", "name": "Buat Order — Riwayat", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "state": { "orderTab": "history" } },
   { "id": "orders", "name": "Order List", "group": "penjualan", "groupName": "Penjualan", "page": "orders" },
+  { "id": "order-filter-customer", "name": "Order — Filter Pelanggan", "group": "penjualan", "groupName": "Penjualan", "page": "orders", "setup": "order-filter-customer" },
   { "id": "order-detail", "name": "Order Detail", "group": "penjualan", "groupName": "Penjualan", "page": "order-detail", "setup": "order-detail" },
   { "id": "invoice", "name": "Invoice", "group": "penjualan", "groupName": "Penjualan", "page": "invoice", "setup": "invoice" },
   { "id": "bulk-invoice", "name": "Bulk Invoice", "group": "penjualan", "groupName": "Penjualan", "page": "bulk-invoice", "setup": "bulk-invoice" },

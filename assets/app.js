@@ -1429,6 +1429,12 @@ function app() {
         case 'report-modal': this.reportOpen = true; break;
         case 'camera-modal': this.openCamera(first(this.customers)); break;
         case 'confirm-modal': this.askConfirm('canvas-confirm', null, 'Konfirmasi', 'Pastikan data sudah benar.', false); break;
+        case 'order-filter-customer': {
+          this.page = 'orders';
+          this.orderCustomerSearch = '';
+          this.orderCustomerOpen = true;
+          break;
+        }
         case 'action-menu': {
           this.page = 'orders';
           setTimeout(() => {
@@ -1774,6 +1780,7 @@ function app() {
       this.cameraOpen = false;
       this.orderPreviewOpen = false;
       this.orderStockOverride = false;
+      this.orderCustomerOpen = false;
       this.deliveryPreviewOpen = false;
       this.collectionPreviewOpen = false;
       this.reportOpen = false;
@@ -5171,6 +5178,37 @@ function app() {
 
     /* ---------- ORDER LIST ---------- */
     orderSearch: '', orderStatus: '', selectedOrderIds: [], orderBulk: false, bulkOrderIds: [],
+    orderCustomerIds: [], orderCustomerOpen: false, orderCustomerSearch: '',
+    orderDate: '', orderSales: '',
+    get orderCustomerOptions() {
+      const q = String(this.orderCustomerSearch || '').toLowerCase();
+      return this.customers.filter(c =>
+        !q || (c.name + ' ' + c.code + ' ' + (c.address || '') + ' ' + (c.sales || '')).toLowerCase().includes(q)
+      );
+    },
+    get orderCustomerFilterLabel() {
+      if (!this.orderCustomerIds.length) return 'Pelanggan';
+      if (this.orderCustomerIds.length === 1) return this.customer(this.orderCustomerIds[0]).name || 'Pelanggan';
+      return 'Pelanggan (' + this.orderCustomerIds.length + ')';
+    },
+    get orderSalesOptions() {
+      const values = new Set();
+      this.customers.forEach(c => { if (c.sales) values.add(c.sales); });
+      this.orders.forEach(o => { if (o.sales) values.add(o.sales); });
+      return [...values].sort();
+    },
+    toggleOrderCustomerFilter(id) {
+      this.orderCustomerIds = this.orderCustomerIds.includes(id)
+        ? this.orderCustomerIds.filter(x => x !== id)
+        : [...this.orderCustomerIds, id];
+    },
+    selectAllOrderCustomers() {
+      this.orderCustomerIds = [...new Set(this.orderCustomerOptions.map(c => c.id))];
+    },
+    clearOrderCustomers() {
+      this.orderCustomerIds = [];
+      this.orderCustomerSearch = '';
+    },
     get bulkOrders() { return this.bulkOrderIds.map(id => this.order(id)).filter(order => order.id); },
     startBulkInvoice() {
       if (!this.selectedOrderIds.length) {
@@ -5181,9 +5219,13 @@ function app() {
       this.go('bulk-invoice');
     },
     get filteredOrders() {
-      const q = this.orderSearch.toLowerCase();
+      const q = String(this.orderSearch || '').toLowerCase();
       return this.orders.filter(o => {
-        if (q && !(o.code + ' ' + this.customerName(o.customerId)).toLowerCase().includes(q)) return false;
+        const customer = this.customer(o.customerId);
+        if (q && !(o.code + ' ' + (customer.name || '') + ' ' + (customer.address || '') + ' ' + (o.sales || '')).toLowerCase().includes(q)) return false;
+        if (this.orderCustomerIds.length && !this.orderCustomerIds.includes(o.customerId)) return false;
+        if (this.orderDate && (o.schedule || o.date) !== this.orderDate) return false;
+        if (this.orderSales && o.sales !== this.orderSales) return false;
         if (this.orderStatus && o.status !== this.orderStatus) return false;
         return true;
       });

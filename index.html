@@ -547,22 +547,24 @@
 
       <!-- CUSTOMERS -->
       <section x-show="page === 'customers'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56">
-            <svg class="icon icon-sm"><use href="#i-search"></use></svg>
-            <input class="input" placeholder="Cari pelanggan..." x-model="customerSearch">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56">
+              <svg class="icon icon-sm"><use href="#i-search"></use></svg>
+              <input class="input" placeholder="Cari pelanggan..." x-model="customerSearch">
+            </div>
+            <select class="select w-36" x-model="customerChannel">
+              <option value="">Semua Channel</option>
+              <option>Grosir</option><option>Retail</option><option>Modern Market</option><option>Apotik</option><option>Star Outlet</option>
+            </select>
+            <select class="select w-32" x-model="customerSales" x-show="role !== 'Sales'">
+              <option value="">Semua Sales</option><option>Fahri</option><option>Zainudin</option>
+            </select>
+            <select class="select w-28" x-model="customerWeek"><option value="">Pekan</option><option>Genap</option><option>Ganjil</option></select>
+            <select class="select w-28" x-model="customerDay"><option value="">Hari</option><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select>
+            <select class="select w-36" x-model="customerPrice"><option value="">Jenis Harga</option><option value="in">Dalam Kota</option><option value="out">Luar Kota</option></select>
           </div>
-          <select class="select w-36" x-model="customerChannel">
-            <option value="">Semua Channel</option>
-            <option>Grosir</option><option>Retail</option><option>Modern Market</option><option>Apotik</option><option>Star Outlet</option>
-          </select>
-          <select class="select w-32" x-model="customerSales" x-show="role !== 'Sales'">
-            <option value="">Semua Sales</option><option>Fahri</option><option>Zainudin</option>
-          </select>
-          <select class="select w-28" x-model="customerWeek"><option value="">Pekan</option><option>Genap</option><option>Ganjil</option></select>
-          <select class="select w-28" x-model="customerDay"><option value="">Hari</option><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select>
-          <select class="select w-36" x-model="customerPrice"><option value="">Jenis Harga</option><option value="in">Dalam Kota</option><option value="out">Luar Kota</option></select>
-          <button class="btn btn-primary ml-auto" @click="openCustomer()">
+          <button class="btn btn-primary" @click="openCustomer()">
             <svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Pelanggan
           </button>
         </div>
@@ -598,9 +600,9 @@
 
       <!-- PROMOS -->
       <section x-show="page === 'promos'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari promo..." x-model="promoSearch"></div>
-          <button class="btn btn-primary ml-auto" @click="openPromo()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Promo</button>
+          <button class="btn btn-primary" @click="openPromo()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Promo</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -741,7 +743,7 @@
                         </div>
                         <div class="flex items-center gap-1.5">
                           <button class="icon-btn icon-btn-sm border border-slate-200" @click="incQty(p.id, -1)"><svg class="icon icon-sm"><use href="#i-minus"></use></svg></button>
-                          <input type="number" min="0" class="input input-sm w-14 text-center" :value="qty(p.id)" @input="setQty(p.id, $event.target.value)">
+                          <input type="number" min="0" class="input input-sm w-24 text-center" :value="qty(p.id)" @input="setQty(p.id, $event.target.value)">
                           <button class="icon-btn icon-btn-sm border border-slate-200" @click="incQty(p.id, 1)"><svg class="icon icon-sm"><use href="#i-plus"></use></svg></button>
                         </div>
                       </div>
@@ -820,10 +822,45 @@
             <button class="seg-btn" @click="go('returns')">Return <span class="badge badge-amber" x-text="returns.length"></span></button>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari order / pelanggan..." x-model="orderSearch"></div>
-          <select class="select w-40" x-model="orderStatus"><option value="">Semua Status</option><option value="pending">Belum Diproses</option><option value="already">Siap Dikirim</option><option value="holding">Ditahan</option><option value="shipping">Dikirim</option><option value="success">Selesai</option><option value="partial">Selesai Parsial</option><option value="cancel">Dibatalkan</option></select>
-          <div class="ml-auto flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari order / pelanggan..." x-model="orderSearch"></div>
+            <div class="relative" @click.outside="orderCustomerOpen = false">
+              <button class="btn btn-outline min-w-[8.5rem] max-w-[14rem] justify-between text-left" @click="orderCustomerOpen = !orderCustomerOpen">
+                <span class="min-w-0 flex-1 truncate" x-text="orderCustomerFilterLabel"></span>
+                <svg class="icon icon-xs"><use href="#i-chevron-down"></use></svg>
+              </button>
+              <div x-show="orderCustomerOpen" x-transition.opacity class="absolute left-0 mt-2 z-40 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                <div class="input-icon w-full mb-2">
+                  <svg class="icon icon-sm"><use href="#i-search"></use></svg>
+                  <input class="input input-sm" placeholder="Cari pelanggan..." x-model="orderCustomerSearch">
+                </div>
+                <div class="flex items-center justify-between px-1 pb-2 text-[11px]">
+                  <button class="text-blue-600 hover:underline" @click="selectAllOrderCustomers()">Select all</button>
+                  <button class="text-slate-500 hover:underline" @click="clearOrderCustomers()">Clear</button>
+                </div>
+                <div class="max-h-64 space-y-0.5 overflow-y-auto">
+                  <template x-for="c in orderCustomerOptions" :key="c.id">
+                    <label class="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                      <input type="checkbox" class="checkbox mt-0.5" :checked="orderCustomerIds.includes(c.id)" @change="toggleOrderCustomerFilter(c.id)">
+                      <span class="min-w-0">
+                        <span class="block truncate text-xs font-medium text-slate-700" x-text="c.name"></span>
+                        <span class="block truncate text-[10px] text-slate-400" x-text="c.code + ' • ' + c.address"></span>
+                      </span>
+                    </label>
+                  </template>
+                  <div x-show="orderCustomerOptions.length === 0" class="px-2 py-4 text-center text-xs text-slate-400">Pelanggan tidak ditemukan</div>
+                </div>
+              </div>
+            </div>
+            <input type="date" class="input w-40" x-model="orderDate" title="Tanggal order" aria-label="Tanggal order">
+            <select class="select w-32" x-model="orderSales">
+              <option value="">Sales</option>
+              <template x-for="s in orderSalesOptions" :key="s"><option :value="s" x-text="s"></option></template>
+            </select>
+            <select class="select w-40" x-model="orderStatus"><option value="">Status</option><option value="pending">Belum Diproses</option><option value="already">Siap Dikirim</option><option value="holding">Ditahan</option><option value="shipping">Dikirim</option><option value="success">Selesai</option><option value="partial">Selesai Parsial</option><option value="cancel">Dibatalkan</option></select>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
             <span class="text-xs text-slate-500" x-show="selectedOrderIds.length > 0"><b x-text="selectedOrderIds.length"></b> dipilih</span>
             <button class="btn btn-outline" @click.stop="openActionMenu($event, 'orders-bulk', { id:'bulk' })">Action <svg class="icon icon-xs"><use href="#i-chevron-down"></use></svg></button>
             <button class="btn btn-primary" @click="go('order-customer')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Order</button>
@@ -833,7 +870,7 @@
           <table class="data-table">
             <thead><tr>
               <th><input type="checkbox" class="checkbox" :checked="selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0" @change="toggleAllOrders()"></th>
-              <th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th class="hidden md:table-cell">Order By</th><th>Radius</th><th>Delivery</th><th>Status</th><th class="actions">Action</th>
+              <th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th class="hidden md:table-cell">Order by</th><th>Order Radius</th><th>Delivery</th><th>Status</th><th class="actions">Action</th>
             </tr></thead>
             <tbody>
               <template x-for="o in filteredOrders" :key="o.id">
@@ -1014,10 +1051,12 @@
             <button class="seg-btn" @click="go('returns')">Return <span class="badge badge-amber" x-text="returns.length"></span></button>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari no. surat jalan..." x-model="deliverySearch"></div>
-          <select class="select w-40" x-model="deliveryStatus"><option value="">Semua Status</option><option value="pending">Belum Diproses</option><option value="processing">Sedang Diproses</option><option value="shipping">Dikirim</option><option value="success">Selesai</option></select>
-          <button class="btn btn-primary ml-auto" @click="startDeliveryCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Surat Jalan</button>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari no. surat jalan..." x-model="deliverySearch"></div>
+            <select class="select w-40" x-model="deliveryStatus"><option value="">Semua Status</option><option value="pending">Belum Diproses</option><option value="processing">Sedang Diproses</option><option value="shipping">Dikirim</option><option value="success">Selesai</option></select>
+          </div>
+          <button class="btn btn-primary" @click="startDeliveryCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Surat Jalan</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -1245,10 +1284,12 @@
         </div>
 
         <div x-show="stockTab === 'active'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="stockSearch"></div>
-            <select class="select w-36"><option>Semua Status</option><option>Aktif</option><option>Nonaktif</option></select>
-            <button class="btn btn-primary ml-auto" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="stockSearch"></div>
+              <select class="select w-36"><option>Semua Status</option><option>Aktif</option><option>Nonaktif</option></select>
+            </div>
+            <button class="btn btn-primary" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1263,12 +1304,14 @@
         </div>
 
         <div x-show="stockTab === 'production'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / produk..." x-model="productionSearch"></div>
-            <input type="date" class="input w-40" x-model="productionDateFrom" title="Dari tanggal">
-            <input type="date" class="input w-40" x-model="productionDateTo" title="Sampai tanggal">
-            <select class="select w-44" x-model="productionProductFilter"><option value="">Semua Produk</option><template x-for="p in products" :key="p.id"><option :value="p.id" x-text="p.name"></option></template></select>
-            <button class="btn btn-primary ml-auto" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / produk..." x-model="productionSearch"></div>
+              <input type="date" class="input w-40" x-model="productionDateFrom" title="Dari tanggal">
+              <input type="date" class="input w-40" x-model="productionDateTo" title="Sampai tanggal">
+              <select class="select w-44" x-model="productionProductFilter"><option value="">Semua Produk</option><template x-for="p in products" :key="p.id"><option :value="p.id" x-text="p.name"></option></template></select>
+            </div>
+            <button class="btn btn-primary" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1411,11 +1454,13 @@
         </div>
 
         <div x-show="productTab === 'items'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari produk..." x-model="productSearch"></div>
-            <select class="select w-40" x-model="productCategory"><option value="">Semua Kategori</option><template x-for="c in productCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
-            <select class="select w-40" x-model="productStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
-            <button class="btn btn-primary ml-auto" @click="openProduct()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Produk</button>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari produk..." x-model="productSearch"></div>
+              <select class="select w-40" x-model="productCategory"><option value="">Semua Kategori</option><template x-for="c in productCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
+              <select class="select w-40" x-model="productStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+            </div>
+            <button class="btn btn-primary" @click="openProduct()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Produk</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1438,9 +1483,9 @@
         </div>
 
         <div x-show="productTab === 'categories'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kategori produk..." x-model="categorySearch"></div>
-            <button class="btn btn-primary ml-auto" @click="openCategory('product')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
+            <button class="btn btn-primary" @click="openCategory('product')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1544,11 +1589,13 @@
         </div>
 
         <div x-show="materialTab === 'items'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="materialSearch"></div>
-            <select class="select w-40" x-model="materialCategory"><option value="">Semua Kategori</option><template x-for="c in materialCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
-            <select class="select w-40" x-model="materialStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
-            <button class="btn btn-primary ml-auto" @click="openMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Barang</button>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="materialSearch"></div>
+              <select class="select w-40" x-model="materialCategory"><option value="">Semua Kategori</option><template x-for="c in materialCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
+              <select class="select w-40" x-model="materialStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+            </div>
+            <button class="btn btn-primary" @click="openMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Barang</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1571,9 +1618,9 @@
         </div>
 
         <div x-show="materialTab === 'categories'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kategori barang..." x-model="categorySearch"></div>
-            <button class="btn btn-primary ml-auto" @click="openCategory('material')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
+            <button class="btn btn-primary" @click="openCategory('material')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1591,10 +1638,12 @@
 
       <!-- SUPPLIERS -->
       <section x-show="page === 'suppliers'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari supplier..." x-model="supplierSearch"></div>
-          <select class="select w-40" x-model="supplierStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
-          <button class="btn btn-primary ml-auto" @click="openSupplier()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Supplier</button>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari supplier..." x-model="supplierSearch"></div>
+            <select class="select w-40" x-model="supplierStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+          </div>
+          <button class="btn btn-primary" @click="openSupplier()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Supplier</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -1611,10 +1660,12 @@
 
       <!-- PURCHASE REQUESTS -->
       <section x-show="page === 'purchase-requests'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / keperluan / requester..." x-model="prSearch"></div>
-          <select class="select w-40" x-model="prStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="submitted">Diajukan</option><option value="approved">Disetujui</option><option value="processing">Diproses</option><option value="completed">Selesai</option><option value="rejected">Ditolak</option><option value="cancelled">Dibatalkan</option></select>
-          <div class="ml-auto flex items-center gap-2 text-[11px] text-slate-500">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / keperluan / requester..." x-model="prSearch"></div>
+            <select class="select w-40" x-model="prStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="submitted">Diajukan</option><option value="approved">Disetujui</option><option value="processing">Diproses</option><option value="completed">Selesai</option><option value="rejected">Ditolak</option><option value="cancelled">Dibatalkan</option></select>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
             <span>Menunggu approval</span><span class="badge badge-yellow" x-text="prStats.submitted"></span>
             <button class="btn btn-primary" @click="startPRCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat PR</button>
           </div>
@@ -1848,11 +1899,13 @@
 
       <!-- PURCHASE ORDERS -->
       <section x-show="page === 'purchase-orders'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor PO / supplier / PR..." x-model="poSearch"></div>
-          <select class="select w-44" x-model="poStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="pending_approval">Menunggu Approval</option><option value="approved">Disetujui</option><option value="sent">Dikirim</option><option value="partially_received">Diterima Sebagian</option><option value="fully_received">Diterima Penuh</option><option value="closed">Ditutup</option><option value="rejected">Ditolak</option><option value="cancelled">Dibatalkan</option></select>
-          <select class="select w-44" x-model="poSupplier"><option value="">Semua Supplier</option><template x-for="s in suppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select>
-          <div class="ml-auto flex items-center gap-2 text-[11px] text-slate-500">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor PO / supplier / PR..." x-model="poSearch"></div>
+            <select class="select w-44" x-model="poStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="pending_approval">Menunggu Approval</option><option value="approved">Disetujui</option><option value="sent">Dikirim</option><option value="partially_received">Diterima Sebagian</option><option value="fully_received">Diterima Penuh</option><option value="closed">Ditutup</option><option value="rejected">Ditolak</option><option value="cancelled">Dibatalkan</option></select>
+            <select class="select w-44" x-model="poSupplier"><option value="">Semua Supplier</option><template x-for="s in suppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
             <span>Menunggu approval</span><span class="badge badge-yellow" x-text="poStats.pending"></span>
             <button class="btn btn-primary" @click="openPOCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat PO</button>
           </div>
@@ -2066,11 +2119,13 @@
 
       <!-- CHART OF ACCOUNTS -->
       <section x-show="page === 'coa'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kode / nama akun..." x-model="coaSearch"></div>
-          <select class="select w-40" x-model="coaType"><option value="">Semua Tipe</option><option value="asset">Aset</option><option value="liability">Kewajiban</option><option value="equity">Ekuitas</option><option value="revenue">Pendapatan</option><option value="expense">Beban</option></select>
-          <select class="select w-40" x-model="coaStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
-          <button class="btn btn-primary ml-auto" @click="openAccount()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Akun</button>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kode / nama akun..." x-model="coaSearch"></div>
+            <select class="select w-40" x-model="coaType"><option value="">Semua Tipe</option><option value="asset">Aset</option><option value="liability">Kewajiban</option><option value="equity">Ekuitas</option><option value="revenue">Pendapatan</option><option value="expense">Beban</option></select>
+            <select class="select w-40" x-model="coaStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+          </div>
+          <button class="btn btn-primary" @click="openAccount()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Akun</button>
         </div>
         <template x-for="type in ['asset','liability','equity','revenue','expense']" :key="type">
           <div class="card mb-3" x-show="accountsByType(type).length > 0">
@@ -2099,12 +2154,14 @@
 
       <!-- JOURNALS -->
       <section x-show="page === 'journals'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / keterangan..." x-model="journalSearch"></div>
-          <select class="select w-40" x-model="journalStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="posted">Posted</option><option value="void">Void</option></select>
-          <input type="date" class="input w-40" x-model="journalDateFrom" title="Dari tanggal">
-          <input type="date" class="input w-40" x-model="journalDateTo" title="Sampai tanggal">
-          <div class="ml-auto flex items-center gap-2 text-[11px] text-slate-500">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / keterangan..." x-model="journalSearch"></div>
+            <select class="select w-40" x-model="journalStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="posted">Posted</option><option value="void">Void</option></select>
+            <input type="date" class="input w-40" x-model="journalDateFrom" title="Dari tanggal">
+            <input type="date" class="input w-40" x-model="journalDateTo" title="Sampai tanggal">
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
             <span>Selisih posted</span><span class="badge" :class="journalStats.difference === 0 ? 'badge-green' : 'badge-red'" x-text="rp(journalStats.difference)"></span>
             <button class="btn btn-primary" @click="startJournalCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Jurnal</button>
           </div>
@@ -2242,11 +2299,13 @@
 
       <!-- RECEIPTS -->
       <section x-show="page === 'receipts'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / PO / supplier..." x-model="receiptSearch"></div>
-          <select class="select w-40" x-model="receiptStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="posted">Posted</option></select>
-          <select class="select w-44" x-model="receiptSupplier"><option value="">Semua Supplier</option><template x-for="s in suppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select>
-          <button class="btn btn-primary ml-auto" @click="openReceiptCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Penerimaan</button>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nomor / PO / supplier..." x-model="receiptSearch"></div>
+            <select class="select w-40" x-model="receiptStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="posted">Posted</option></select>
+            <select class="select w-44" x-model="receiptSupplier"><option value="">Semua Supplier</option><template x-for="s in suppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select>
+          </div>
+          <button class="btn btn-primary" @click="openReceiptCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Penerimaan</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -2351,10 +2410,12 @@
 
       <!-- PURCHASE RETURNS -->
       <section x-show="page === 'purchase-returns'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari return / PO / supplier..." x-model="purchaseReturnSearch"></div>
-          <select class="select w-40" x-model="purchaseReturnStatus"><option value="">Semua Status</option><option value="posted">Posted</option><option value="void">Void</option></select>
-          <button class="btn btn-primary ml-auto" @click="openPurchaseReturnCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Return</button>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari return / PO / supplier..." x-model="purchaseReturnSearch"></div>
+            <select class="select w-40" x-model="purchaseReturnStatus"><option value="">Semua Status</option><option value="posted">Posted</option><option value="void">Void</option></select>
+          </div>
+          <button class="btn btn-primary" @click="openPurchaseReturnCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Return</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -2476,10 +2537,12 @@
 
       <!-- FINANCE TRANSACTIONS -->
       <section x-show="page === 'finance-income' || page === 'finance-expense'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
-          <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari transaksi / akun..." x-model="financeSearch"></div>
-          <span class="text-[11px] text-slate-400">Setiap transaksi otomatis membuat jurnal posted.</span>
-          <button class="btn btn-primary ml-auto" @click="openFinance(financeTab)"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> <span x-text="financeTab === 'income' ? 'Buat Transaksi Pendapatan' : 'Buat Transaksi Pengeluaran'"></span></button>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari transaksi / akun..." x-model="financeSearch"></div>
+            <span class="text-[11px] text-slate-400">Setiap transaksi otomatis membuat jurnal posted.</span>
+          </div>
+          <button class="btn btn-primary" @click="openFinance(financeTab)"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> <span x-text="financeTab === 'income' ? 'Buat Transaksi Pendapatan' : 'Buat Transaksi Pengeluaran'"></span></button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -2515,11 +2578,13 @@
         </div>
 
         <div x-show="receivableTab === 'active'">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari piutang..." x-model="receivableSearch"></div>
-            <select class="select w-36" x-model="receivableSales"><option value="">Semua Sales</option><option>Fahri</option><option>Zainudin</option></select>
-            <input type="date" class="input w-40">
-            <div class="ml-auto flex items-center gap-2 text-xs"><span class="text-slate-500">Total Piutang</span><span class="input input-sm w-40 text-right font-semibold" x-text="rp(totalUnpaid)"></span></div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari piutang..." x-model="receivableSearch"></div>
+              <select class="select w-36" x-model="receivableSales"><option value="">Semua Sales</option><option>Fahri</option><option>Zainudin</option></select>
+              <input type="date" class="input w-40">
+              <div class="flex items-center gap-2 text-xs"><span class="text-slate-500">Total Piutang</span><span class="input input-sm w-40 text-right font-semibold" x-text="rp(totalUnpaid)"></span></div>
+            </div>
             <button class="btn btn-primary" @click="startCollectionCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Penagihan</button>
           </div>
           <div class="table-wrap">
@@ -2654,9 +2719,9 @@
 
       <!-- USERS -->
       <section x-show="page === 'users'">
-        <div class="flex flex-wrap items-center gap-2 mb-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari pengguna..." x-model="userSearch"></div>
-          <button class="btn btn-primary ml-auto" @click="openUser()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Pengguna</button>
+          <button class="btn btn-primary" @click="openUser()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Pengguna</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -3699,7 +3764,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261120s"></script>
+<script src="assets/app.js?v=20261120v"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

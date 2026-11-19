@@ -221,6 +221,14 @@
       "w": 1440
     },
     {
+      "id": "order-filter-customer",
+      "name": "Order — Filter Pelanggan",
+      "src": "index.html?canvas=order-filter-customer",
+      "group": "penjualan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "order-detail",
       "name": "Order Detail",
       "src": "index.html?canvas=order-detail",
