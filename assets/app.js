@@ -4,7 +4,7 @@ const rupiah2Fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency:
 const number2Fmt = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 15;
+const STORE_VERSION = 16;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
@@ -293,6 +293,8 @@ function seedData() {
     workingDays: 26,
     waterLitersPerKrt: 10.5,
     waterPricePerM3: 7000,
+    electricityFormula: 'allocation',
+    roundingMode: 'none',
     updatedBy: '',
     updatedAt: '',
     history: []
@@ -485,7 +487,7 @@ function app() {
         this.saveStore();
         return;
       }
-      if (parsed && parsed.version === 14 && parsed.data) {
+      if (parsed && (parsed.version === 14 || parsed.version === 15) && parsed.data) {
         this.migrateFromV14(parsed);
         this.saveStore();
         return;
@@ -5305,7 +5307,9 @@ function app() {
     hppSearch: '', hppStatus: '', hppProduct: '', hppDateFrom: '', hppDateTo: '',
     hppMonthlyPeriod: todayISO().slice(0, 7),
     hppMonthlyForm: {},
-    hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000 },
+    hppSourcePeriod: '',
+    hppComparisonPeriod: '2026-10',
+    hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000, electricityFormula:'allocation', roundingMode:'none' },
     hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialMode:'actual', materialOverrides:{}, depreciationTotal:0, costPeriods:{} },
     hppEditId: null,
     hppDetailId: null,
@@ -5334,7 +5338,9 @@ function app() {
       this.hppSettingsForm = {
         workingDays:Number(settings.workingDays) || 26,
         waterLitersPerKrt:Number(settings.waterLitersPerKrt) || 10.5,
-        waterPricePerM3:Number(settings.waterPricePerM3) || 7000
+        waterPricePerM3:Number(settings.waterPricePerM3) || 7000,
+        electricityFormula:settings.electricityFormula || 'allocation',
+        roundingMode:settings.roundingMode || 'none'
       };
     },
     saveHppSettings() {
@@ -5342,20 +5348,26 @@ function app() {
       const workingDays = Number(form.workingDays) || 0;
       const waterLitersPerKrt = Number(form.waterLitersPerKrt) || 0;
       const waterPricePerM3 = Number(form.waterPricePerM3) || 0;
+      const electricityFormula = form.electricityFormula === 'client' ? 'client' : 'allocation';
+      const roundingMode = ['none','component','final'].includes(form.roundingMode) ? form.roundingMode : 'none';
       if (workingDays < 1 || workingDays > 31) { this.notify('Hari kerja harus antara 1 dan 31', 'error'); return; }
       if (waterLitersPerKrt < 0 || waterPricePerM3 < 0) { this.notify('Parameter air tidak boleh negatif', 'error'); return; }
       const old = {
         workingDays:Number(this.hppSettings.workingDays) || 0,
         waterLitersPerKrt:Number(this.hppSettings.waterLitersPerKrt) || 0,
-        waterPricePerM3:Number(this.hppSettings.waterPricePerM3) || 0
+        waterPricePerM3:Number(this.hppSettings.waterPricePerM3) || 0,
+        electricityFormula:this.hppSettings.electricityFormula || 'allocation',
+        roundingMode:this.hppSettings.roundingMode || 'none'
       };
       const changes = [];
       if (old.workingDays !== workingDays) changes.push('Hari kerja: ' + old.workingDays + ' → ' + workingDays);
       if (old.waterLitersPerKrt !== waterLitersPerKrt) changes.push('Liter air per Krt: ' + old.waterLitersPerKrt + ' → ' + waterLitersPerKrt);
       if (old.waterPricePerM3 !== waterPricePerM3) changes.push('Harga air per m³: ' + old.waterPricePerM3 + ' → ' + waterPricePerM3);
+      if (old.electricityFormula !== electricityFormula) changes.push('Rumus listrik: ' + this.hppElectricityFormulaLabel(old.electricityFormula) + ' → ' + this.hppElectricityFormulaLabel(electricityFormula));
+      if (old.roundingMode !== roundingMode) changes.push('Pembulatan: ' + this.hppRoundingLabel(old.roundingMode) + ' → ' + this.hppRoundingLabel(roundingMode));
       if (!changes.length) { this.notify('Tidak ada perubahan pengaturan'); return; }
       this.hppSettings = Object.assign({}, this.hppSettings, {
-        workingDays, waterLitersPerKrt, waterPricePerM3,
+        workingDays, waterLitersPerKrt, waterPricePerM3, electricityFormula, roundingMode,
         updatedBy:this.currentUser, updatedAt:todayISO()
       });
       this.hppSettings.history = this.hppSettings.history || [];
@@ -5366,7 +5378,82 @@ function app() {
     getBiayaBulanan(period, component) {
       return (this.biayaProduksiBulanan || []).find(row => row.period === period && row.component === component) || null;
     },
+    get hppElectricityFormula() { return this.hppSettings.electricityFormula === 'client' ? 'client' : 'allocation'; },
+    get hppRoundingMode() { return ['none','component','final'].includes(this.hppSettings.roundingMode) ? this.hppSettings.roundingMode : 'none'; },
+    hppElectricityFormulaLabel(value) { return (value || 'allocation') === 'client' ? 'Tarif per kWh (client)' : 'Alokasi biaya bulanan'; },
+    hppRoundingLabel(value) {
+      return { none:'Tidak dibulatkan', component:'Bulatkan tiap komponen', final:'Bulatkan HPP akhir' }[value || 'none'] || 'Tidak dibulatkan';
+    },
+    get hppCopySourcePeriods() {
+      const periods = new Set(['2026-09','2026-10','2026-11']);
+      (this.biayaProduksiBulanan || []).forEach(row => { if (row.period) periods.add(row.period); });
+      return [...periods].filter(period => period !== this.hppMonthlyPeriod).sort();
+    },
+    hppHasMonthlyData(period) {
+      return (this.biayaProduksiBulanan || []).some(row => row.period === period);
+    },
+    seedDummyMonthlyPeriod(period) {
+      const factors = { '2026-09':0.95, '2026-10':1, '2026-11':1.03 };
+      const factor = factors[period] != null ? factors[period] : 1;
+      const isOctober = period === '2026-10';
+      const base = { gaji:32637692, uang_makan:7720000, bpjs:3382080, listrik:14567560, overhead:0 };
+      const counts = { gaji:12, uang_makan:12, bpjs:12 };
+      this.biayaProduksiBulanan = (this.biayaProduksiBulanan || []).filter(row => row.period !== period);
+      const rows = Object.keys(base).map(component => ({
+        id:'bpb' + Date.now() + Math.random().toString(16).slice(2),
+        period,
+        component,
+        value:Math.round(base[component] * factor),
+        employeeCount:counts[component] != null ? counts[component] : null,
+        kwh:component === 'listrik' ? 53000 : null,
+        sourceType:'manual',
+        type:isOctober ? 'aktual' : 'estimasi',
+        note:isOctober ? 'Data client HPP 30 Oktober' : 'Data dummy prototipe',
+        createdBy:this.currentUser || 'Admin',
+        updatedBy:this.currentUser || 'Admin',
+        updatedAt:todayISO(),
+        history:[]
+      }));
+      this.biayaProduksiBulanan.push(...rows);
+      return rows;
+    },
+    seedDummyMonthlyPeriods() {
+      ['2026-09','2026-10','2026-11'].forEach(period => this.seedDummyMonthlyPeriod(period));
+    },
+    copyHppMonthlyFromPeriod(period) {
+      if (!period) return;
+      let rows = (this.biayaProduksiBulanan || []).filter(row => row.period === period);
+      let loadedDummy = false;
+      if (!rows.length) {
+        rows = this.seedDummyMonthlyPeriod(period);
+        loadedDummy = true;
+      }
+      if (!rows.length) { this.notify('Belum ada data biaya pada ' + monthLongLabel(period), 'error'); return; }
+      rows.forEach(row => {
+        this.hppMonthlyForm[row.component] = {
+          value:Number(row.value) || 0,
+          employeeCount:row.employeeCount != null ? row.employeeCount : '',
+          kwh:row.kwh != null ? row.kwh : '',
+          sourceType:'manual',
+          type:'estimasi',
+          note:'Salinan ' + monthLongLabel(period)
+        };
+      });
+      this.hppSourcePeriod = '';
+      this.persist();
+      this.notify(loadedDummy
+        ? 'Data dummy ' + monthLongLabel(period) + ' dimuat sebagai Estimasi. Sesuaikan sebelum disimpan.'
+        : 'Biaya ' + monthLongLabel(period) + ' dimuat sebagai Estimasi');
+    },
+    loadHppDummyCost(period) {
+      if (!period) return;
+      this.seedDummyMonthlyPeriod(period);
+      this.persist();
+      this.notify('Data dummy ' + monthLongLabel(period) + ' dimuat. Angka ini hanya untuk demo.');
+    },
     hppComponentLabel(key) {
+      if (key === 'air') return 'Air';
+      if (key === 'penyusutan') return 'Penyusutan';
       const component = this.hppComponents.find(row => row.key === key);
       return component ? component.label : key;
     },
@@ -5440,26 +5527,11 @@ function app() {
       this.notify(changed ? 'Biaya bulanan disimpan' : 'Tidak ada perubahan biaya');
     },
     askCopyHppMonthly() {
-      const previous = previousMonthKey(this.hppMonthlyPeriod);
-      const rows = (this.biayaProduksiBulanan || []).filter(row => row.period === previous);
-      if (!rows.length) { this.notify('Belum ada data biaya pada ' + monthLongLabel(previous), 'error'); return; }
-      this.askConfirm('hpp-copy-monthly', previous, 'Salin biaya bulan sebelumnya?', 'Data ' + monthLongLabel(previous) + ' akan dimuat sebagai Estimasi. Simpan setelah memeriksa nilainya.', false, 'Salin');
+      const sources = this.hppCopySourcePeriods;
+      if (!sources.length) { this.notify('Belum ada periode sumber lain', 'error'); return; }
+      this.copyHppMonthlyFromPeriod(sources[sources.length - 1]);
     },
-    applyHppMonthlyCopy(period) {
-      const rows = (this.biayaProduksiBulanan || []).filter(row => row.period === period);
-      if (!rows.length) { this.notify('Data bulan sebelumnya tidak ditemukan', 'error'); return; }
-      rows.forEach(row => {
-        this.hppMonthlyForm[row.component] = {
-          value:Number(row.value) || 0,
-          employeeCount:row.employeeCount != null ? row.employeeCount : '',
-          kwh:row.kwh != null ? row.kwh : '',
-          sourceType:'manual',
-          type:'estimasi',
-          note:'Salinan ' + monthLongLabel(period)
-        };
-      });
-      this.notify('Biaya ' + monthLongLabel(period) + ' dimuat sebagai Estimasi');
-    },
+    applyHppMonthlyCopy(period) { this.copyHppMonthlyFromPeriod(period); },
     openHppHistory(component) {
       const row = this.getBiayaBulanan(this.hppMonthlyPeriod, component);
       if (!row || !(row.history || []).length) { this.notify('Belum ada riwayat perubahan untuk komponen ini'); return; }
@@ -5496,6 +5568,16 @@ function app() {
       ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => { periods[component] = key; });
       return periods;
     },
+    get hppDemoAvailable() { return (this.productions || []).some(row => row.date === '2026-10-30' && row.productId === 'p1'); },
+    startHppDemo() {
+      const demo = this.hppDemoScenario();
+      this.startHppCreate();
+      this.hppForm.date = demo.date;
+      this.hppForm.productId = demo.productId;
+      this.onHppDateChange();
+      this.onHppProductChange();
+      this.notify('Skenario demo 30 Oktober dimuat: 1.515 Krt dengan harga bahan client.');
+    },
     startHppCreate() {
       this.hppEditId = null;
       this.hppForm = {
@@ -5504,11 +5586,40 @@ function app() {
         materialOverrides:{}, depreciationTotal:0,
         costPeriods:this.hppDefaultCostPeriods(todayISO())
       };
+      this.applyHppDemoScenario();
       this.go('hpp-create');
+    },
+    hppDemoScenario() {
+      return { date:'2026-10-30', productId:'p1', outputQty:1515, reason:'Data uji HPP 30 Oktober',
+        prices:{ mat5:39, mat2:132, mat6:15, mat4:3309, mat7:31 } };
+    },
+    applyHppDemoScenario() {
+      if (!this.hppForm) return false;
+      const demo = this.hppDemoScenario();
+      if (this.hppForm.date !== demo.date || this.hppForm.productId !== demo.productId) {
+        if (this.hppForm.demoScenario) {
+          this.hppForm.demoScenario = false;
+          this.hppForm.materialOverrides = {};
+          this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
+        }
+        return false;
+      }
+      const overrides = {};
+      Object.keys(demo.prices).forEach(materialId => {
+        overrides[materialId] = { price:demo.prices[materialId], reason:demo.reason };
+      });
+      this.hppForm.materialOverrides = overrides;
+      this.hppForm.costPeriods = { gaji:'2026-10', uang_makan:'2026-10', bpjs:'2026-10', listrik:'2026-10', overhead:'2026-10' };
+      this.hppForm.demoScenario = true;
+      return true;
     },
     onHppDateChange() {
       if (!this.hppForm) return;
       this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
+      if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: harga bahan dan periode biaya diisi otomatis.');
+    },
+    onHppProductChange() {
+      if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: harga bahan dan periode biaya diisi otomatis.');
     },
     editHpp(row) {
       if (!row || row.status !== 'draft') return;
@@ -5632,37 +5743,66 @@ function app() {
       const output = this.hppOutputQty;
       const workingDays = Number(this.hppSettings.workingDays) || 0;
       const allocation = Number(this.hppForm.allocationPercent) || 0;
+      const rounding = this.hppRoundingMode;
+      const clientFormula = this.hppElectricityFormula === 'client';
       const rows = [];
       ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => {
         const period = this.hppCostPeriod(component);
         const source = this.getBiayaBulanan(period, component);
         const value = source ? Number(source.value) || 0 : 0;
-        const perDus = output > 0 && workingDays > 0 ? (value / workingDays / output) * (allocation / 100) : 0;
+        const kwh = source && Number(source.kwh) > 0 ? Number(source.kwh) : 0;
+        const tariff = kwh > 0 ? value / kwh : 0;
+        let rawPerDus = 0;
+        let formula = '';
+        const isClientElectricity = component === 'listrik' && clientFormula;
+        if (isClientElectricity) {
+          rawPerDus = kwh > 0 && output > 0 ? ((value / kwh) / output) * (allocation / 100) : 0;
+          formula = '((' + this.fmt(value) + ' ÷ ' + this.fmt(kwh) + ' kWh) ÷ ' + this.fmt(output) + ') × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus);
+        } else {
+          rawPerDus = output > 0 && workingDays > 0 ? (value / workingDays / output) * (allocation / 100) : 0;
+          formula = '(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus);
+        }
+        let perDus = rawPerDus;
+        if (isClientElectricity) perDus = rawPerDus > 0 ? Math.max(1, Math.round(rawPerDus)) : 0;
+        else if (rounding === 'component') perDus = Math.round(rawPerDus);
+        let note = '';
+        if (isClientElectricity) {
+          note = 'Nilai asli ' + this.fmt2(rawPerDus) + ' / Krt' + (tariff > 0 ? ' • tarif ' + this.rp2(tariff) + '/kWh' : '');
+        } else if (Math.abs(perDus - rawPerDus) >= 0.005) {
+          note = 'Nilai asli ' + this.fmt2(rawPerDus);
+        }
         rows.push({
           component, label:this.hppComponentLabel(component), period, source,
-          value, type:source ? source.type : '', perDus, missing:!source,
-          kwh:source ? source.kwh : null,
-          tariff:source && Number(source.kwh) > 0 ? (Number(source.value) || 0) / Number(source.kwh) : 0,
-          formula:'(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(perDus)
+          value, type:source ? source.type : '', perDus, rawPerDus, note, missing:!source,
+          kwh:source ? source.kwh : null, tariff, formula, electricityClient:isClientElectricity
         });
       });
       const waterLiters = Number(this.hppSettings.waterLitersPerKrt) || 0;
       const waterPrice = Number(this.hppSettings.waterPricePerM3) || 0;
-      const waterPerDus = (waterLiters / 1000) * waterPrice;
+      const waterRaw = (waterLiters / 1000) * waterPrice;
+      const waterPerDus = rounding === 'component' ? Math.round(waterRaw) : waterRaw;
       rows.push({
-        component:'air', label:'Air', period:'', source:null, value:null, type:'', perDus:waterPerDus, missing:false,
-        formula:'(' + this.fmt(waterLiters) + ' ÷ 1.000) × ' + this.fmt(waterPrice) + ' = ' + this.fmt2(waterPerDus)
+        component:'air', label:'Air', period:'', source:null, value:null, type:'', perDus:waterPerDus, rawPerDus:waterRaw,
+        note:Math.abs(waterPerDus - waterRaw) >= 0.005 ? 'Nilai asli ' + this.fmt2(waterRaw) : '',
+        missing:false,
+        formula:'(' + this.fmt(waterLiters) + ' ÷ 1.000) × ' + this.fmt(waterPrice) + ' = ' + this.fmt2(waterRaw)
       });
       const depreciation = Number(this.hppForm.depreciationTotal) || 0;
-      const depreciationPerDus = output > 0 ? (depreciation / output) * (allocation / 100) : 0;
+      const depreciationRaw = output > 0 ? (depreciation / output) * (allocation / 100) : 0;
+      const depreciationPerDus = rounding === 'component' ? Math.round(depreciationRaw) : depreciationRaw;
       rows.push({
-        component:'penyusutan', label:'Penyusutan', period:'', source:null, value:depreciation, type:'', perDus:depreciationPerDus, missing:false,
-        formula:'(' + this.fmt(depreciation) + ' ÷ ' + this.fmt(output) + ') × ' + this.fmt(allocation) + '% = ' + this.fmt2(depreciationPerDus)
+        component:'penyusutan', label:'Penyusutan', period:'', source:null, value:depreciation, type:'', perDus:depreciationPerDus, rawPerDus:depreciationRaw,
+        note:Math.abs(depreciationPerDus - depreciationRaw) >= 0.005 ? 'Nilai asli ' + this.fmt2(depreciationRaw) : '',
+        missing:false,
+        formula:'(' + this.fmt(depreciation) + ' ÷ ' + this.fmt(output) + ') × ' + this.fmt(allocation) + '% = ' + this.fmt2(depreciationRaw)
       });
       return rows;
     },
     get hppCostTotal() { return this.hppCostRows.reduce((sum, row) => sum + row.perDus, 0); },
-    get hppPerDus() { return this.hppMaterialTotal + this.hppCostTotal; },
+    get hppPerDus() {
+      const raw = this.hppMaterialTotal + this.hppCostTotal;
+      return this.hppRoundingMode === 'final' ? Math.round(raw) : raw;
+    },
     get hppTotal() { return this.hppPerDus * this.hppOutputQty; },
     get hppProductCost() { return Number(this.product(this.hppForm ? this.hppForm.productId : '').cost) || 0; },
     get hppCostDifference() { return this.hppPerDus - this.hppProductCost; },
@@ -5719,7 +5859,8 @@ function app() {
         costs:costs.map(row => ({
           component:row.component, sourcePeriod:row.period, sourceType:row.source ? row.source.sourceType : 'manual',
           type:row.type || '', monthlyValue:row.value, divisor:Number(this.hppSettings.workingDays) || 0,
-          perDus:row.perDus, formula:row.formula, kwh:row.kwh || null
+          perDus:row.perDus, rawPerDus:row.rawPerDus, note:row.note || '', formula:row.formula, kwh:row.kwh || null,
+          electricityClient:!!row.electricityClient
         })),
         productionIds:this.hppProductionIds,
         snapshot:JSON.parse(JSON.stringify({
@@ -5879,17 +6020,34 @@ function app() {
       const output = Number(input.outputQty) || 0;
       const workingDays = Number(input.workingDays) || 0;
       const allocation = Number(input.allocationPercent) || 0;
+      const rounding = input.roundingMode || 'none';
+      const electricityFormula = input.electricityFormula || 'allocation';
       const material = (input.materials || []).reduce((sum, row) => sum + (Number(row.qtyPerDus) || 0) * (Number(row.price) || 0), 0);
-      const monthly = (input.monthlyCosts || []).reduce((sum, row) => {
-        if (output <= 0 || workingDays <= 0) return sum;
-        return sum + ((Number(row.value) || 0) / workingDays / output) * (allocation / 100);
-      }, 0);
-      const water = ((Number(input.waterLitersPerKrt) || 0) / 1000) * (Number(input.waterPricePerM3) || 0);
-      const depreciation = output > 0 ? ((Number(input.depreciationTotal) || 0) / output) * (allocation / 100) : 0;
-      return { material, monthly, water, depreciation, production:monthly + water + depreciation, hpp:material + monthly + water + depreciation };
+      let monthly = 0;
+      (input.monthlyCosts || []).forEach(row => {
+        const value = Number(row.value) || 0;
+        let per = 0;
+        if (row.component === 'listrik' && electricityFormula === 'client') {
+          const kwh = Number(row.kwh) || 0;
+          per = kwh > 0 && output > 0 ? ((value / kwh) / output) * (allocation / 100) : 0;
+          per = per > 0 ? Math.max(1, Math.round(per)) : 0;
+        } else if (output > 0 && workingDays > 0) {
+          per = (value / workingDays / output) * (allocation / 100);
+          if (rounding === 'component') per = Math.round(per);
+        }
+        monthly += per;
+      });
+      const waterRaw = ((Number(input.waterLitersPerKrt) || 0) / 1000) * (Number(input.waterPricePerM3) || 0);
+      const water = rounding === 'component' ? Math.round(waterRaw) : waterRaw;
+      const depreciationRaw = output > 0 ? ((Number(input.depreciationTotal) || 0) / output) * (allocation / 100) : 0;
+      const depreciation = rounding === 'component' ? Math.round(depreciationRaw) : depreciationRaw;
+      const production = monthly + water + depreciation;
+      let hpp = material + production;
+      if (rounding === 'final') hpp = Math.round(hpp);
+      return { material, monthly, water, depreciation, production, hpp };
     },
     runHppSelfTest() {
-      const result = this.calculateHpp({
+      const base = {
         outputQty:1515,
         workingDays:26,
         allocationPercent:100,
@@ -5898,16 +6056,62 @@ function app() {
           { qtyPerDus:1, price:3309 }, { qtyPerDus:2, price:31 }
         ],
         monthlyCosts:[
-          { value:32637692 }, { value:7720000 }, { value:3382080 }, { value:14567560 }, { value:0 }
+          { component:'gaji', value:32637692 }, { component:'uang_makan', value:7720000 },
+          { component:'bpjs', value:3382080 }, { component:'listrik', value:14567560, kwh:53000 },
+          { component:'overhead', value:0 }
         ],
         waterLitersPerKrt:10.5,
         waterPricePerM3:7000,
         depreciationTotal:0
+      };
+      const correct = this.calculateHpp({ ...base, electricityFormula:'allocation', roundingMode:'none' });
+      const client = this.calculateHpp({
+        ...base,
+        materials:[],
+        monthlyCosts:[{ component:'listrik', value:14567560, kwh:53000 }],
+        waterLitersPerKrt:0,
+        waterPricePerM3:0,
+        electricityFormula:'client',
+        roundingMode:'none'
       });
-      const expected = 13852.78;
-      const ok = Math.abs(result.hpp - expected) <= 0.05;
-      this.hppSelfTestResult = { ok, result, expected };
-      this.notify(ok ? 'Self-test HPP berhasil: ' + this.rp2(result.hpp) : 'Self-test HPP gagal: ' + this.rp2(result.hpp), ok ? 'success' : 'error');
+      const expected = 13852.76;
+      const clientListrik = client.monthly;
+      const ok = Math.abs(correct.hpp - expected) <= 0.05 && clientListrik === 1;
+      this.hppSelfTestResult = { ok, result:correct, expected, clientListrik };
+      this.notify(ok ? 'Self-test HPP berhasil: ' + this.rp2(correct.hpp) : 'Self-test HPP gagal: ' + this.rp2(correct.hpp), ok ? 'success' : 'error');
+    },
+    get hppComparison() {
+      const period = '2026-10';
+      const output = 1515;
+      const days = Number(this.hppSettings.workingDays) || 26;
+      const valueOf = (component, fallback) => {
+        const row = this.getBiayaBulanan(period, component);
+        return row ? Number(row.value) || 0 : fallback;
+      };
+      const gaji = valueOf('gaji', 32637692);
+      const uangMakan = valueOf('uang_makan', 7720000);
+      const bpjs = valueOf('bpjs', 3382080);
+      const listrik = valueOf('listrik', 14567560);
+      const listrikRow = this.getBiayaBulanan(period, 'listrik');
+      const kwh = listrikRow && Number(listrikRow.kwh) > 0 ? Number(listrikRow.kwh) : 53000;
+      const material = 12299;
+      const laborCorrect = (gaji + uangMakan + bpjs) / days / output;
+      const listrikCorrect = listrik / days / output;
+      const airCorrect = ((Number(this.hppSettings.waterLitersPerKrt) || 0) / 1000) * (Number(this.hppSettings.waterPricePerM3) || 0);
+      const correct = material + laborCorrect + listrikCorrect + airCorrect;
+      const laborClient = 828.60 + 196.00 + 85.80;
+      const client = material + laborClient + 1 + 73;
+      return {
+        period, output, days, material,
+        gajiCorrect:gaji / days / output,
+        uangMakanCorrect:uangMakan / days / output,
+        bpjsCorrect:bpjs / days / output,
+        listrikCorrect, airCorrect, correct,
+        listrikClientRaw:kwh > 0 ? (listrik / kwh) / output : 0,
+        listrikClientDisplay:1, airClient:73, client,
+        difference:correct - client,
+        tariff:kwh > 0 ? listrik / kwh : 0
+      };
     },
 
     /* ---------- LEDGER & TRIAL BALANCE ---------- */
@@ -7995,6 +8199,7 @@ function app() {
         material.avgCost = Number(material.purchasePrice) || 0;
       });
       this.products.forEach((product, index) => { product.stock = index === 0 ? 800 : 300; });
+      this.seedDummyMonthlyPeriods();
       const addMaterialStock = (materialId, warehouseId, qty, value, type, refType, refId, refNumber, date, unitCost) => {
         const material = this.material(materialId);
         if (!material.id) return;
@@ -8575,6 +8780,41 @@ function app() {
       };
       const prod1 = makeProduction(d(-7), 500, {}, 'Batch produksi awal bulan');
       const prod2 = makeProduction(d(-2), 200, { mat2:9500 }, 'Batch produksi shift 2');
+
+      const demoQty = this.hppDemoScenario().outputQty;
+      const demoMaterials = this.recipes.filter(recipe => recipe.productId === 'p1').map(recipe => {
+        const material = this.material(recipe.materialId);
+        const qty = (Number(recipe.qtyPerUnit) || 0) * demoQty;
+        return {
+          materialId:recipe.materialId,
+          standardQty:qty,
+          qty,
+          price:Number(material.avgCost) || Number(material.purchasePrice) || 0,
+          note:'Skenario demo',
+          fromRecipe:true
+        };
+      });
+      const demoProduction = {
+        id:'prddemo' + Date.now(),
+        code:productionCode('2026-10-30'),
+        date:'2026-10-30',
+        productId:'p1',
+        warehouseId:'wh1',
+        qty:demoQty,
+        description:'Skenario demo HPP 30 Oktober (tanpa pergerakan stok)',
+        status:'posted',
+        materials:demoMaterials,
+        totalCost:demoMaterials.reduce((sum, row) => sum + row.qty * row.price, 0),
+        costPerUnit:0,
+        createdBy:'Rina',
+        createdById:'u5',
+        createdByRole:'Manager',
+        createdAt:'2026-10-30',
+        updatedAt:'2026-10-30'
+      };
+      demoProduction.costPerUnit = demoProduction.totalCost / demoQty;
+      this.productions.unshift(demoProduction);
+      this.productionLogs.unshift({ id:'plog' + Date.now() + 'demo', productionId:demoProduction.id, at:'2026-10-30', user:'Rina', role:'Manager', action:'demo', detail:'Skenario demo HPP 30 Oktober: ' + this.fmt(demoQty) + ' Krt tanpa pergerakan stok.', reason:'' });
 
       const order1Date = d(-6);
       const order1 = makeOrder('c1', [['p1', 10], ['p2', 5]], 'pending', 'unpaid', order1Date, { orderBy:'Fahri' });

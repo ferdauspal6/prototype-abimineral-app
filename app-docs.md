@@ -207,13 +207,31 @@ Aturan utama:
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
 - Air = `(liter per Krt ÷ 1.000) × harga per m³`.
 - Penyusutan = `nilai penyusutan ÷ hasil produksi × alokasi%`.
+- **Rumus Listrik** dapat dipilih di Pengaturan:
+  - **Alokasi biaya bulanan** (default): `biaya bulanan ÷ hari kerja ÷ hasil produksi`.
+  - **Tarif per kWh (client)**: `(biaya bulanan ÷ kWh) ÷ hasil produksi`; nilai per Krt ditampilkan **Rp 1** dengan keterangan nilai asli **Rp 0,18** dan tarif **Rp 274,86/kWh**.
+- **Pembulatan** dapat dipilih di Pengaturan:
+  - **Tidak dibulatkan** (default, presisi penuh),
+  - **Bulatkan tiap komponen**,
+  - **Bulatkan HPP akhir**.
+  - Nilai asli komponen yang dibulatkan tetap ditampilkan sebagai keterangan.
+- Panel **Perbandingan dengan Sheet Client** hanya ada di tab Pengaturan:
+  - Sheet client: listrik Rp 1, air 73, HPP **13.483,40/Krt**.
+  - Rumus benar: listrik Rp 369,83, air 73,50, HPP **13.852,76/Krt**.
+  - Selisih **369,36/Krt**, bersumber dari listrik dan pembulatan manual client.
+- **Ambil dari periode** (dropdown) menggantikan tombol salin:
+  - pilihan September, Oktober, November 2026, dan periode lain yang punya data;
+  - periode aktif dinonaktifkan;
+  - periode kosong menampilkan label `(belum ada data)` dan otomatis memuat data dummy sebagai **Estimasi**.
+- **Isi Data Dummy** membuat biaya September (95%), Oktober (angka sheet client, **Aktual**), dan November (103%) 2026.
+- **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, override harga bahan (LID 39, CUP 132, STRAW 15, BOX 3.309, LAKBAN 31) beralasan `Data uji HPP 30 Oktober`, dan periode biaya Oktober. Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
 - Satu HPP final per tanggal + produk.
 - Revisi membuat versi baru dan menandai versi lama **Digantikan**.
 - Draft boleh dihitung ulang dari data sumber; harga override dan penyusutan dipertahankan.
 - Final mengunci snapshot.
 - Terapkan ke Harga Modal memakai pembulatan rupiah dan dicatat di riwayat.
 - Order baru menyimpan `costAtOrder` agar perubahan Harga Modal tidak mengubah COGS historis.
-- Self-test internal memverifikasi contoh HPP 13.852,78.
+- Self-test internal memverifikasi contoh HPP 13.852,76 dan listrik client Rp 1.
 
 ### 2.7 L4 — Penerimaan Barang
 

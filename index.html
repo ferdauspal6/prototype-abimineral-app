@@ -2352,7 +2352,8 @@
             <input type="date" class="input w-40" x-model="hppDateTo" title="Sampai tanggal">
             <select class="select w-48" x-model="hppProduct"><option value="">Semua Produk</option><template x-for="product in products" :key="product.id"><option :value="product.id" x-text="product.name"></option></template></select>
             <select class="select w-36" x-model="hppStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="final">Final</option><option value="superseded">Digantikan</option></select>
-            <button class="btn btn-primary ml-auto" @click="startHppCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat HPP</button>
+            <button class="btn btn-outline ml-auto" x-show="hppDemoAvailable" @click="startHppDemo()"><svg class="icon icon-sm"><use href="#i-calculator"></use></svg> Demo 30 Oktober</button>
+            <button class="btn btn-primary" @click="startHppCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat HPP</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -2385,7 +2386,15 @@
               <input type="month" class="input w-44" x-model="hppMonthlyPeriod" @change="loadHppMonthly()">
               <span class="text-[11px] text-slate-400">Satu baris per komponen per bulan.</span>
             </div>
-            <button class="btn btn-outline" @click="askCopyHppMonthly()"><svg class="icon icon-sm"><use href="#i-refresh"></use></svg> Salin dari bulan sebelumnya</button>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="label mb-0">Ambil dari periode</label>
+              <select class="select w-56" x-model="hppSourcePeriod" @change="copyHppMonthlyFromPeriod(hppSourcePeriod)">
+                <option value="">Pilih periode sumber</option>
+                <template x-for="period in hppCopySourcePeriods" :key="period">
+                  <option :value="period" x-text="monthLongLabel(period) + (hppHasMonthlyData(period) ? '' : ' (belum ada data)')"></option>
+                </template>
+              </select>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -2426,13 +2435,33 @@
                 <div><label class="label">Liter air / Krt</label><input type="number" min="0" step="0.1" class="input" x-model.number="hppSettingsForm.waterLitersPerKrt"></div>
                 <div><label class="label">Harga air / m³</label><input type="number" min="0" class="input" x-model.number="hppSettingsForm.waterPricePerM3"></div>
               </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label class="label">Rumus Listrik</label>
+                  <select class="select" x-model="hppSettingsForm.electricityFormula">
+                    <option value="allocation">Alokasi biaya bulanan (disarankan)</option>
+                    <option value="client">Tarif per kWh (perbandingan client)</option>
+                  </select>
+                  <div class="text-[10px] text-slate-400 mt-1" x-show="hppSettingsForm.electricityFormula === 'client'">Hasil per Krt dibulatkan ke Rp 1 dan bukan biaya listrik aktual.</div>
+                  <div class="text-[10px] text-slate-400 mt-1" x-show="hppSettingsForm.electricityFormula !== 'client'">Biaya bulanan ÷ hari kerja ÷ hasil produksi.</div>
+                </div>
+                <div>
+                  <label class="label">Pembulatan</label>
+                  <select class="select" x-model="hppSettingsForm.roundingMode">
+                    <option value="none">Tidak dibulatkan (presisi penuh)</option>
+                    <option value="component">Bulatkan tiap komponen</option>
+                    <option value="final">Bulatkan HPP akhir</option>
+                  </select>
+                  <div class="text-[10px] text-slate-400 mt-1">Nilai asli tetap ditampilkan sebagai keterangan.</div>
+                </div>
+              </div>
               <div class="flex flex-wrap items-center justify-between gap-2 mt-4">
                 <button class="btn btn-outline" @click="runHppSelfTest()">Uji Perhitungan</button>
                 <button class="btn btn-primary" @click="saveHppSettings()">Simpan Pengaturan</button>
               </div>
               <div x-show="hppSelfTestResult" class="mt-3 rounded-xl border p-3 text-xs" :class="hppSelfTestResult && hppSelfTestResult.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'">
                 <div class="font-semibold" x-text="hppSelfTestResult && hppSelfTestResult.ok ? 'Self-test berhasil' : 'Self-test gagal'"></div>
-                <div x-show="hppSelfTestResult" x-text="hppSelfTestResult ? 'HPP: ' + rp2(hppSelfTestResult.result.hpp) + ' • Bahan: ' + rp2(hppSelfTestResult.result.material) + ' • Produksi: ' + rp2(hppSelfTestResult.result.production) : ''"></div>
+                <div x-show="hppSelfTestResult" x-text="hppSelfTestResult ? 'HPP: ' + rp2(hppSelfTestResult.result.hpp) + ' • Bahan: ' + rp2(hppSelfTestResult.result.material) + ' • Produksi: ' + rp2(hppSelfTestResult.result.production) + ' • Listrik client: ' + rp2(hppSelfTestResult.clientListrik) : ''"></div>
               </div>
             </div>
             <div class="card p-4">
@@ -2443,6 +2472,28 @@
                 </template>
                 <div x-show="!(hppSettings.history || []).length" class="text-center text-xs text-slate-400 py-4">Belum ada perubahan pengaturan.</div>
               </div>
+            </div>
+            <div class="card p-4 lg:col-span-2">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="section-title">Perbandingan dengan Sheet Client</div>
+                <span class="badge badge-slate">HPP 30 Oktober 2026 • 1.515 Krt</span>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Komponen</th><th class="num">Sheet Client</th><th class="num">Rumus Benar</th><th>Catatan</th></tr></thead>
+                  <tbody>
+                    <tr><td>Bahan baku</td><td class="num" x-text="rp2(hppComparison.material)"></td><td class="num" x-text="rp2(hppComparison.material)"></td><td class="text-xs text-slate-500">LID, CUP, STRAW, BOX, LAKBAN</td></tr>
+                    <tr><td>Gaji produksi</td><td class="num" x-text="rp2(828.60)"></td><td class="num" x-text="rp2(hppComparison.gajiCorrect)"></td><td class="text-xs text-slate-500">Pembulatan manual sheet</td></tr>
+                    <tr><td>Uang makan</td><td class="num" x-text="rp2(196)"></td><td class="num" x-text="rp2(hppComparison.uangMakanCorrect)"></td><td class="text-xs text-slate-500">Pembulatan manual sheet</td></tr>
+                    <tr><td>BPJS</td><td class="num" x-text="rp2(85.80)"></td><td class="num" x-text="rp2(hppComparison.bpjsCorrect)"></td><td class="text-xs text-slate-500">Pembulatan manual sheet</td></tr>
+                    <tr><td>Listrik</td><td class="num" x-text="rp2(hppComparison.listrikClientDisplay)"></td><td class="num" x-text="rp2(hppComparison.listrikCorrect)"></td><td class="text-xs text-slate-500" x-text="'Nilai asli client ' + fmt2(hppComparison.listrikClientRaw) + '/Krt • tarif ' + rp2(hppComparison.tariff) + '/kWh'"></td></tr>
+                    <tr><td>Air</td><td class="num" x-text="rp2(hppComparison.airClient)"></td><td class="num" x-text="rp2(hppComparison.airCorrect)"></td><td class="text-xs text-slate-500">Sheet client memakai 73</td></tr>
+                    <tr class="bg-slate-100 font-bold"><td>HPP / Krt</td><td class="num" x-text="rp2(hppComparison.client)"></td><td class="num" x-text="rp2(hppComparison.correct)"></td><td></td></tr>
+                    <tr><td>Selisih</td><td class="num" colspan="2" x-text="rp2(hppComparison.difference) + ' per Krt'"></td><td class="text-xs text-slate-500">Bersumber dari listrik dan pembulatan manual client</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-2">Angka client mengikuti pembulatan manual pada sheet. Angka rumus benar memakai pengaturan hari kerja dan air yang aktif.</div>
             </div>
           </div>
         </div>
@@ -2463,7 +2514,7 @@
               <div class="section-title mb-3">A. Data Dasar</div>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div><label class="label">Tanggal Produksi <span class="req">*</span></label><input type="date" class="input" x-model="hppForm.date" @change="onHppDateChange()"></div>
-                <div><label class="label">Produk <span class="req">*</span></label><select class="select" x-model="hppForm.productId"><option value="">Pilih produk</option><template x-for="product in products.filter(p => p.status)" :key="product.id"><option :value="product.id" x-text="product.name"></option></template></select></div>
+                <div><label class="label">Produk <span class="req">*</span></label><select class="select" x-model="hppForm.productId" @change="onHppProductChange()"><option value="">Pilih produk</option><template x-for="product in products.filter(p => p.status)" :key="product.id"><option :value="product.id" x-text="product.name"></option></template></select></div>
                 <div><label class="label">Hasil Produksi</label><div class="input bg-slate-50 text-right font-semibold" x-text="fmt(hppOutputQty) + ' Krt'"></div></div>
                 <div><label class="label" title="Bagian biaya harian yang dibebankan ke produk ini">Alokasi Biaya (%)</label><input type="number" min="0" max="100" class="input" x-model.number="hppForm.allocationPercent"></div>
                 <div><label class="label" title="Hanya informasi dan tidak memengaruhi HPP">Bonusan (Krt)</label><input type="number" min="0" class="input" x-model.number="hppForm.bonusQty"></div>
@@ -2509,15 +2560,19 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <template x-for="row in hppCostRows" :key="row.component">
                   <div class="rounded-xl border border-slate-200 p-3">
-                    <div class="flex items-start justify-between gap-2"><div><div class="font-semibold text-sm" x-text="row.label"></div><div class="text-[10px] text-slate-400" x-show="row.period" x-text="'Periode ' + monthLongLabel(row.period)"></div></div><span class="badge" :class="row.missing ? 'badge-red' : (row.type === 'aktual' ? 'badge-green' : 'badge-yellow')" x-text="row.missing ? 'Belum diisi' : (row.type === 'aktual' ? 'Aktual' : 'Estimasi')"></span></div>
+                    <div class="flex items-start justify-between gap-2"><div><div class="font-semibold text-sm" x-text="row.label"></div><div class="text-[10px] text-slate-400" x-show="row.period" x-text="'Periode ' + monthLongLabel(row.period)"></div></div><span class="badge" :class="row.missing ? 'badge-red' : (row.type === 'aktual' ? 'badge-green' : (row.type === 'estimasi' ? 'badge-yellow' : 'badge-slate'))" x-text="row.missing ? 'Belum diisi' : (row.type === 'aktual' ? 'Aktual' : (row.type === 'estimasi' ? 'Estimasi' : 'Parameter'))"></span></div>
                     <div class="mt-2 grid grid-cols-2 gap-2 text-[11px]">
                       <div><label class="label">Periode Sumber</label><input type="month" class="input input-sm" x-show="row.period !== ''" :value="row.period" @change="setHppCostPeriod(row.component, $event.target.value)"></div>
                       <div><label class="label">Nilai Bulanan</label><div class="input input-sm bg-slate-50 text-right" x-text="row.value != null ? rp(row.value) : '-'"></div></div>
                     </div>
                     <div class="mt-2 text-[11px] text-slate-500" x-text="row.formula"></div>
                     <div class="mt-1 text-xs font-bold text-slate-800" x-text="rp2(row.perDus) + ' / Krt'"></div>
+                    <div class="text-[10px] text-slate-400" x-show="row.note" x-text="row.note"></div>
                     <div x-show="row.component === 'listrik' && row.kwh" class="text-[10px] text-slate-400" x-text="'kWh ' + fmt(row.kwh) + ' • tarif ' + rp2(row.tariff) + '/kWh'"></div>
-                    <div x-show="row.missing" class="mt-2 text-[11px] text-red-600"><button class="text-blue-600 hover:underline" @click="hppMonthlyPeriod = row.period; hppTab = 'monthly'; loadHppMonthly(); go('hpp')">Isi Biaya Bulanan</button></div>
+                    <div x-show="row.missing" class="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                      <button class="text-blue-600 hover:underline" @click="hppMonthlyPeriod = row.period; hppTab = 'monthly'; loadHppMonthly(); go('hpp')">Isi Biaya Bulanan</button>
+                      <button class="text-emerald-600 hover:underline" @click="loadHppDummyCost(row.period)">Muat Data Dummy</button>
+                    </div>
                     <div x-show="row.component === 'penyusutan'" class="mt-2"><label class="label">Penyusutan hari itu (Rp)</label><input type="number" min="0" class="input input-sm text-right" x-model.number="hppForm.depreciationTotal"></div>
                   </div>
                 </template>
@@ -2577,7 +2632,7 @@
           </div>
           <div class="card">
             <div class="card-header"><div class="section-title">Biaya Produksi</div><span class="badge badge-slate" x-text="(selectedHpp.costs || []).length + ' komponen'"></span></div>
-            <div class="table-wrap"><table class="data-table"><thead><tr><th>Komponen</th><th>Periode</th><th>Tipe</th><th class="num">Per Krt</th></tr></thead><tbody><template x-for="row in (selectedHpp.costs || [])" :key="row.component"><tr><td x-text="hppComponentLabel(row.component)"></td><td class="text-xs text-slate-500" x-text="row.sourcePeriod ? monthLongLabel(row.sourcePeriod) : '-'"></td><td><span class="badge" :class="row.type === 'aktual' ? 'badge-green' : 'badge-yellow'" x-text="row.type === 'aktual' ? 'Aktual' : (row.type === 'estimasi' ? 'Estimasi' : '-')"></span></td><td class="num" x-text="rp2(row.perDus)"></td></tr></template></tbody></table></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Komponen</th><th>Periode</th><th>Tipe</th><th class="num">Per Krt</th></tr></thead><tbody><template x-for="row in (selectedHpp.costs || [])" :key="row.component"><tr><td x-text="hppComponentLabel(row.component)"></td><td class="text-xs text-slate-500" x-text="row.sourcePeriod ? monthLongLabel(row.sourcePeriod) : '-'"></td><td><span class="badge" :class="row.type === 'aktual' ? 'badge-green' : 'badge-yellow'" x-text="row.type === 'aktual' ? 'Aktual' : (row.type === 'estimasi' ? 'Estimasi' : '-')"></span></td><td class="num"><div x-text="rp2(row.perDus)"></div><div class="text-[10px] text-slate-400" x-show="row.note" x-text="row.note"></div></td></tr></template></tbody></table></div>
           </div>
           <div class="card">
             <div class="card-header"><div class="section-title">Dokumen Produksi</div></div>
@@ -2592,6 +2647,7 @@
             </div>
           </div>
         </div>
+        <div class="mt-3 text-[11px] text-slate-400" x-show="selectedHpp.snapshot && selectedHpp.snapshot.settings" x-text="'Rumus listrik: ' + hppElectricityFormulaLabel(selectedHpp.snapshot && selectedHpp.snapshot.settings ? selectedHpp.snapshot.settings.electricityFormula : 'allocation') + ' • Pembulatan: ' + hppRoundingLabel(selectedHpp.snapshot && selectedHpp.snapshot.settings ? selectedHpp.snapshot.settings.roundingMode : 'none')"></div>
         <div class="mt-3 text-[11px] text-slate-400">Snapshot: perubahan Pengaturan, Biaya Bulanan, harga bahan, atau resep tidak mengubah dokumen ini.</div>
       </section>
 
@@ -4482,7 +4538,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261121m"></script>
+<script src="assets/app.js?v=20261121p"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
