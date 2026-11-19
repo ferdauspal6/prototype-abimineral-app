@@ -789,9 +789,25 @@
       "w": 1440
     },
     {
-      "id": "trial-balance",
-      "name": "Neraca Saldo",
-      "src": "index.html?canvas=trial-balance",
+      "id": "reports-neraca-saldo",
+      "name": "Laporan — Neraca Saldo",
+      "src": "index.html?canvas=reports-neraca-saldo",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "reports-laba-rugi",
+      "name": "Laporan — Laba Rugi",
+      "src": "index.html?canvas=reports-laba-rugi",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "reports-neraca",
+      "name": "Laporan — Neraca",
+      "src": "index.html?canvas=reports-neraca",
       "group": "keuangan",
       "virtual": true,
       "w": 1440

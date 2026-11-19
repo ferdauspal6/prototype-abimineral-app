@@ -52,6 +52,7 @@ const PAGE_PERMISSION = {
   'journal-create': 'Jurnal Umum',
   ledger: 'Laporan Keuangan',
   'trial-balance': 'Laporan Keuangan',
+  reports: 'Laporan Keuangan',
   stock: 'Stock',
   receivables: 'Piutang',
   payables: 'Utang',
@@ -1183,7 +1184,7 @@ function app() {
           { page: 'coa', label: 'Chart of Accounts', icon: 'i-clipboard', match: ['coa'] },
           { page: 'journals', label: 'Jurnal Umum', icon: 'i-file', match: ['journals','journal-create'] },
           { page: 'ledger', label: 'Buku Besar', icon: 'i-chart', match: ['ledger'] },
-          { page: 'trial-balance', label: 'Neraca Saldo', icon: 'i-receipt', match: ['trial-balance'] }
+          { page: 'reports', label: 'Laporan', icon: 'i-receipt', match: ['reports'] }
         ]},
         { title: 'Pengguna', items: [
           { page: 'settings', label: 'Akun Saya', icon: 'i-user', match: ['settings'] },
@@ -1235,7 +1236,8 @@ function app() {
         journals: { title: 'Jurnal Umum', crumb: 'Keuangan / Jurnal Umum' },
         'journal-create': { title: 'Buat Jurnal', crumb: 'Keuangan / Jurnal Umum / Buat' },
         ledger: { title: 'Buku Besar', crumb: 'Keuangan / Buku Besar' },
-        'trial-balance': { title: 'Neraca Saldo', crumb: 'Keuangan / Neraca Saldo' },
+        reports: { title: 'Laporan', crumb: 'Keuangan / Laporan' },
+        'trial-balance': { title: 'Laporan', crumb: 'Keuangan / Laporan' },
         'finance-income': { title: 'Pendapatan Lainnya', crumb: 'Keuangan / Pendapatan Lainnya' },
         'finance-expense': { title: 'Pengeluaran Lainnya', crumb: 'Keuangan / Pengeluaran Lainnya' },
         receivables: { title: 'Piutang', crumb: 'Keuangan / Piutang' },
@@ -1273,6 +1275,7 @@ function app() {
       return true;
     },
     go(page) {
+      if (page === 'trial-balance') page = 'reports';
       if (page !== 'login' && !this.currentUserId) {
         this.page = 'login';
         try { history.replaceState(null, '', '#login'); } catch (e) {}
@@ -1585,6 +1588,9 @@ function app() {
           if (row) this.openAccount(row);
           break;
         }
+        case 'report-trial': this.reportTab = 'trial'; this.page = 'reports'; break;
+        case 'report-profit': this.reportTab = 'profit'; this.page = 'reports'; break;
+        case 'report-balance': this.reportTab = 'balance'; this.page = 'reports'; break;
         case 'journal-create': this.startJournalCreate(); break;
         case 'journal-detail': {
           const row = first(this.journals);
@@ -1656,6 +1662,7 @@ function app() {
         if (hash && PAGES.includes(hash) && hash !== 'login') next = hash;
         else if (this.sessionPage && PAGES.includes(this.sessionPage)) next = this.sessionPage;
         if (!next || next === 'login') next = 'dashboard';
+        if (next === 'trial-balance') next = 'reports';
         if (!this.canAccessPage(next) || !this.pageRequiresData(next)) next = 'dashboard';
         this.page = next;
         this.sessionPage = next;
@@ -1672,6 +1679,7 @@ function app() {
         if (this.canvasMode) return;
         const next = (location.hash || '').replace('#', '');
         if (!PAGES.includes(next) || next === 'login') return;
+        if (next === 'trial-balance') { this.go('reports'); return; }
         if (!this.currentUserId) { this.page = 'login'; return; }
         if (!this.canAccessPage(next) || !this.pageRequiresData(next)) { this.go('dashboard'); return; }
         this.page = next;
@@ -4995,7 +5003,7 @@ function app() {
 
     /* ---------- LEDGER & TRIAL BALANCE ---------- */
     ledgerAccountId: 'acc1', ledgerFrom: '', ledgerTo: todayISO(),
-    trialAsOf: todayISO(), trialShowZero: false,
+    reportTab: 'trial', reportAsOf: todayISO(), reportFrom: todayISO().slice(0, 8) + '01', reportTo: todayISO(), reportShowZero: false,
     get ledgerAccountData() { return this.accountById(this.ledgerAccountId) || this.accounts[0] || {}; },
     ledgerAccountOptions() { return [...this.accounts].sort((a, b) => String(a.code).localeCompare(String(b.code))); },
     get ledgerOpening() {
@@ -5062,12 +5070,12 @@ function app() {
       this.ledgerTo = asOf || todayISO();
       this.go('ledger');
     },
-    accountMovement(accountId, asOf = '') {
+    reportMovement(accountId, from = '', to = '') {
       let debit = 0;
       let credit = 0;
       this.journals
         .filter(journal => journal.status === 'posted')
-        .filter(journal => !asOf || journal.date <= asOf)
+        .filter(journal => (!from || journal.date >= from) && (!to || journal.date <= to))
         .forEach(journal => (journal.lines || []).forEach(line => {
           if (line.accountId !== accountId) return;
           debit += Number(line.debit) || 0;
@@ -5075,57 +5083,173 @@ function app() {
         }));
       return { debit, credit };
     },
-    trialRow(account) {
-      const movement = this.accountMovement(account.id, this.trialAsOf);
-      const net = movement.debit - movement.credit;
-      return {
-        accountId:account.id,
-        code:account.code,
-        name:account.name,
-        type:account.type,
-        normalBalance:account.normalBalance,
-        debit:net > 0 ? net : 0,
-        credit:net < 0 ? Math.abs(net) : 0,
-        balance:account.normalBalance === 'credit' ? movement.credit - movement.debit : net
-      };
+    reportAccountValue(account, from = '', to = '') {
+      const movement = this.reportMovement(account.id, from, to);
+      if (['asset', 'expense'].includes(account.type)) return movement.debit - movement.credit;
+      return movement.credit - movement.debit;
     },
-    get trialBalanceRows() {
+    reportValue(value) {
+      const n = Number(value) || 0;
+      return n < 0 ? '(' + this.rp(Math.abs(n)) + ')' : this.rp(n);
+    },
+    isReportHpp(account) {
+      return String(account.code || '').startsWith('5-10');
+    },
+    get reportTrialRows() {
       return this.accounts
-        .map(account => this.trialRow(account))
-        .filter(row => this.trialShowZero || row.debit !== 0 || row.credit !== 0)
+        .map(account => {
+          const movement = this.reportMovement(account.id, '', this.reportAsOf);
+          const net = movement.debit - movement.credit;
+          return {
+            accountId:account.id,
+            code:account.code,
+            name:account.name,
+            type:account.type,
+            debit:net > 0 ? net : 0,
+            credit:net < 0 ? Math.abs(net) : 0
+          };
+        })
+        .filter(row => this.reportShowZero || row.debit !== 0 || row.credit !== 0)
         .sort((a, b) => String(a.code).localeCompare(String(b.code)));
     },
-    trialRowsForType(type) {
-      return this.trialBalanceRows.filter(row => row.type === type);
-    },
-    get trialBalanceTotals() {
-      return this.trialBalanceRows.reduce((sum, row) => ({
+    get reportTrialTotals() {
+      return this.reportTrialRows.reduce((sum, row) => ({
         debit:sum.debit + row.debit,
         credit:sum.credit + row.credit
       }), { debit:0, credit:0 });
     },
-    get trialBalanceDifference() { return this.trialBalanceTotals.debit - this.trialBalanceTotals.credit; },
-    viewJournalById(id) {
-      const journal = this.journals.find(item => item.id === id);
-      if (journal) this.viewJournal(journal);
+    get reportTrialDifference() { return this.reportTrialTotals.debit - this.reportTrialTotals.credit; },
+    reportProfitLossRange(from, to) {
+      const rows = this.accounts.map(account => ({
+        account,
+        value:this.reportAccountValue(account, from, to)
+      }));
+      const sortRows = list => list.sort((a, b) => String(a.account.code).localeCompare(String(b.account.code)));
+      const revenue = sortRows(rows.filter(row => row.account.type === 'revenue' && row.value !== 0));
+      const hpp = sortRows(rows.filter(row => row.account.type === 'expense' && this.isReportHpp(row.account) && row.value !== 0));
+      const opex = sortRows(rows.filter(row => row.account.type === 'expense' && !this.isReportHpp(row.account) && row.value !== 0));
+      const totalRevenue = revenue.reduce((sum, row) => sum + row.value, 0);
+      const totalHpp = hpp.reduce((sum, row) => sum + row.value, 0);
+      const totalOpex = opex.reduce((sum, row) => sum + row.value, 0);
+      return {
+        from, to, revenue, hpp, opex,
+        totalRevenue, totalHpp, totalOpex,
+        gross:totalRevenue - totalHpp,
+        net:totalRevenue - totalHpp - totalOpex
+      };
     },
-    downloadTrialBalanceCSV() {
-      const rows = this.trialBalanceRows;
-      const lines = [['Tipe','Kode','Nama Akun','Debit','Kredit'].join(';')].concat(rows.map(row => [
-        this.accountTypeLabel(row.type), row.code, row.name, row.debit, row.credit
-      ].map(value => '"' + String(value).replace(/"/g, '""') + '"').join(';')));
-      const totals = this.trialBalanceTotals;
-      lines.push(['TOTAL','','', totals.debit, totals.credit].map(value => '"' + String(value).replace(/"/g, '""') + '"').join(';'));
+    get reportProfitLoss() {
+      return this.reportProfitLossRange(this.reportFrom, this.reportTo);
+    },
+    get reportBalanceSheet() {
+      const asOf = this.reportAsOf;
+      const rows = this.accounts.map(account => ({
+        account,
+        value:this.reportAccountValue(account, '', asOf)
+      }));
+      const sortRows = list => list.sort((a, b) => String(a.account.code).localeCompare(String(b.account.code)));
+      const assets = sortRows(rows.filter(row => row.account.type === 'asset' && row.value !== 0));
+      const liabilities = sortRows(rows.filter(row => row.account.type === 'liability' && row.value !== 0));
+      const equity = sortRows(rows.filter(row => row.account.type === 'equity' && row.value !== 0));
+      const asetLancar = assets.filter(row => String(row.account.code).startsWith('1-1'));
+      const asetTetap = assets.filter(row => !String(row.account.code).startsWith('1-1'));
+      const kewajibanPendek = liabilities.filter(row => String(row.account.code).startsWith('2-1'));
+      const kewajibanPanjang = liabilities.filter(row => !String(row.account.code).startsWith('2-1'));
+      const totalAset = assets.reduce((sum, row) => sum + row.value, 0);
+      const totalAsetLancar = asetLancar.reduce((sum, row) => sum + row.value, 0);
+      const totalAsetTetap = asetTetap.reduce((sum, row) => sum + row.value, 0);
+      const totalKewajiban = liabilities.reduce((sum, row) => sum + row.value, 0);
+      const totalEkuitasAkun = equity.reduce((sum, row) => sum + row.value, 0);
+      const year = String(asOf || todayISO()).slice(0, 4);
+      const labaBerjalan = this.reportProfitLossRange(year + '-01-01', asOf).net;
+      const totalEkuitas = totalEkuitasAkun + labaBerjalan;
+      const totalKewajibanEkuitas = totalKewajiban + totalEkuitas;
+      const difference = totalAset - totalKewajibanEkuitas;
+      return {
+        asOf, assets, asetLancar, asetTetap, liabilities, kewajibanPendek, kewajibanPanjang, equity,
+        totalAset, totalAsetLancar, totalAsetTetap, totalKewajiban, totalEkuitasAkun, labaBerjalan, totalEkuitas,
+        totalKewajibanEkuitas, difference, seimbang:Math.abs(difference) < 0.005
+      };
+    },
+    openReportLedger(accountId) {
+      if (!accountId) return;
+      this.ledgerAccountId = accountId;
+      if (this.reportTab === 'profit') {
+        this.ledgerFrom = this.reportFrom;
+        this.ledgerTo = this.reportTo;
+      } else {
+        this.ledgerFrom = '';
+        this.ledgerTo = this.reportAsOf;
+      }
+      this.go('ledger');
+    },
+    downloadReportCSV() {
+      const cell = value => '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
+      let lines = [];
+      let filename = 'laporan-';
+      if (this.reportTab === 'profit') {
+        const data = this.reportProfitLoss;
+        lines.push(['Section','Kode','Akun','Nilai'].map(cell).join(';'));
+        const add = (section, rows, sign = 1) => rows.forEach(row => lines.push([section, row.account.code, row.account.name, row.value * sign].map(cell).join(';')));
+        add('Pendapatan', data.revenue);
+        lines.push(['','','Subtotal Pendapatan', data.totalRevenue].map(cell).join(';'));
+        add('HPP', data.hpp, 1);
+        lines.push(['','','Subtotal HPP', data.totalHpp].map(cell).join(';'));
+        lines.push(['','','Laba Kotor', data.gross].map(cell).join(';'));
+        add('Beban Operasional', data.opex);
+        lines.push(['','','Subtotal Beban', data.totalOpex].map(cell).join(';'));
+        lines.push(['','','Laba Bersih', data.net].map(cell).join(';'));
+        filename += 'laba-rugi-' + this.reportFrom + '_' + this.reportTo;
+      } else if (this.reportTab === 'balance') {
+        const data = this.reportBalanceSheet;
+        lines.push(['Section','Kode','Akun','Nilai'].map(cell).join(';'));
+        const add = (section, rows) => rows.forEach(row => lines.push([section, row.account.code, row.account.name, row.value].map(cell).join(';')));
+        add('Aset Lancar', data.asetLancar);
+        add('Aset Tetap', data.asetTetap);
+        lines.push(['','','Total Aset', data.totalAset].map(cell).join(';'));
+        add('Kewajiban Jangka Pendek', data.kewajibanPendek);
+        add('Kewajiban Jangka Panjang', data.kewajibanPanjang);
+        lines.push(['','','Total Kewajiban', data.totalKewajiban].map(cell).join(';'));
+        add('Ekuitas', data.equity);
+        lines.push(['','','Laba Berjalan', data.labaBerjalan].map(cell).join(';'));
+        lines.push(['','','Total Ekuitas', data.totalEkuitas].map(cell).join(';'));
+        lines.push(['','','Total Kewajiban + Ekuitas', data.totalKewajibanEkuitas].map(cell).join(';'));
+        lines.push(['','','Selisih', data.difference].map(cell).join(';'));
+        filename += 'neraca-' + this.reportAsOf;
+      } else {
+        lines.push(['Tipe','Kode','Nama Akun','Debit','Kredit'].map(cell).join(';'));
+        this.reportTrialRows.forEach(row => lines.push([this.accountTypeLabel(row.type), row.code, row.name, row.debit, row.credit].map(cell).join(';')));
+        const totals = this.reportTrialTotals;
+        lines.push(['TOTAL','','', totals.debit, totals.credit].map(cell).join(';'));
+        filename += 'neraca-saldo-' + this.reportAsOf;
+      }
       const blob = new Blob(['\uFEFF' + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'neraca-saldo-' + this.trialAsOf + '.csv';
+      link.download = filename + '.csv';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      this.notify('Neraca Saldo berhasil diexport');
+      this.notify('Laporan berhasil diexport');
+    },
+    printReport() {
+      const styleId = 'report-print-page-style';
+      let style = document.getElementById(styleId);
+      if (!style) {
+        style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = '@page { size: A4 portrait; margin: 12mm; }';
+        document.head.appendChild(style);
+      }
+      document.body.classList.add('print-report');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-report');
+        const current = document.getElementById(styleId);
+        if (current) current.remove();
+      }, 300);
     },
 
     warehouseModalOpen: false, warehouseEditId: null,

@@ -144,7 +144,7 @@ Jurnal Umum:
 - Akun sistem (Pendapatan Penjualan, Diskon Penjualan, HPP) tidak muncul di form transaksi operasional.
 - Migrasi v9 → v10 memetakan transaksi lama ke akun CoA dan membuat jurnal otomatis.
 
-### 2.6 Finance F3 — Buku Besar & Neraca Saldo
+### 2.6 Finance F3 — Buku Besar & Laporan
 
 Buku Besar:
 - Filter akun, tanggal mulai, dan tanggal akhir.
@@ -153,13 +153,18 @@ Buku Besar:
 - Saldo berjalan mengikuti saldo normal akun.
 - Nomor jurnal bisa diklik untuk membuka detail.
 
-Neraca Saldo:
-- Berdasarkan tanggal posisi.
-- Kolom kode, nama akun, tipe, debit, kredit.
-- Total debit = total kredit; selisih ditampilkan.
-- Klik kode akun untuk drill-down ke Buku Besar.
-- Export CSV.
+Laporan:
+- Satu halaman dengan 3 tab: **Neraca Saldo**, **Laba Rugi**, dan **Neraca**.
+- **Neraca Saldo**: posisi per tanggal; kolom Kode, Nama Akun, Tipe, Debit, Kredit; total debit dan kredit; badge Seimbang; toggle akun saldo 0; export CSV.
+- **Laba Rugi**: rentang tanggal; section Pendapatan, HPP, Laba Kotor, Beban Operasional, Laba Bersih.
+- **Neraca**: posisi per tanggal; Aset Lancar/Tetap, Kewajiban Jangka Pendek/Panjang, Ekuitas, Laba Berjalan, total kewajiban + ekuitas, dan baris pengecekan.
+- Neraca Saldo memastikan total debit = total kredit. Neraca memastikan aset = kewajiban + ekuitas.
+- Kode/nama akun bisa diklik untuk drill-down ke Buku Besar.
+- Cetak memakai A4 portrait dan hanya mencetak tab aktif.
+- Export CSV mengikuti tab aktif.
 - Permission `Laporan Keuangan` untuk Admin, Manager, Developer.
+
+**Apa itu Neraca Saldo (trial balance):** daftar saldo akhir seluruh akun pada satu tanggal, sebelum jurnal penutup. Fungsinya memastikan total debit sama dengan total kredit. Neraca Saldo bukan laporan laba/rugi dan bukan neraca; ia hanya alat kontrol keseimbangan pembukuan.
 
 ### 2.7 L4 — Penerimaan Barang
 
@@ -364,7 +369,7 @@ Urutan grup:
    - Chart of Accounts
    - Jurnal Umum
    - Buku Besar
-   - Neraca Saldo
+   - Laporan
 6. **Pengguna**
    - Akun Saya
    - Kelola Pengguna

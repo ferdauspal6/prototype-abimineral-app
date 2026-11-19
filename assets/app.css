@@ -205,6 +205,8 @@ html.canvas-measuring *::after { transition: none !important; animation: none !i
 /* Purchase Request A4 preview */
 .pr-sheet { width: 210mm; min-height: 297mm; padding: 15mm; background: #fff; margin: 0 auto; }
 @media (max-width: 1023px) { .pr-sheet { width: 100%; min-height: auto; padding: 16px; } }
+/* Report print helpers */
+.print-only { display: none; }
 /* Bulk invoice: A5 landscape (210 x 148 mm) */
 .pr-sheet.bulk-invoice-sheet { width: 210mm; min-height: 148mm; padding: 7mm; font-size: 9pt; }
 .pr-sheet.bulk-invoice-sheet .text-xs { font-size: 8.5pt; }
@@ -242,6 +244,11 @@ html.canvas-measuring *::after { transition: none !important; animation: none !i
   body.print-invoice-a5 .bulk-invoice-sheet .py-3 { padding-top: 2mm !important; padding-bottom: 2mm !important; }
   body.print-invoice-a5 .bulk-invoice-sheet .mt-8 { margin-top: 3mm !important; }
   body.print-invoice-a5 .bulk-invoice-sheet .mb-8 { margin-bottom: 3mm !important; }
+  body.print-report .print-only { display: block !important; }
+  body.print-report .print-area .data-table th,
+  body.print-report .print-area .data-table td { font-size: 8.5pt; padding: 3px 6px; }
+  body.print-report .print-area .section-title { font-size: 11pt; }
+  body.print-report .print-area .card-header { padding: 0 0 8px; }
 }
 
 /* Inline SVG icons */

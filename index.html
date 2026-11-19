@@ -16,7 +16,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="assets/app.css?v=20261120c">
+  <link rel="stylesheet" href="assets/app.css?v=20261121a">
 </head>
 <body x-data="app()" x-init="initCanvas()" @keydown.escape.window="closeModals()" class="bg-slate-50 text-slate-900 antialiased">
 
@@ -536,7 +536,7 @@
               <div class="flex flex-wrap gap-1.5">
                 <button class="btn btn-outline btn-xs" @click="go('journals')">Jurnal</button>
                 <button class="btn btn-outline btn-xs" @click="goLedger('acc1', todayISO())">Buku Besar</button>
-                <button class="btn btn-outline btn-xs" @click="go('trial-balance')">Neraca Saldo</button>
+                <button class="btn btn-outline btn-xs" @click="go('reports')">Laporan</button>
               </div>
             </div>
             <div class="card-body pt-0 grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
@@ -2315,28 +2315,169 @@
       </section>
 
       <!-- TRIAL BALANCE -->
-      <section x-show="page === 'trial-balance'">
-        <div class="card p-4 mb-4 flex flex-wrap items-end gap-3">
-          <div><label class="label">Per Tanggal</label><input type="date" class="input w-44" x-model="trialAsOf"></div>
-          <label class="flex items-center gap-2 text-sm text-slate-600 pb-2"><input type="checkbox" class="checkbox" x-model="trialShowZero"> Tampilkan akun saldo 0</label>
-          <div class="ml-auto flex items-center gap-3">
-            <span class="text-xs text-slate-500">Selisih</span>
-            <span class="badge" :class="trialBalanceDifference === 0 ? 'badge-green' : 'badge-red'" x-text="rp(trialBalanceDifference)"></span>
-            <button class="btn btn-outline" @click="downloadTrialBalanceCSV()"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export CSV</button>
+      <section x-show="page === 'reports'">
+        <div class="card p-4 mb-4 no-print">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="seg">
+              <button class="seg-btn" :class="{ 'active': reportTab === 'trial' }" @click="reportTab = 'trial'">Neraca Saldo</button>
+              <button class="seg-btn" :class="{ 'active': reportTab === 'profit' }" @click="reportTab = 'profit'">Laba Rugi</button>
+              <button class="seg-btn" :class="{ 'active': reportTab === 'balance' }" @click="reportTab = 'balance'">Neraca</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="btn btn-outline" @click="downloadReportCSV()"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export CSV</button>
+              <button class="btn btn-primary" @click="printReport()"><svg class="icon icon-sm"><use href="#i-printer"></use></svg> Cetak</button>
+            </div>
+          </div>
+          <div class="mt-3 flex flex-wrap items-end gap-3">
+            <div x-show="reportTab === 'profit'">
+              <label class="label">Dari Tanggal</label>
+              <input type="date" class="input w-44" x-model="reportFrom">
+            </div>
+            <div>
+              <label class="label" x-text="reportTab === 'profit' ? 'Sampai Tanggal' : 'Posisi per Tanggal'"></label>
+              <input x-show="reportTab === 'profit'" type="date" class="input w-44" x-model="reportTo">
+              <input x-show="reportTab !== 'profit'" type="date" class="input w-44" x-model="reportAsOf">
+            </div>
+            <label x-show="reportTab === 'trial'" class="flex items-center gap-2 text-sm text-slate-600 pb-2"><input type="checkbox" class="checkbox" x-model="reportShowZero"> Tampilkan akun saldo 0</label>
+          </div>
+          <p class="mt-2 text-[11px] text-slate-400" x-show="reportTab === 'profit'">Laba Rugi mengukur satu periode, memakai rentang tanggal.</p>
+          <p class="mt-2 text-[11px] text-slate-400" x-show="reportTab !== 'profit'">Neraca Saldo dan Neraca mengukur posisi pada satu tanggal, dihitung dari seluruh jurnal posted sampai tanggal itu.</p>
+        </div>
+
+        <div class="card print-area mb-4" x-show="reportTab === 'trial'">
+          <div class="print-only px-4 pt-4">
+            <div class="text-base font-bold">CV TOU MASAGENA MINERAL</div>
+            <div class="text-xs text-slate-500">Neraca Saldo • Posisi per <span x-text="dateLong(reportAsOf)"></span></div>
+          </div>
+          <div class="card-header">
+            <div>
+              <div class="section-title">Neraca Saldo</div>
+              <div class="text-[11px] text-slate-400">Posisi per <span x-text="dateLong(reportAsOf)"></span></div>
+            </div>
+            <span class="badge" :class="reportTrialDifference === 0 ? 'badge-green' : 'badge-red'" x-text="reportTrialDifference === 0 ? 'Seimbang' : 'Tidak seimbang'"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Kode</th><th>Nama Akun</th><th>Tipe</th><th class="num">Debit</th><th class="num">Kredit</th></tr></thead>
+              <tbody>
+                <template x-for="row in reportTrialRows" :key="row.accountId">
+                  <tr>
+                    <td><button class="font-semibold text-blue-600 hover:underline" @click="openReportLedger(row.accountId)" x-text="row.code"></button></td>
+                    <td><button class="text-left hover:text-blue-600" @click="openReportLedger(row.accountId)" x-text="row.name"></button></td>
+                    <td class="text-slate-500" x-text="accountTypeLabel(row.type)"></td>
+                    <td class="num" x-text="row.debit ? rp(row.debit) : '-'"></td>
+                    <td class="num" x-text="row.credit ? rp(row.credit) : '-'"></td>
+                  </tr>
+                </template>
+                <tr x-show="reportTrialRows.length === 0"><td colspan="5"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada saldo</div><div class="text-xs text-slate-400">Belum ada jurnal posted sampai tanggal ini.</div></div></td></tr>
+                <tr class="bg-slate-100 font-bold"><td colspan="3" class="text-right">Total</td><td class="num" x-text="rp(reportTrialTotals.debit)"></td><td class="num" x-text="rp(reportTrialTotals.credit)"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="border-t border-slate-200 px-4 py-3 text-xs text-slate-500">Selisih debit dan kredit: <b class="text-slate-800" x-text="rp(reportTrialDifference)"></b> — harus 0. Saldo abnormal ditampilkan di kolom lawan agar total tetap seimbang.</div>
+        </div>
+
+        <div class="card print-area mb-4" x-show="reportTab === 'profit'">
+          <div class="print-only px-4 pt-4">
+            <div class="text-base font-bold">CV TOU MASAGENA MINERAL</div>
+            <div class="text-xs text-slate-500">Laba Rugi • <span x-text="dateShort(reportFrom) + ' – ' + dateShort(reportTo)"></span></div>
+          </div>
+          <div class="card-header">
+            <div>
+              <div class="section-title">Laba Rugi</div>
+              <div class="text-[11px] text-slate-400" x-text="dateShort(reportFrom) + ' – ' + dateShort(reportTo)"></div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Akun</th><th class="num">Rp</th></tr></thead>
+              <tbody>
+                <tr class="bg-slate-50"><td class="font-semibold" colspan="2">Pendapatan</td></tr>
+                <template x-for="row in reportProfitLoss.revenue" :key="row.account.id">
+                  <tr><td class="pl-8"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
+                </template>
+                <tr><td class="pl-8 text-slate-500">Subtotal pendapatan</td><td class="num" x-text="reportValue(reportProfitLoss.totalRevenue)"></td></tr>
+
+                <tr class="bg-slate-50"><td class="font-semibold" colspan="2">Harga Pokok Penjualan</td></tr>
+                <template x-for="row in reportProfitLoss.hpp" :key="row.account.id">
+                  <tr><td class="pl-8"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(-row.value)"></td></tr>
+                </template>
+                <tr><td class="pl-8 text-slate-500">Subtotal HPP</td><td class="num" x-text="reportValue(-reportProfitLoss.totalHpp)"></td></tr>
+
+                <tr class="border-t border-slate-300"><td class="font-semibold">Laba kotor</td><td class="num font-semibold" x-text="reportValue(reportProfitLoss.gross)"></td></tr>
+
+                <tr class="bg-slate-50"><td class="font-semibold" colspan="2">Beban operasional</td></tr>
+                <template x-for="row in reportProfitLoss.opex" :key="row.account.id">
+                  <tr><td class="pl-8"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(-row.value)"></td></tr>
+                </template>
+                <tr><td class="pl-8 text-slate-500">Subtotal beban</td><td class="num" x-text="reportValue(-reportProfitLoss.totalOpex)"></td></tr>
+                <tr x-show="reportProfitLoss.revenue.length === 0 && reportProfitLoss.hpp.length === 0 && reportProfitLoss.opex.length === 0"><td colspan="2"><div class="empty py-6"><div class="font-semibold">Belum ada transaksi</div><div class="text-xs text-slate-400">Tidak ada jurnal posted pada periode ini.</div></div></td></tr>
+              </tbody>
+              <tfoot class="bg-slate-100"><tr><td class="font-bold text-base">Laba bersih</td><td class="num font-bold text-base" x-text="reportValue(reportProfitLoss.net)"></td></tr></tfoot>
+            </table>
           </div>
         </div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Kode</th><th>Nama Akun</th><th>Tipe</th><th class="num">Debit</th><th class="num">Kredit</th></tr></thead>
-            <tbody>
-              <template x-for="row in trialBalanceRows" :key="row.accountId">
-                <tr><td><button class="font-semibold text-blue-600 hover:underline" @click="goLedger(row.accountId, trialAsOf)" x-text="row.code"></button></td><td x-text="row.name"></td><td class="text-slate-500" x-text="accountTypeLabel(row.type)"></td><td class="num" x-text="row.debit ? rp(row.debit) : '-'"></td><td class="num" x-text="row.credit ? rp(row.credit) : '-'"></td></tr>
-              </template>
-              <tr class="bg-slate-100 font-bold"><td colspan="3" class="text-right">Total</td><td class="num" x-text="rp(trialBalanceTotals.debit)"></td><td class="num" x-text="rp(trialBalanceTotals.credit)"></td></tr>
-              <tr x-show="trialBalanceRows.length === 0"><td colspan="5"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada saldo</div><div class="text-xs text-slate-400">Belum ada jurnal posted sampai tanggal ini.</div></div></td></tr>
-            </tbody>
-          </table>
+
+        <div class="card print-area mb-4" x-show="reportTab === 'balance'">
+          <div class="print-only px-4 pt-4">
+            <div class="text-base font-bold">CV TOU MASAGENA MINERAL</div>
+            <div class="text-xs text-slate-500">Neraca • Posisi per <span x-text="dateLong(reportAsOf)"></span></div>
+          </div>
+          <div class="card-header">
+            <div>
+              <div class="section-title">Neraca</div>
+              <div class="text-[11px] text-slate-400">Posisi per <span x-text="dateLong(reportAsOf)"></span></div>
+            </div>
+            <span class="badge" :class="reportBalanceSheet.seimbang ? 'badge-green' : 'badge-red'" x-text="reportBalanceSheet.seimbang ? 'Seimbang' : 'Periksa jurnal'"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Akun</th><th class="num">Rp</th></tr></thead>
+              <tbody>
+                <tr class="bg-slate-50"><td class="font-semibold" colspan="2">Aset</td></tr>
+                <tr><td class="pl-6 text-slate-500" colspan="2">Aset lancar</td></tr>
+                <template x-for="row in reportBalanceSheet.asetLancar" :key="row.account.id">
+                  <tr><td class="pl-10"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
+                </template>
+                <tr><td class="pl-10 text-slate-500">Subtotal aset lancar</td><td class="num" x-text="reportValue(reportBalanceSheet.totalAsetLancar)"></td></tr>
+                <tr><td class="pl-6 text-slate-500" colspan="2">Aset tetap</td></tr>
+                <template x-for="row in reportBalanceSheet.asetTetap" :key="row.account.id">
+                  <tr><td class="pl-10"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
+                </template>
+                <tr class="border-t border-slate-300"><td class="font-semibold">Total aset</td><td class="num font-semibold" x-text="reportValue(reportBalanceSheet.totalAset)"></td></tr>
+
+                <tr class="bg-slate-50"><td class="font-semibold" colspan="2">Kewajiban</td></tr>
+                <tr><td class="pl-6 text-slate-500" colspan="2">Jangka pendek</td></tr>
+                <template x-for="row in reportBalanceSheet.kewajibanPendek" :key="row.account.id">
+                  <tr><td class="pl-10"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
+                </template>
+                <tr><td class="pl-6 text-slate-500" colspan="2">Jangka panjang</td></tr>
+                <template x-for="row in reportBalanceSheet.kewajibanPanjang" :key="row.account.id">
+                  <tr><td class="pl-10"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
+                </template>
+                <tr class="border-t border-slate-300"><td class="font-semibold">Total kewajiban</td><td class="num font-semibold" x-text="reportValue(reportBalanceSheet.totalKewajiban)"></td></tr>
+
+                <tr class="bg-slate-50"><td class="font-semibold" colspan="2">Ekuitas</td></tr>
+                <template x-for="row in reportBalanceSheet.equity" :key="row.account.id">
+                  <tr><td class="pl-10"><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.code + ' — ' + row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
+                </template>
+                <tr><td class="pl-10">Laba berjalan</td><td class="num" x-text="reportValue(reportBalanceSheet.labaBerjalan)"></td></tr>
+                <tr class="border-t border-slate-300"><td class="font-semibold">Total ekuitas</td><td class="num font-semibold" x-text="reportValue(reportBalanceSheet.totalEkuitas)"></td></tr>
+              </tbody>
+              <tfoot class="bg-slate-100">
+                <tr><td class="font-bold">Total kewajiban + ekuitas</td><td class="num font-bold" x-text="reportValue(reportBalanceSheet.totalKewajibanEkuitas)"></td></tr>
+                <tr><td class="text-slate-500">Pengecekan: aset − (kewajiban + ekuitas)</td><td class="num"><span x-text="reportValue(reportBalanceSheet.difference)"></span><span class="ml-2 badge" :class="reportBalanceSheet.seimbang ? 'badge-green' : 'badge-red'" x-text="reportBalanceSheet.seimbang ? 'Seimbang' : 'Periksa jurnal'"></span></td></tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
+
+        <details class="card bg-slate-50 no-print">
+          <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-slate-700">Cara membaca laporan</summary>
+          <div class="border-t border-slate-200 px-4 py-3 text-sm leading-relaxed text-slate-600">
+            Neraca Saldo memastikan total debit dan kredit semua akun sama. Laba Rugi memakai rentang tanggal karena mengukur kinerja satu periode, sedangkan Neraca memakai satu tanggal posisi. Laba berjalan di ekuitas adalah pendapatan dikurangi beban sejak awal tahun buku; tanpa baris itu Neraca tidak akan seimbang.
+          </div>
+        </details>
       </section>
 
       <!-- RECEIPTS -->
@@ -3808,7 +3949,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261121a"></script>
+<script src="assets/app.js?v=20261121b"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
