@@ -819,16 +819,14 @@
             <button class="seg-btn" @click="go('deliveries')">Surat Jalan <span class="badge badge-blue" x-text="deliveries.length"></span></button>
             <button class="seg-btn" @click="go('returns')">Return <span class="badge badge-amber" x-text="returns.length"></span></button>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button class="btn btn-outline" @click.stop="openActionMenu($event, 'orders-bulk', { id:'bulk' })">Action <svg class="icon icon-xs"><use href="#i-chevron-down"></use></svg></button>
-            <button class="btn btn-primary" @click="go('order-customer')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Order</button>
-          </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari order / pelanggan..." x-model="orderSearch"></div>
           <select class="select w-40" x-model="orderStatus"><option value="">Semua Status</option><option value="pending">Belum Diproses</option><option value="already">Siap Dikirim</option><option value="holding">Ditahan</option><option value="shipping">Dikirim</option><option value="success">Selesai</option><option value="partial">Selesai Parsial</option><option value="cancel">Dibatalkan</option></select>
-          <div class="ml-auto flex items-center gap-2" x-show="selectedOrderIds.length > 0">
-            <span class="text-xs text-slate-500"><b x-text="selectedOrderIds.length"></b> dipilih</span>
+          <div class="ml-auto flex flex-wrap items-center gap-2">
+            <span class="text-xs text-slate-500" x-show="selectedOrderIds.length > 0"><b x-text="selectedOrderIds.length"></b> dipilih</span>
+            <button class="btn btn-outline" @click.stop="openActionMenu($event, 'orders-bulk', { id:'bulk' })">Action <svg class="icon icon-xs"><use href="#i-chevron-down"></use></svg></button>
+            <button class="btn btn-primary" @click="go('order-customer')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Order</button>
           </div>
         </div>
         <div class="table-wrap">
@@ -1015,11 +1013,11 @@
             <button class="seg-btn active">Surat Jalan <span class="badge badge-blue" x-text="deliveries.length"></span></button>
             <button class="seg-btn" @click="go('returns')">Return <span class="badge badge-amber" x-text="returns.length"></span></button>
           </div>
-          <button class="btn btn-primary" @click="startDeliveryCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Surat Jalan</button>
         </div>
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari no. surat jalan..." x-model="deliverySearch"></div>
           <select class="select w-40" x-model="deliveryStatus"><option value="">Semua Status</option><option value="pending">Belum Diproses</option><option value="processing">Sedang Diproses</option><option value="shipping">Dikirim</option><option value="success">Selesai</option></select>
+          <button class="btn btn-primary ml-auto" @click="startDeliveryCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Surat Jalan</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -1239,23 +1237,18 @@
           <button class="seg-btn" :class="{ 'active': stockView === 'material' }" @click="stockView = 'material'">Barang</button>
         </div>
         <div x-show="stockView === 'product'">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <div class="seg">
-            <button class="seg-btn" :class="{ 'active': stockTab === 'active' }" @click="stockTab = 'active'">Stock Aktif</button>
-            <button class="seg-btn" :class="{ 'active': stockTab === 'production' }" @click="stockTab = 'production'">Produksi</button>
-            <button class="seg-btn" :class="{ 'active': stockTab === 'history' }" @click="stockTab = 'history'">Riwayat</button>
-            <button class="seg-btn" :class="{ 'active': stockTab === 'opname' }" @click="stockTab = 'opname'">Opname</button>
-          </div>
-          <div class="flex gap-2">
-            <button x-show="stockTab === 'opname'" class="btn btn-primary" @click="openOpname()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Opname</button>
-            <button x-show="stockTab === 'active' || stockTab === 'production'" class="btn btn-primary" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
-          </div>
+        <div class="seg w-fit mb-4">
+          <button class="seg-btn" :class="{ 'active': stockTab === 'active' }" @click="stockTab = 'active'">Stock Aktif</button>
+          <button class="seg-btn" :class="{ 'active': stockTab === 'production' }" @click="stockTab = 'production'">Produksi</button>
+          <button class="seg-btn" :class="{ 'active': stockTab === 'history' }" @click="stockTab = 'history'">Riwayat</button>
+          <button class="seg-btn" :class="{ 'active': stockTab === 'opname' }" @click="stockTab = 'opname'">Opname</button>
         </div>
 
         <div x-show="stockTab === 'active'">
-          <div class="flex items-center gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2 mb-3">
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="stockSearch"></div>
             <select class="select w-36"><option>Semua Status</option><option>Aktif</option><option>Nonaktif</option></select>
+            <button class="btn btn-primary ml-auto" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1275,6 +1268,7 @@
             <input type="date" class="input w-40" x-model="productionDateFrom" title="Dari tanggal">
             <input type="date" class="input w-40" x-model="productionDateTo" title="Sampai tanggal">
             <select class="select w-44" x-model="productionProductFilter"><option value="">Semua Produk</option><template x-for="p in products" :key="p.id"><option :value="p.id" x-text="p.name"></option></template></select>
+            <button class="btn btn-primary ml-auto" @click="openProduction()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Produksi</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1323,6 +1317,9 @@
         </div>
 
         <div x-show="stockTab === 'opname'">
+          <div class="flex flex-wrap items-center justify-end gap-2 mb-3">
+            <button class="btn btn-primary" @click="openOpname()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Opname</button>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>#</th><th>Tanggal</th><th>Kode Opname</th><th>Nama Barang</th><th>Gudang</th><th>Keterangan</th><th class="num">Quantity</th><th>Input by</th><th class="actions">Action</th></tr></thead>
@@ -1408,15 +1405,9 @@
 
       <!-- PRODUCTS (MASTER PRODUK) -->
       <section x-show="page === 'products'">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <div class="seg">
-            <button class="seg-btn" :class="{ 'active': productTab === 'items' }" @click="productTab = 'items'">Produk</button>
-            <button class="seg-btn" :class="{ 'active': productTab === 'categories' }" @click="productTab = 'categories'">Kategori Produk</button>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button x-show="productTab === 'items'" class="btn btn-primary" @click="openProduct()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Produk</button>
-            <button x-show="productTab === 'categories'" class="btn btn-primary" @click="openCategory('product')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
-          </div>
+        <div class="seg mb-4">
+          <button class="seg-btn" :class="{ 'active': productTab === 'items' }" @click="productTab = 'items'">Produk</button>
+          <button class="seg-btn" :class="{ 'active': productTab === 'categories' }" @click="productTab = 'categories'">Kategori Produk</button>
         </div>
 
         <div x-show="productTab === 'items'">
@@ -1424,6 +1415,7 @@
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari produk..." x-model="productSearch"></div>
             <select class="select w-40" x-model="productCategory"><option value="">Semua Kategori</option><template x-for="c in productCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
             <select class="select w-40" x-model="productStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+            <button class="btn btn-primary ml-auto" @click="openProduct()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Produk</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1446,7 +1438,10 @@
         </div>
 
         <div x-show="productTab === 'categories'">
-          <div class="input-icon w-56 mb-3"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kategori produk..." x-model="categorySearch"></div>
+          <div class="flex flex-wrap items-center gap-2 mb-3">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kategori produk..." x-model="categorySearch"></div>
+            <button class="btn btn-primary ml-auto" @click="openCategory('product')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>#</th><th>Kode</th><th>Nama Kategori</th><th>Deskripsi</th><th>Status</th><th class="actions">Action</th></tr></thead>
@@ -1543,15 +1538,9 @@
 
       <!-- MATERIALS (MASTER BARANG) -->
       <section x-show="page === 'materials'">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <div class="seg">
-            <button class="seg-btn" :class="{ 'active': materialTab === 'items' }" @click="materialTab = 'items'">Barang</button>
-            <button class="seg-btn" :class="{ 'active': materialTab === 'categories' }" @click="materialTab = 'categories'">Kategori Barang</button>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button x-show="materialTab === 'items'" class="btn btn-primary" @click="openMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Barang</button>
-            <button x-show="materialTab === 'categories'" class="btn btn-primary" @click="openCategory('material')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
-          </div>
+        <div class="seg mb-4">
+          <button class="seg-btn" :class="{ 'active': materialTab === 'items' }" @click="materialTab = 'items'">Barang</button>
+          <button class="seg-btn" :class="{ 'active': materialTab === 'categories' }" @click="materialTab = 'categories'">Kategori Barang</button>
         </div>
 
         <div x-show="materialTab === 'items'">
@@ -1559,6 +1548,7 @@
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="materialSearch"></div>
             <select class="select w-40" x-model="materialCategory"><option value="">Semua Kategori</option><template x-for="c in materialCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
             <select class="select w-40" x-model="materialStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+            <button class="btn btn-primary ml-auto" @click="openMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Barang</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -1581,7 +1571,10 @@
         </div>
 
         <div x-show="materialTab === 'categories'">
-          <div class="input-icon w-56 mb-3"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kategori barang..." x-model="categorySearch"></div>
+          <div class="flex flex-wrap items-center gap-2 mb-3">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kategori barang..." x-model="categorySearch"></div>
+            <button class="btn btn-primary ml-auto" @click="openCategory('material')"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Kategori</button>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>#</th><th>Kode</th><th>Nama Kategori</th><th>Deskripsi</th><th>Status</th><th class="actions">Action</th></tr></thead>
@@ -2514,14 +2507,11 @@
 
       <!-- RECEIVABLES -->
       <section x-show="page === 'receivables'">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <div class="seg">
-            <button class="seg-btn" :class="{ 'active': receivableTab === 'active' }" @click="receivableTab = 'active'">Piutang Aktif</button>
-            <button class="seg-btn" :class="{ 'active': receivableTab === 'collections' }" @click="receivableTab = 'collections'">Penagihan</button>
-            <button class="seg-btn" :class="{ 'active': receivableTab === 'paid' }" @click="receivableTab = 'paid'">Lunas</button>
-            <button class="seg-btn" :class="{ 'active': receivableTab === 'payments' }" @click="receivableTab = 'payments'">Riwayat Pembayaran</button>
-          </div>
-          <button class="btn btn-primary" x-show="receivableTab === 'active' || receivableTab === 'collections'" @click="startCollectionCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Penagihan</button>
+        <div class="seg w-fit mb-4">
+          <button class="seg-btn" :class="{ 'active': receivableTab === 'active' }" @click="receivableTab = 'active'">Piutang Aktif</button>
+          <button class="seg-btn" :class="{ 'active': receivableTab === 'collections' }" @click="receivableTab = 'collections'">Penagihan</button>
+          <button class="seg-btn" :class="{ 'active': receivableTab === 'paid' }" @click="receivableTab = 'paid'">Lunas</button>
+          <button class="seg-btn" :class="{ 'active': receivableTab === 'payments' }" @click="receivableTab = 'payments'">Riwayat Pembayaran</button>
         </div>
 
         <div x-show="receivableTab === 'active'">
@@ -2530,6 +2520,7 @@
             <select class="select w-36" x-model="receivableSales"><option value="">Semua Sales</option><option>Fahri</option><option>Zainudin</option></select>
             <input type="date" class="input w-40">
             <div class="ml-auto flex items-center gap-2 text-xs"><span class="text-slate-500">Total Piutang</span><span class="input input-sm w-40 text-right font-semibold" x-text="rp(totalUnpaid)"></span></div>
+            <button class="btn btn-primary" @click="startCollectionCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Penagihan</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -2545,6 +2536,9 @@
         </div>
 
         <div x-show="receivableTab === 'collections'">
+          <div class="flex flex-wrap items-center justify-end gap-2 mb-3">
+            <button class="btn btn-primary" @click="startCollectionCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Penagihan</button>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>#</th><th>Debt ID</th><th>Sales</th><th>Tanggal</th><th class="num">Nilai Utang</th><th class="num">Dibayar</th><th class="num">Sisa Utang</th><th>Status</th><th class="actions">Action</th></tr></thead>

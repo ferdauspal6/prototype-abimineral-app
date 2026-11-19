@@ -138,19 +138,27 @@ Aturan:
 - Aksi utama di kanan; tombol kembali di kiri.
 - Kode dokumen boleh tampil sebagai badge konteks di samping tombol kembali.
 - Halaman tanpa aksi tidak perlu toolbar kosong.
-- Jika halaman memiliki tab, aksi utama harus sejajar dengan baris tab: tab di kiri, tombol di kanan. Jangan menumpuk toolbar aksi di atas baris tab.
-- Jika halaman tidak memiliki tab tetapi memiliki search/filter, aksi utama harus sejajar dengan baris search/filter: pencarian dan filter di kiri, tombol di kanan. Jangan membuat baris toolbar terpisah di atasnya.
-- Jika halaman tidak memiliki tab maupun search/filter, toolbar aksi boleh berdiri sendiri di kanan atas.
+- Baris tab hanya berisi tab. Jangan meletakkan tombol aksi utama di baris tab.
+- Jika halaman atau tab memiliki baris search & filter, aksi utama (**Tambah/Buat**) wajib sejajar di baris tersebut: pencarian/filter di kiri, tombol di kanan. Ini berlaku juga saat halaman memiliki tab.
+- Jika halaman tidak memiliki baris search/filter, toolbar aksi boleh berdiri sendiri di kanan atas.
 - Semua tombol simpan/submit pada halaman input non-popup wajib memunculkan konfirmasi **Pastikan data sudah benar** dengan tombol **Kembali** dan tombol aksi (`Simpan`, `Submit`, atau `Posting`).
 - Form di dalam modal tidak memakai konfirmasi tambahan.
 
 ```html
-<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-  <div class="seg">
-    <button class="seg-btn active">Tab 1</button>
-    <button class="seg-btn">Tab 2</button>
+<!-- Baris tab: hanya tab -->
+<div class="seg w-fit mb-4">
+  <button class="seg-btn active">Tab 1</button>
+  <button class="seg-btn">Tab 2</button>
+</div>
+
+<!-- Baris search/filter + aksi utama -->
+<div class="flex flex-wrap items-center gap-2 mb-3">
+  <div class="input-icon w-56">
+    <svg class="icon icon-sm"><use href="#i-search"></use></svg>
+    <input class="input" placeholder="Cari...">
   </div>
-  <button class="btn btn-primary">Aksi utama</button>
+  <select class="select w-40"><option>Semua Status</option></select>
+  <button class="btn btn-primary ml-auto">Tambah Data</button>
 </div>
 ```
 
