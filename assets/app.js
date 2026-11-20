@@ -1389,7 +1389,7 @@ function app() {
       if (!this.canvasMode) return;
       const hasTransactions = this.orders.length || this.purchaseRequests.length || this.purchaseOrders.length;
       if (hasTransactions) return;
-      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-f';
+      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-h';
       try {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
@@ -8353,9 +8353,9 @@ function app() {
       const po1Date = d(-18);
       const gr1Date = d(-17);
       const pr1Items = [
-        { materialId:'mat2', qty:50000, note:'Cup produksi' },
-        { materialId:'mat5', qty:40000, note:'Lid produksi' },
-        { materialId:'mat6', qty:40000, note:'Straw produksi' },
+        { materialId:'mat2', qty:130000, note:'Cup produksi, stok minimal 2.000 Krt' },
+        { materialId:'mat5', qty:130000, note:'Lid produksi, stok minimal 2.000 Krt' },
+        { materialId:'mat6', qty:130000, note:'Straw produksi, stok minimal 2.000 Krt' },
         { materialId:'mat4', qty:3000, note:'Karton box' },
         { materialId:'mat7', qty:6000, note:'Lakban' }
       ];
@@ -8377,9 +8377,9 @@ function app() {
       };
       this.purchaseRequests.unshift(pr1);
       const po1Items = [
-        { materialId:'mat2', qty:50000, price:250 },
-        { materialId:'mat5', qty:40000, price:50 },
-        { materialId:'mat6', qty:40000, price:30 },
+        { materialId:'mat2', qty:130000, price:250 },
+        { materialId:'mat5', qty:130000, price:50 },
+        { materialId:'mat6', qty:130000, price:30 },
         { materialId:'mat4', qty:3000, price:3500 },
         { materialId:'mat7', qty:6000, price:5000 }
       ];

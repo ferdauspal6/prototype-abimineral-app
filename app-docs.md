@@ -224,6 +224,7 @@ Aturan utama:
   - periode aktif dinonaktifkan;
   - periode kosong menampilkan label `(belum ada data)` dan otomatis memuat data dummy sebagai **Estimasi**.
 - **Isi Data Dummy** membuat biaya September (95%), Oktober (angka sheet client, **Aktual**), dan November (103%) 2026.
+- **Isi Data Dummy** juga menyiapkan stok bahan baku Abi Mineral 220ml (CUP) minimal untuk **2.000 Krt**: Cup 96.400, LID 96.350, Straw 96.400, Karton Box 2.300, dan Lakban 4.600. Qty pembelian dummy untuk Cup, LID, dan Straw menjadi 130.000 pcs.
 - **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, override harga bahan (LID 39, CUP 132, STRAW 15, BOX 3.309, LAKBAN 31) beralasan `Data uji HPP 30 Oktober`, dan periode biaya Oktober. Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
 - Satu HPP final per tanggal + produk.
 - Revisi membuat versi baru dan menandai versi lama **Digantikan**.
