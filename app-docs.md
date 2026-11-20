@@ -202,7 +202,7 @@ Aturan utama:
 - Hasil produksi diambil dari dokumen Produksi posted, bukan diketik.
 - HPP per Krt = bahan baku per Krt + biaya produksi per Krt.
 - Bahan memakai qty aktual dari PRD atau standar dari resep.
-- Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan.
+- Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli master barang.
 - Biaya bulanan: gaji, uang makan, BPJS, listrik, overhead.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
 - Air = `(liter per Krt ÷ 1.000) × harga per m³`.
@@ -225,7 +225,8 @@ Aturan utama:
   - periode kosong menampilkan label `(belum ada data)` dan otomatis memuat data dummy sebagai **Estimasi**.
 - **Isi Data Dummy** membuat biaya September (95%), Oktober (angka sheet client, **Aktual**), dan November (103%) 2026.
 - **Isi Data Dummy** juga menyiapkan stok bahan baku Abi Mineral 220ml (CUP) minimal untuk **2.000 Krt**: Cup 96.400, LID 96.350, Straw 96.400, Karton Box 2.300, dan Lakban 4.600. Qty pembelian dummy untuk Cup, LID, dan Straw menjadi 130.000 pcs.
-- **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, override harga bahan (LID 39, CUP 132, STRAW 15, BOX 3.309, LAKBAN 31) beralasan `Data uji HPP 30 Oktober`, dan periode biaya Oktober. Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
+- **Harga master bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga tersebut dan memakai harga yang sama pada PO dummy.
+- **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, bonus 32 dus, periode biaya Oktober, dan harga bahan dari master (tanpa override). Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
 - Satu HPP final per tanggal + produk.
 - Revisi membuat versi baru dan menandai versi lama **Digantikan**.
 - Draft boleh dihitung ulang dari data sumber; harga override dan penyusutan dipertahankan.

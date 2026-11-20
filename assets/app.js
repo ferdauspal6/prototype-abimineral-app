@@ -179,12 +179,12 @@ function seedData() {
 
   const materials = [
     { id:'mat1', code:'BRG-0001', name:'Botol PET 600 ml', categoryId:'cat3', unit:'Pcs', purchasePrice:800, minStock:1000, stock:0, status:true, description:'Botol kosong 600 ml' },
-    { id:'mat2', code:'BRG-0002', name:'Cup 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:250, minStock:2000, stock:0, status:true, description:'Cup kosong 220 ml' },
+    { id:'mat2', code:'BRG-0002', name:'Cup 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:132, minStock:2000, stock:0, status:true, description:'Cup kosong 220 ml' },
     { id:'mat3', code:'BRG-0003', name:'Label 330 ml', categoryId:'cat5', unit:'Pcs', purchasePrice:100, minStock:3000, stock:0, status:true, description:'Label botol 330 ml' },
-    { id:'mat4', code:'BRG-0004', name:'Karton Box', categoryId:'cat6', unit:'Pcs', purchasePrice:3500, minStock:300, stock:0, status:true, description:'Karton kemasan produk' },
-    { id:'mat5', code:'BRG-0005', name:'LID 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:50, minStock:1000, stock:0, status:true, description:'Tutup cup 220 ml' },
-    { id:'mat6', code:'BRG-0006', name:'Straw', categoryId:'cat7', unit:'Pcs', purchasePrice:30, minStock:1000, stock:0, status:true, description:'Sedotan produk cup' },
-    { id:'mat7', code:'BRG-0007', name:'Lakban', categoryId:'cat7', unit:'Pcs', purchasePrice:5000, minStock:20, stock:0, status:true, description:'Lakban kemasan' }
+    { id:'mat4', code:'BRG-0004', name:'Karton Box', categoryId:'cat6', unit:'Pcs', purchasePrice:3309, minStock:300, stock:0, status:true, description:'Karton kemasan produk' },
+    { id:'mat5', code:'BRG-0005', name:'LID 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:39, minStock:1000, stock:0, status:true, description:'Tutup cup 220 ml' },
+    { id:'mat6', code:'BRG-0006', name:'Straw', categoryId:'cat7', unit:'Pcs', purchasePrice:15, minStock:1000, stock:0, status:true, description:'Sedotan produk cup' },
+    { id:'mat7', code:'BRG-0007', name:'Lakban', categoryId:'cat7', unit:'Pcs', purchasePrice:31, minStock:20, stock:0, status:true, description:'Lakban kemasan' }
   ];
 
   materials.forEach(material => {
@@ -1389,7 +1389,7 @@ function app() {
       if (!this.canvasMode) return;
       const hasTransactions = this.orders.length || this.purchaseRequests.length || this.purchaseOrders.length;
       if (hasTransactions) return;
-      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-h';
+      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-i';
       try {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
@@ -5590,8 +5590,7 @@ function app() {
       this.go('hpp-create');
     },
     hppDemoScenario() {
-      return { date:'2026-10-30', productId:'p1', outputQty:1515, reason:'Data uji HPP 30 Oktober',
-        prices:{ mat5:39, mat2:132, mat6:15, mat4:3309, mat7:31 } };
+      return { date:'2026-10-30', productId:'p1', outputQty:1515, bonusQty:32, bonusNote:'Bonusan 32 dus' };
     },
     applyHppDemoScenario() {
       if (!this.hppForm) return false;
@@ -5601,25 +5600,25 @@ function app() {
           this.hppForm.demoScenario = false;
           this.hppForm.materialOverrides = {};
           this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
+          this.hppForm.bonusQty = 0;
+          this.hppForm.bonusNote = '';
         }
         return false;
       }
-      const overrides = {};
-      Object.keys(demo.prices).forEach(materialId => {
-        overrides[materialId] = { price:demo.prices[materialId], reason:demo.reason };
-      });
-      this.hppForm.materialOverrides = overrides;
+      this.hppForm.materialOverrides = {};
       this.hppForm.costPeriods = { gaji:'2026-10', uang_makan:'2026-10', bpjs:'2026-10', listrik:'2026-10', overhead:'2026-10' };
+      this.hppForm.bonusQty = demo.bonusQty;
+      this.hppForm.bonusNote = demo.bonusNote;
       this.hppForm.demoScenario = true;
       return true;
     },
     onHppDateChange() {
       if (!this.hppForm) return;
       this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
-      if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: harga bahan dan periode biaya diisi otomatis.');
+      if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: periode biaya dan bonus diisi otomatis.');
     },
     onHppProductChange() {
-      if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: harga bahan dan periode biaya diisi otomatis.');
+      if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: periode biaya dan bonus diisi otomatis.');
     },
     editHpp(row) {
       if (!row || row.status !== 'draft') return;
@@ -5675,12 +5674,14 @@ function app() {
       const override = this.hppForm && this.hppForm.materialOverrides[materialId];
       if (override && override.price !== '' && override.price !== null && override.price !== undefined) return Number(override.price) || 0;
       const average = this.materialAveragePriceAt(materialId, this.hppForm ? this.hppForm.date : '');
-      return average == null ? 0 : average;
+      if (average != null) return average;
+      return Number(this.material(materialId).purchasePrice) || 0;
     },
     hppMaterialPriceStatus(materialId) {
       const override = this.hppForm && this.hppForm.materialOverrides[materialId];
       if (override && override.price !== '' && override.price !== null && override.price !== undefined) return 'override';
-      return this.materialAveragePriceAt(materialId, this.hppForm ? this.hppForm.date : '') == null ? 'missing' : 'auto';
+      if (this.materialAveragePriceAt(materialId, this.hppForm ? this.hppForm.date : '') != null) return 'auto';
+      return (Number(this.material(materialId).purchasePrice) || 0) > 0 ? 'auto' : 'missing';
     },
     setHppMaterialPrice(materialId, value) {
       if (!this.hppForm) return;
@@ -8193,7 +8194,9 @@ function app() {
           { accountId:openingEquity, debit:0, credit:75000000, memo:'Saldo awal ekuitas' }
         ]);
       }
+      const demoMaterialPrices = { mat2:132, mat5:39, mat6:15, mat4:3309, mat7:31 };
       this.materials.forEach(material => {
+        if (demoMaterialPrices[material.id] != null) material.purchasePrice = demoMaterialPrices[material.id];
         material.stock = 0;
         material.stockValue = 0;
         material.avgCost = Number(material.purchasePrice) || 0;
@@ -8377,11 +8380,11 @@ function app() {
       };
       this.purchaseRequests.unshift(pr1);
       const po1Items = [
-        { materialId:'mat2', qty:130000, price:250 },
-        { materialId:'mat5', qty:130000, price:50 },
-        { materialId:'mat6', qty:130000, price:30 },
-        { materialId:'mat4', qty:3000, price:3500 },
-        { materialId:'mat7', qty:6000, price:5000 }
+        { materialId:'mat2', qty:130000, price:132 },
+        { materialId:'mat5', qty:130000, price:39 },
+        { materialId:'mat6', qty:130000, price:15 },
+        { materialId:'mat4', qty:3000, price:3309 },
+        { materialId:'mat7', qty:6000, price:31 }
       ];
       const po1Total = po1Items.reduce((sum, item) => sum + item.qty * item.price, 0);
       const po1AdditionalCosts = [
@@ -8638,9 +8641,9 @@ function app() {
         paymentTerms:'Cash',
         notes:'Pembelian tambahan label dan lakban',
         status:'pending_approval',
-        items:[{ materialId:'mat2', qty:5000, price:255, receivedQty:0, returnedQty:0 }, { materialId:'mat7', qty:1000, price:5200, receivedQty:0, returnedQty:0 }],
-        subtotal:6475000,
-        total:6475000,
+        items:[{ materialId:'mat2', qty:5000, price:132, receivedQty:0, returnedQty:0 }, { materialId:'mat7', qty:1000, price:31, receivedQty:0, returnedQty:0 }],
+        subtotal:691000,
+        total:691000,
         createdBy:'Admin',
         createdById:'u1',
         history:[{ action:'submitted', ...actor('Admin','Admin'), at:po3Date, note:'' }],
@@ -8658,9 +8661,9 @@ function app() {
         paymentTerms:'30 hari',
         notes:'Draft pembelian karton box',
         status:'draft',
-        items:[{ materialId:'mat4', qty:100, price:3500, receivedQty:0, returnedQty:0 }],
-        subtotal:350000,
-        total:350000,
+        items:[{ materialId:'mat4', qty:100, price:3309, receivedQty:0, returnedQty:0 }],
+        subtotal:330900,
+        total:330900,
         createdBy:'Admin',
         createdById:'u1',
         history:[{ action:'draft', ...actor('Admin','Admin'), at:po4Date, note:'' }],
@@ -8678,10 +8681,10 @@ function app() {
         supplierId:'sup1',
         warehouseId:'wh1',
         notes:'Cup penyok saat penerimaan',
-        items:[{ materialId:'mat2', qty:100, price:250, condition:'damaged', action:'credit', note:'Cup penyok' }],
-        total:25000,
+        items:[{ materialId:'mat2', qty:100, price:132, condition:'damaged', action:'credit', note:'Cup penyok' }],
+        total:13200,
         replaceTotal:0,
-        creditTotal:25000,
+        creditTotal:13200,
         status:'posted',
         replacementStatus:'none',
         journalId:'',
@@ -8693,15 +8696,15 @@ function app() {
       };
       const po1Mat2 = po1.items.find(item => item.materialId === 'mat2');
       if (po1Mat2) po1Mat2.returnedQty = 100;
-      addMaterialStock('mat2', 'wh1', -100, -25000, 'purchase-return', 'purchase-return', return1.id, return1.code, return1Date, 250);
-      ap1.total = Math.max(0, ap1.total - 25000);
-      ap1.unpaid = Math.max(0, ap1.unpaid - 25000);
+      addMaterialStock('mat2', 'wh1', -100, -13200, 'purchase-return', 'purchase-return', return1.id, return1.code, return1Date, 132);
+      ap1.total = Math.max(0, ap1.total - 13200);
+      ap1.unpaid = Math.max(0, ap1.unpaid - 13200);
       ap1.status = ap1.unpaid <= 0 ? 'paid' : 'partial';
       ap1.history.push({ action:'purchase-return-credit', ...actor('Rina','Manager'), at:return1Date, note:return1.code });
-      return1.apAdjustments.push({ payableId:ap1.id, payableCode:ap1.code, amount:25000 });
+      return1.apAdjustments.push({ payableId:ap1.id, payableCode:ap1.code, amount:13200 });
       return1.journalId = post(return1Date, 'Return pembelian ' + return1.code, 'purchase-return', return1.id, [
-        { accountId:accId('2-1100'), debit:25000, credit:0, memo:'Potongan utang supplier' },
-        { accountId:accId('1-1400'), debit:0, credit:25000, memo:'Persediaan keluar' }
+        { accountId:accId('2-1100'), debit:13200, credit:0, memo:'Potongan utang supplier' },
+        { accountId:accId('1-1400'), debit:0, credit:13200, memo:'Persediaan keluar' }
       ]);
       this.purchaseReturns.unshift(return1);
       const return2Date = d(-3);
@@ -8714,9 +8717,9 @@ function app() {
         supplierId:'sup1',
         warehouseId:'wh1',
         notes:'LID pecah, menunggu penggantian',
-        items:[{ materialId:'mat5', qty:50, price:50, condition:'damaged', action:'replace', note:'LID pecah' }],
-        total:2500,
-        replaceTotal:2500,
+        items:[{ materialId:'mat5', qty:50, price:39, condition:'damaged', action:'replace', note:'LID pecah' }],
+        total:1950,
+        replaceTotal:1950,
         creditTotal:0,
         status:'posted',
         replacementStatus:'pending',
@@ -8729,10 +8732,10 @@ function app() {
       };
       const po1Mat5 = po1.items.find(item => item.materialId === 'mat5');
       if (po1Mat5) po1Mat5.returnedQty = 50;
-      addMaterialStock('mat5', 'wh1', -50, -2500, 'purchase-return', 'purchase-return', return2.id, return2.code, return2Date, 50);
+      addMaterialStock('mat5', 'wh1', -50, -1950, 'purchase-return', 'purchase-return', return2.id, return2.code, return2Date, 39);
       return2.journalId = post(return2Date, 'Return pembelian ' + return2.code, 'purchase-return', return2.id, [
-        { accountId:accId('1-1500'), debit:2500, credit:0, memo:'Klaim ganti barang' },
-        { accountId:accId('1-1400'), debit:0, credit:2500, memo:'Persediaan keluar' }
+        { accountId:accId('1-1500'), debit:1950, credit:0, memo:'Klaim ganti barang' },
+        { accountId:accId('1-1400'), debit:0, credit:1950, memo:'Persediaan keluar' }
       ]);
       this.purchaseReturns.unshift(return2);
 
