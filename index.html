@@ -3290,6 +3290,69 @@
         </div>
       </section>
 
+      <!-- FINANCE ACCOUNTS -->
+      <section x-show="page === 'finance-accounts'">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div class="card kpi"><div class="kpi-label">Saldo Kas</div><div class="kpi-value text-lg" x-text="rp(bankAccountTotals.cash)"></div></div>
+          <div class="card kpi"><div class="kpi-label">Saldo Bank</div><div class="kpi-value text-lg" x-text="rp(bankAccountTotals.bank)"></div></div>
+          <div class="card kpi"><div class="kpi-label">Total Saldo</div><div class="kpi-value text-lg" x-text="rp(bankAccountTotals.total)"></div></div>
+          <div class="card kpi"><div class="kpi-label">Jumlah Rekening</div><div class="kpi-value text-lg" x-text="fmt(bankAccountTotals.count)"></div></div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-60"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari rekening, bank, nomor..." x-model="bankAccountSearch"></div>
+            <select class="select w-36" x-model="bankAccountType"><option value="">Semua Jenis</option><option value="cash">Kas</option><option value="bank">Bank</option></select>
+            <select class="select w-36" x-model="bankAccountStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="btn btn-outline" @click="openBankTransfer()"><svg class="icon icon-sm"><use href="#i-refresh"></use></svg> Mutasi Antar Rekening</button>
+            <button class="btn btn-primary" x-show="canManageBankAccounts" @click="openBankAccount()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Rekening</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Kode</th><th>Nama Rekening</th><th>Jenis</th><th>Bank / No. Rekening</th><th>Atas Nama</th><th class="num">Saldo</th><th>Transaksi Terakhir</th><th>Status</th><th class="actions">Action</th></tr></thead>
+            <tbody>
+              <template x-for="account in filteredBankAccounts" :key="account.id">
+                <tr>
+                  <td class="font-semibold" x-text="account.code"></td>
+                  <td><div class="font-semibold" x-text="account.name"></div><span class="sub" x-show="account.description" x-text="account.description"></span></td>
+                  <td><span class="badge" :class="account.cashType === 'cash' ? 'badge-green' : 'badge-blue'" x-text="bankAccountKind(account)"></span></td>
+                  <td><div x-text="account.cashType === 'bank' ? (account.bankName || '-') : '-'"></div><span class="sub" x-text="account.cashType === 'bank' ? (account.accountNumber || '-') : 'Kas tunai'"></span></td>
+                  <td><div x-text="account.cashType === 'bank' ? (account.accountHolder || '-') : '-'"></div><span class="sub" x-show="account.branch" x-text="account.branch"></span></td>
+                  <td class="num font-semibold" x-text="rp(accountBalance(account.id))"></td>
+                  <td class="text-xs text-slate-500" x-text="bankAccountLastDate(account) ? dateShort(bankAccountLastDate(account)) : '-'"></td>
+                  <td><span class="badge" :class="account.status ? 'badge-green' : 'badge-stone'" x-text="account.status ? 'Aktif' : 'Nonaktif'"></span></td>
+                  <td class="actions"><button x-show="canManageBankAccounts" class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'bank-accounts', account)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button><span x-show="!canManageBankAccounts" class="text-[10px] text-slate-400">Lihat</span></td>
+                </tr>
+              </template>
+              <tr x-show="filteredBankAccounts.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-banknote"></use></svg><div class="font-semibold mt-2">Belum ada rekening</div><div class="text-xs text-slate-400">Tambahkan rekening kas atau bank untuk digunakan pada transaksi keuangan.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card mt-4">
+          <div class="card-header"><div><div class="section-title">Mutasi Terakhir</div><div class="text-[11px] text-slate-400">Perpindahan dana antar rekening.</div></div><span class="badge badge-slate" x-text="bankTransfers.length + ' mutasi'"></span></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>No. Jurnal</th><th>Tanggal</th><th>Dari Rekening</th><th>Ke Rekening</th><th class="num">Nominal</th><th>Keterangan</th></tr></thead>
+              <tbody>
+                <template x-for="tr in bankTransfers.slice(0, 10)" :key="tr.id">
+                  <tr>
+                    <td class="font-semibold" x-text="tr.code"></td>
+                    <td x-text="dateShort(tr.date)"></td>
+                    <td x-text="tr.from"></td>
+                    <td x-text="tr.to"></td>
+                    <td class="num font-semibold" x-text="rp(tr.amount)"></td>
+                    <td class="max-w-[320px] whitespace-normal text-slate-500" x-text="tr.note"></td>
+                  </tr>
+                </template>
+                <tr x-show="bankTransfers.length === 0"><td colspan="6"><div class="empty py-6"><div class="font-semibold">Belum ada mutasi rekening</div><div class="text-xs text-slate-400">Gunakan tombol Mutasi Antar Rekening untuk memindahkan dana.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- RECEIVABLES -->
       <section x-show="page === 'receivables'">
         <div class="seg w-fit mb-4">
@@ -4514,6 +4577,56 @@
     </div>
   </div>
 
+  <!-- BANK ACCOUNT MODAL -->
+  <div x-show="bankAccountModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="bankAccountModalOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title" x-text="bankAccountEditId ? 'Edit Rekening' : 'Tambah Rekening'"></div><div class="modal-desc">Rekening kas atau bank untuk transaksi keuangan.</div></div><button class="icon-btn" @click="bankAccountModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><label class="label">Kode Rekening <span class="req">*</span></label><input class="input" x-model="bankAccountForm.code" placeholder="1-1201"></div>
+          <div><label class="label">Nama Rekening <span class="req">*</span></label><input class="input" x-model="bankAccountForm.name" placeholder="Contoh: Bank Mandiri"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><label class="label">Jenis <span class="req">*</span></label><select class="select" x-model="bankAccountForm.cashType"><option value="bank">Bank</option><option value="cash">Kas</option></select></div>
+          <div><label class="label">Status</label><div class="flex gap-4 text-sm pt-2"><label class="flex items-center gap-2"><input type="radio" class="radio" :value="true" x-model="bankAccountForm.status"> Aktif</label><label class="flex items-center gap-2"><input type="radio" class="radio" :value="false" x-model="bankAccountForm.status"> Nonaktif</label></div></div>
+        </div>
+        <div x-show="bankAccountForm.cashType === 'bank'" class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div><label class="label">Nama Bank <span class="req">*</span></label><input class="input" x-model="bankAccountForm.bankName" placeholder="Contoh: BCA"></div>
+            <div><label class="label">Nomor Rekening <span class="req">*</span></label><input class="input" x-model="bankAccountForm.accountNumber" placeholder="1234567890"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div><label class="label">Atas Nama <span class="req">*</span></label><input class="input" x-model="bankAccountForm.accountHolder" placeholder="Nama pemilik rekening"></div>
+            <div><label class="label">Cabang</label><input class="input" x-model="bankAccountForm.branch" placeholder="Contoh: Balikpapan"></div>
+          </div>
+        </div>
+        <div><label class="label">Catatan</label><textarea class="textarea" x-model="bankAccountForm.description" placeholder="Opsional"></textarea></div>
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Rekening otomatis tersimpan sebagai akun Aset bertanda Kas/Bank dan langsung muncul di pilihan transaksi keuangan.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="bankAccountModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveBankAccount()">Simpan Rekening</button></div>
+    </div>
+  </div>
+
+  <!-- BANK TRANSFER MODAL -->
+  <div x-show="bankTransferModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="bankTransferModalOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title">Mutasi Antar Rekening</div><div class="modal-desc">Pindahkan dana dari satu rekening ke rekening lain.</div></div><button class="icon-btn" @click="bankTransferModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="bankTransferForm.date"></div>
+          <div><label class="label">Nominal <span class="req">*</span></label><input type="number" min="1" class="input text-right" x-model.number="bankTransferForm.amount"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><label class="label">Dari Rekening <span class="req">*</span></label><select class="select" x-model="bankTransferForm.fromId"><template x-for="account in bankTransferAccounts" :key="account.id"><option :value="account.id" x-text="account.name + ' — ' + rp(accountBalance(account.id))"></option></template></select></div>
+          <div><label class="label">Ke Rekening <span class="req">*</span></label><select class="select" x-model="bankTransferForm.toId"><template x-for="account in bankTransferAccounts" :key="account.id"><option :value="account.id" x-text="account.name + ' — ' + rp(accountBalance(account.id))"></option></template></select></div>
+        </div>
+        <div><label class="label">Keterangan</label><input class="input" x-model="bankTransferForm.note" placeholder="Contoh: pindah dana operasional"></div>
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Jurnal otomatis: <b>Dr Rekening Tujuan / Cr Rekening Asal</b>. Saldo kedua rekening langsung berubah.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="bankTransferModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveBankTransfer()">Mutasi</button></div>
+    </div>
+  </div>
+
   <!-- ACTION MENU -->
   <div x-show="actionMenu.open" x-cloak class="action-menu" :style="'top:' + actionMenu.top + 'px; left:' + actionMenu.left + 'px'" @click.outside="actionMenu.open = false">
     <template x-for="(item, index) in actionMenu.items" :key="index">
@@ -4538,7 +4651,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261121r"></script>
+<script src="assets/app.js?v=20261121u"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

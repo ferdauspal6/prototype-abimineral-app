@@ -627,8 +627,13 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 
 ### 7.6 Keuangan & Laporan
 
-1. **Master Keuangan**: kategori pemasukan/pengeluaran.
-2. **Pendapatan/Pengeluaran Lainnya**: transaksi nominal, tanggal, bukti pembayaran (gambar), keterangan.
+1. **Daftar Rekening**: daftar rekening kas dan bank dengan kode akun, nama bank, nomor rekening, atas nama, cabang, saldo real-time, status, dan transaksi terakhir.
+   - Rekening baru otomatis menjadi akun Aset bertanda Kas/Bank di Chart of Accounts.
+   - Rekening yang sudah dipakai jurnal tidak dapat dihapus; gunakan nonaktif.
+   - **Mutasi Antar Rekening** membuat jurnal otomatis `Dr Rekening Tujuan / Cr Rekening Asal`.
+   - Admin dan Developer dapat menambah/mengubah rekening; Manager dapat melihat dan melakukan mutasi.
+2. **Master Keuangan**: kategori pemasukan/pengeluaran.
+3. **Pendapatan/Pengeluaran Lainnya**: transaksi nominal, tanggal, bukti pembayaran (gambar), keterangan.
 3. Dashboard menggabungkan pendapatan order + pendapatan lain, serta pengeluaran lain.
 4. Tombol **Laporan** di header membuka modal ekspor Excel laporan penjualan:
    - Filter tanggal dari/sampai (opsional; kosong = semua waktu).

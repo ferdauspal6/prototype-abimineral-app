@@ -67,6 +67,7 @@ const PAGE_PERMISSION = {
   'collection-confirm': 'Piutang',
   'finance-income': 'Pendapatan Lainnya',
   'finance-expense': 'Pengeluaran Lainnya',
+  'finance-accounts': 'Chart of Accounts',
   users: 'Kelola Role & Pengguna',
   roles: 'Kelola Role & Pengguna',
   settings: null
@@ -216,8 +217,8 @@ function seedData() {
   const payables = [];
 
   const accounts = [
-    { id:'acc1', code:'1-1100', name:'Kas', type:'asset', normalBalance:'debit', parentId:null, isCashBank:true, isSystem:false, isLocked:false, status:true, description:'Kas tunai' },
-    { id:'acc2', code:'1-1200', name:'Bank BCA', type:'asset', normalBalance:'debit', parentId:null, isCashBank:true, isSystem:false, isLocked:false, status:true, description:'Rekening bank BCA' },
+    { id:'acc1', code:'1-1100', name:'Kas', type:'asset', normalBalance:'debit', parentId:null, isCashBank:true, isSystem:false, isLocked:false, cashType:'cash', bankName:'', accountNumber:'', accountHolder:'', branch:'', status:true, description:'Kas tunai' },
+    { id:'acc2', code:'1-1200', name:'Bank BCA', type:'asset', normalBalance:'debit', parentId:null, isCashBank:true, isSystem:false, isLocked:false, cashType:'bank', bankName:'BCA', accountNumber:'1234567890', accountHolder:'CV Tou Masagena Mineral', branch:'Balikpapan', status:true, description:'Rekening bank BCA' },
     { id:'acc3', code:'1-1300', name:'Piutang Usaha', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun kontrol piutang pelanggan' },
     { id:'acc4', code:'1-1400', name:'Persediaan', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun kontrol persediaan' },
     { id:'acc5', code:'1-1500', name:'Piutang Supplier', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Kelebihan bayar / retur supplier' },
@@ -1258,6 +1259,7 @@ function app() {
         { title: 'Keuangan', items: [
           { page: 'receivables', label: 'Piutang', icon: 'i-wallet', match: ['receivables','collection-create','collection-confirm'] },
           { page: 'payables', label: 'Utang', icon: 'i-coins', match: ['payables'] },
+          { page: 'finance-accounts', label: 'Daftar Rekening', icon: 'i-banknote', match: ['finance-accounts'] },
           { page: 'finance-income', label: 'Pendapatan Lainnya', icon: 'i-banknote', match: ['finance-income'] },
           { page: 'finance-expense', label: 'Pengeluaran Lainnya', icon: 'i-banknote-down', match: ['finance-expense'] },
           { page: 'coa', label: 'Chart of Accounts', icon: 'i-clipboard', match: ['coa'] },
@@ -1325,6 +1327,7 @@ function app() {
         'trial-balance': { title: 'Laporan', crumb: 'Keuangan / Laporan' },
         'finance-income': { title: 'Pendapatan Lainnya', crumb: 'Keuangan / Pendapatan Lainnya' },
         'finance-expense': { title: 'Pengeluaran Lainnya', crumb: 'Keuangan / Pengeluaran Lainnya' },
+        'finance-accounts': { title: 'Daftar Rekening', crumb: 'Keuangan / Daftar Rekening' },
         receivables: { title: 'Piutang', crumb: 'Keuangan / Piutang' },
         payables: { title: 'Utang', crumb: 'Keuangan / Utang' },
         'collection-create': { title: 'Buat Penagihan', crumb: 'Keuangan / Piutang / Penagihan / Buat' },
@@ -1389,7 +1392,7 @@ function app() {
       if (!this.canvasMode) return;
       const hasTransactions = this.orders.length || this.purchaseRequests.length || this.purchaseOrders.length;
       if (hasTransactions) return;
-      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-i';
+      const cacheKey = 'canvas-demo-seed-' + STORE_VERSION + '-j';
       try {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
@@ -1735,6 +1738,7 @@ function app() {
       this.canvasScreenId = params.get('canvas');
       this.loadStore();
       this.ensureOpeningBalanceAccount();
+      if (this.ensureCashBankAccounts()) this.saveStore();
       this.syncOrderAudit();
       this.initHpp();
       if (this.canvasMode && !this.currentUserId) {
@@ -1945,6 +1949,8 @@ function app() {
       this.journalVoidOpen = false;
       this.warehouseModalOpen = false;
       this.financeModalOpen = false;
+      this.bankAccountModalOpen = false;
+      this.bankTransferModalOpen = false;
       this.userModalOpen = false;
       this.roleModalOpen = false;
       this.stockModalOpen = false;
@@ -2117,6 +2123,11 @@ function app() {
         case 'productions': return [
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewProduction(row) },
           { label:'Koreksi', icon:'i-pencil', show:this.canCorrectProduction, run:() => this.openProductionCorrection(row) }
+        ];
+        case 'bank-accounts': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openBankAccount(row) },
+          { label:row.status ? 'Nonaktifkan' : 'Aktifkan', icon:row.status ? 'i-x' : 'i-check', run:() => this.toggleBankAccount(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:!this.accountUsed(row.id), run:() => this.deleteBankAccount(row) }
         ];
         default: return [];
       }
@@ -2411,6 +2422,19 @@ function app() {
         }
         this.accounts = this.accounts.filter(item => item.id !== id);
         this.notify('Akun berhasil dihapus');
+      }
+      if (action === 'delete-bank-account') {
+        const account = this.accountById(id);
+        if (!account.id || this.accountUsed(id)) {
+          this.notify('Rekening tidak dapat dihapus', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        this.accounts = this.accounts.filter(item => item.id !== id);
+        this.notify('Rekening berhasil dihapus');
+      }
+      if (action === 'bank-transfer') {
+        this.saveBankTransfer(true);
       }
       if (action === 'post-journal') {
         const journal = this.journals.find(item => item.id === id);
@@ -4862,6 +4886,25 @@ function app() {
       if (changed) this.accounts.sort((a, b) => String(a.code).localeCompare(String(b.code)));
       return changed;
     },
+    ensureCashBankAccounts() {
+      let changed = false;
+      (this.accounts || []).forEach(account => {
+        if (!account.isCashBank || account.type !== 'asset') return;
+        if (account.cashType !== 'cash' && account.cashType !== 'bank') {
+          account.cashType = account.code === '1-1100' ? 'cash' : 'bank';
+          changed = true;
+        }
+        if (account.cashType === 'bank') {
+          const defaults = account.code === '1-1200'
+            ? { bankName:'BCA', accountNumber:'1234567890', accountHolder:'CV Tou Masagena Mineral', branch:'Balikpapan' }
+            : { bankName:'', accountNumber:'', accountHolder:'', branch:'' };
+          ['bankName','accountNumber','accountHolder','branch'].forEach(key => {
+            if (account[key] === undefined) { account[key] = defaults[key]; changed = true; }
+          });
+        }
+      });
+      return changed;
+    },
     accountTypeLabel(type) {
       return { asset:'Aset', liability:'Kewajiban', equity:'Ekuitas', revenue:'Pendapatan', expense:'Beban' }[type] || type;
     },
@@ -4959,6 +5002,189 @@ function app() {
       this.askConfirm('delete-account', account.id, 'Hapus akun?', 'Akun ' + account.code + ' — ' + account.name + ' akan dihapus.');
     },
 
+    /* ---------- CASH & BANK ACCOUNTS ---------- */
+    bankAccountSearch: '', bankAccountType: '', bankAccountStatus: '',
+    bankAccountModalOpen: false, bankAccountEditId: null,
+    bankAccountForm: { code:'', name:'', cashType:'bank', bankName:'', accountNumber:'', accountHolder:'', branch:'', status:true, description:'' },
+    bankTransferModalOpen: false,
+    bankTransferForm: { date:todayISO(), fromId:'', toId:'', amount:0, note:'' },
+    get canManageBankAccounts() { return ['Admin','Developer'].includes(this.role); },
+    get cashBankAccounts() {
+      return (this.accounts || [])
+        .filter(account => account.type === 'asset' && account.isCashBank)
+        .sort((a, b) => String(a.code).localeCompare(String(b.code)));
+    },
+    bankAccountKind(account) { return account && account.cashType === 'cash' ? 'Kas' : 'Bank'; },
+    get filteredBankAccounts() {
+      const q = String(this.bankAccountSearch || '').toLowerCase();
+      return this.cashBankAccounts.filter(account => {
+        if (q && !(account.code + ' ' + account.name + ' ' + (account.bankName || '') + ' ' + (account.accountNumber || '') + ' ' + (account.accountHolder || '')).toLowerCase().includes(q)) return false;
+        if (this.bankAccountType && (account.cashType || 'bank') !== this.bankAccountType) return false;
+        if (this.bankAccountStatus && String(account.status) !== this.bankAccountStatus) return false;
+        return true;
+      });
+    },
+    get bankAccountTotals() {
+      return this.cashBankAccounts.reduce((totals, account) => {
+        const balance = Number(this.accountBalance(account.id)) || 0;
+        totals.total += balance;
+        if (account.cashType === 'cash') totals.cash += balance; else totals.bank += balance;
+        totals.count += 1;
+        return totals;
+      }, { total:0, cash:0, bank:0, count:0 });
+    },
+    bankAccountLastDate(account) {
+      let last = '';
+      (this.journals || []).filter(journal => journal.status === 'posted').forEach(journal => {
+        if (!(journal.lines || []).some(line => line.accountId === account.id)) return;
+        if (String(journal.date) > last) last = journal.date;
+      });
+      return last;
+    },
+    nextBankAccountCode() {
+      const used = new Set((this.accounts || []).map(account => String(account.code)));
+      let n = 1201;
+      while (used.has('1-' + n)) n += 1;
+      return '1-' + n;
+    },
+    openBankAccount(account = null) {
+      if (!this.canManageBankAccounts) { this.notify('Hanya Admin atau Developer yang dapat mengelola rekening', 'error'); return; }
+      this.bankAccountEditId = account ? account.id : null;
+      this.bankAccountForm = account
+        ? {
+            code:account.code,
+            name:account.name,
+            cashType:account.cashType || (account.code === '1-1100' ? 'cash' : 'bank'),
+            bankName:account.bankName || '',
+            accountNumber:account.accountNumber || '',
+            accountHolder:account.accountHolder || '',
+            branch:account.branch || '',
+            status:account.status !== false,
+            description:account.description || ''
+          }
+        : { code:this.nextBankAccountCode(), name:'', cashType:'bank', bankName:'', accountNumber:'', accountHolder:'', branch:'', status:true, description:'' };
+      this.bankAccountModalOpen = true;
+    },
+    saveBankAccount() {
+      if (!this.canManageBankAccounts) { this.notify('Hanya Admin atau Developer yang dapat mengelola rekening', 'error'); return; }
+      const form = this.bankAccountForm;
+      const name = String(form.name || '').trim();
+      if (!name) { this.notify('Nama rekening wajib diisi', 'error'); return; }
+      const cashType = form.cashType === 'cash' ? 'cash' : 'bank';
+      const bankName = String(form.bankName || '').trim();
+      const accountNumber = String(form.accountNumber || '').trim();
+      const accountHolder = String(form.accountHolder || '').trim();
+      if (cashType === 'bank' && (!bankName || !accountNumber || !accountHolder)) {
+        this.notify('Nama bank, nomor rekening, dan atas nama wajib diisi', 'error');
+        return;
+      }
+      const code = String(form.code || '').trim() || this.nextBankAccountCode();
+      const duplicate = (this.accounts || []).find(account => account.id !== this.bankAccountEditId && String(account.code).toLowerCase() === code.toLowerCase());
+      if (duplicate) { this.notify('Kode rekening sudah dipakai akun lain', 'error'); return; }
+      const payload = {
+        code, name, cashType, type:'asset', normalBalance:'debit', isCashBank:true,
+        status:form.status !== false, description:String(form.description || '').trim(),
+        bankName:cashType === 'bank' ? bankName : '',
+        accountNumber:cashType === 'bank' ? accountNumber : '',
+        accountHolder:cashType === 'bank' ? accountHolder : '',
+        branch:cashType === 'bank' ? String(form.branch || '').trim() : ''
+      };
+      if (this.bankAccountEditId) {
+        const account = this.accountById(this.bankAccountEditId);
+        if (!account.id) { this.notify('Rekening tidak ditemukan', 'error'); return; }
+        Object.assign(account, payload);
+        this.notify('Rekening berhasil diperbarui');
+      } else {
+        this.accounts.push({ id:'acc' + Date.now(), isSystem:false, isLocked:false, ...payload });
+        this.notify('Rekening baru berhasil ditambahkan');
+      }
+      this.accounts.sort((a, b) => String(a.code).localeCompare(String(b.code)));
+      this.bankAccountModalOpen = false;
+      this.persist();
+    },
+    toggleBankAccount(account) {
+      if (!this.canManageBankAccounts) { this.notify('Hanya Admin atau Developer yang dapat mengelola rekening', 'error'); return; }
+      if (!account || !account.id) return;
+      account.status = !account.status;
+      this.persist();
+      this.notify('Rekening ' + account.name + (account.status ? ' diaktifkan' : ' dinonaktifkan'));
+    },
+    deleteBankAccount(account) {
+      if (!this.canManageBankAccounts) { this.notify('Hanya Admin atau Developer yang dapat mengelola rekening', 'error'); return; }
+      if (!account || !account.id) return;
+      if (this.accountUsed(account.id)) { this.notify('Rekening sudah dipakai jurnal. Nonaktifkan saja.', 'error'); return; }
+      this.askConfirm('delete-bank-account', account.id, 'Hapus rekening?', 'Rekening ' + account.code + ' — ' + account.name + ' akan dihapus.');
+    },
+    get bankTransferAccounts() { return this.cashBankAccounts.filter(account => account.status); },
+    openBankTransfer() {
+      const accounts = this.bankTransferAccounts;
+      if (accounts.length < 2) { this.notify('Minimal 2 rekening aktif untuk mutasi', 'error'); return; }
+      this.bankTransferForm = {
+        date:todayISO(),
+        fromId:accounts[0].id,
+        toId:(accounts[1] || accounts[0]).id,
+        amount:0,
+        note:''
+      };
+      this.bankTransferModalOpen = true;
+    },
+    saveBankTransfer(confirmed = false) {
+      const form = this.bankTransferForm;
+      const from = this.accountById(form.fromId);
+      const to = this.accountById(form.toId);
+      const amount = Math.max(0, Number(form.amount) || 0);
+      if (!from.id || !to.id || !from.isCashBank || !to.isCashBank) { this.notify('Pilih rekening asal dan tujuan', 'error'); return; }
+      if (from.id === to.id) { this.notify('Rekening asal dan tujuan tidak boleh sama', 'error'); return; }
+      if (!from.status || !to.status) { this.notify('Rekening harus aktif', 'error'); return; }
+      if (amount <= 0) { this.notify('Nominal mutasi harus lebih dari 0', 'error'); return; }
+      const available = Number(this.accountBalance(from.id)) || 0;
+      if (amount > available + 0.0001) { this.notify('Saldo rekening asal tidak mencukupi', 'error'); return; }
+      if (!confirmed) {
+        this.askSave('bank-transfer', null,
+          'Mutasi ' + this.rp(amount) + ' dari ' + from.name + ' ke ' + to.name + '. Jurnal otomatis: Dr ' + to.name + ' / Cr ' + from.name + '.',
+          'Mutasi');
+        return;
+      }
+      const description = 'Mutasi rekening ' + from.name + ' → ' + to.name + (String(form.note || '').trim() ? ' • ' + String(form.note).trim() : '');
+      const journal = this.createSystemJournal({
+        date:form.date || todayISO(),
+        description,
+        source:'bank-transfer',
+        sourceId:'bt' + Date.now(),
+        by:this.currentUser,
+        byRole:this.role,
+        lines:[
+          { accountId:to.id, debit:amount, credit:0, memo:'Mutasi masuk' },
+          { accountId:from.id, debit:0, credit:amount, memo:'Mutasi keluar' }
+        ]
+      });
+      if (!journal) { this.notify('Mutasi rekening gagal disimpan', 'error'); return; }
+      this.bankTransferModalOpen = false;
+      this.persist();
+      this.notify('Mutasi rekening berhasil disimpan');
+    },
+    get bankTransfers() {
+      return (this.journals || [])
+        .filter(journal => journal.source === 'bank-transfer' && journal.status === 'posted')
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.code).localeCompare(String(a.code)))
+        .map(journal => {
+          const lines = journal.lines || [];
+          const credit = lines.find(line => Number(line.credit) > 0) || {};
+          const debit = lines.find(line => Number(line.debit) > 0) || {};
+          return {
+            id:journal.id,
+            code:journal.code,
+            date:journal.date,
+            fromId:credit.accountId || '',
+            toId:debit.accountId || '',
+            from:this.accountName(credit.accountId),
+            to:this.accountName(debit.accountId),
+            amount:Number(debit.debit) || 0,
+            note:journal.description || ''
+          };
+        });
+    },
+
     /* ---------- JOURNAL ---------- */
     journalSearch: '', journalStatus: '', journalDateFrom: '', journalDateTo: '',
     journalSelectedId: null, journalDetailOpen: false, journalEditId: null,
@@ -5026,6 +5252,7 @@ function app() {
         'purchase-return':'Return Pembelian',
         'purchase-return-replacement':'Ganti Barang',
         'payable-payment':'Pembayaran Utang',
+        'bank-transfer':'Mutasi Rekening',
         opening:'Saldo Awal'
       }[source] || source;
     },

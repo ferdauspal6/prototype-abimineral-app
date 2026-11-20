@@ -741,6 +741,14 @@
       "w": 1440
     },
     {
+      "id": "finance-accounts",
+      "name": "Daftar Rekening",
+      "src": "index.html?canvas=finance-accounts",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "opening-balance",
       "name": "Saldo Awal",
       "src": "index.html?canvas=opening-balance",

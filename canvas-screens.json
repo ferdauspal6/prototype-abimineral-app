@@ -80,6 +80,7 @@
   { "id": "purchase-return-detail", "name": "Detail Return Pembelian", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-returns", "setup": "purchase-return-detail" },
 
   { "id": "coa", "name": "Chart of Accounts", "group": "keuangan", "groupName": "Keuangan", "page": "coa" },
+  { "id": "finance-accounts", "name": "Daftar Rekening", "group": "keuangan", "groupName": "Keuangan", "page": "finance-accounts" },
   { "id": "opening-balance", "name": "Saldo Awal", "group": "keuangan", "groupName": "Keuangan", "page": "opening-balance" },
   { "id": "hpp", "name": "HPP Harian", "group": "keuangan", "groupName": "Keuangan", "page": "hpp" },
   { "id": "hpp-monthly", "name": "HPP — Biaya Bulanan", "group": "keuangan", "groupName": "Keuangan", "page": "hpp", "state": { "hppTab": "monthly" } },
