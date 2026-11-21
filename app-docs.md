@@ -624,6 +624,12 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 7. **Barang → Opname**: penyesuaian stok bahan baku per gudang; qty positif menambah, negatif mengurangi; tersimpan sebagai pergerakan `opname`.
 8. **Master Barang**: status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
 9. **Master Gudang**: kode otomatis `ST-0001`.
+10. **Barang → Selisih**: analisis pemakaian bahan baku per tanggal, produk, bahan, dan gudang.
+    - Selisih = qty aktual dipakai − qty standar resep.
+    - Positif berarti lebih pakai, negatif berarti hemat.
+    - Ringkasan per bahan dan detail per dokumen produksi.
+    - Filter checklist produk, filter bahan, gudang, pencarian, serta opsi menampilkan hanya selisih.
+    - Produksi skenario demo dikecualikan secara default.
 
 ### 7.6 Keuangan & Laporan
 

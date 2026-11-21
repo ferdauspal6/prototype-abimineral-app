@@ -7226,6 +7226,16 @@ function app() {
     stockTab: 'active', stockSearch: '',
     stockModalOpen: false, stockForm: { productId:'p1', warehouseId:'wh1', date:todayISO(), qty:10, description:'' },
     materialStockTab: 'active',
+    materialVarianceFrom: todayISO().slice(0, 8) + '01',
+    materialVarianceTo: todayISO(),
+    materialVarianceMaterial: '',
+    materialVarianceSearch: '',
+    materialVarianceOnlyDiff: true,
+    materialVarianceIncludeDemo: false,
+    materialVarianceProductIds: [],
+    materialVarianceProductOpen: false,
+    materialVarianceProductSearch: '',
+    materialVarianceSelectedMaterial: '',
     materialOpnameModalOpen: false,
     materialOpnameForm: { materialId:'mat1', warehouseId:'wh1', date:todayISO(), qty:0, description:'' },
     productionSearch: '', productionDateFrom: '', productionDateTo: '', productionProductFilter: '',
@@ -7277,6 +7287,168 @@ function app() {
         if (q && !((material.code || '') + ' ' + (material.name || '') + ' ' + (row.code || '')).toLowerCase().includes(q)) return false;
         return true;
       });
+    },
+    isDemoProduction(production) {
+      return !!production && (production.demo === true || String(production.description || '').toLowerCase().includes('skenario demo'));
+    },
+    get materialVarianceBaseProductions() {
+      return (this.productions || [])
+        .filter(production => production.status === 'posted')
+        .filter(production => !this.materialVarianceFrom || String(production.date) >= this.materialVarianceFrom)
+        .filter(production => !this.materialVarianceTo || String(production.date) <= this.materialVarianceTo)
+        .filter(production => !this.materialStockWarehouse || production.warehouseId === this.materialStockWarehouse)
+        .filter(production => this.materialVarianceIncludeDemo || !this.isDemoProduction(production));
+    },
+    get materialVarianceProductions() {
+      return this.materialVarianceBaseProductions
+        .filter(production => !this.materialVarianceProductIds.length || this.materialVarianceProductIds.includes(production.productId));
+    },
+    get materialVarianceDateInvalid() {
+      return !!(this.materialVarianceFrom && this.materialVarianceTo && this.materialVarianceFrom > this.materialVarianceTo);
+    },
+    get materialVarianceProductOptions() {
+      const q = String(this.materialVarianceProductSearch || '').toLowerCase();
+      return (this.products || [])
+        .filter(product => product.status)
+        .filter(product => !q || (product.name + ' ' + product.code).toLowerCase().includes(q))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    },
+    materialVarianceProductCount(productId) {
+      return this.materialVarianceBaseProductions.filter(production => production.productId === productId).length;
+    },
+    get materialVarianceProductLabel() {
+      const ids = this.materialVarianceProductIds || [];
+      if (!ids.length) return 'Semua Produk';
+      if (ids.length === 1) return this.productName(ids[0]);
+      return 'Produk (' + ids.length + ')';
+    },
+    toggleMaterialVarianceProduct(productId) {
+      this.materialVarianceProductIds = this.materialVarianceProductIds.includes(productId)
+        ? this.materialVarianceProductIds.filter(id => id !== productId)
+        : [...this.materialVarianceProductIds, productId];
+      this.materialVarianceSelectedMaterial = '';
+    },
+    selectAllMaterialVarianceProducts() {
+      this.materialVarianceProductIds = [...new Set(this.materialVarianceProductOptions.map(product => product.id))];
+      this.materialVarianceSelectedMaterial = '';
+    },
+    clearMaterialVarianceProducts() {
+      this.materialVarianceProductIds = [];
+      this.materialVarianceProductSearch = '';
+      this.materialVarianceSelectedMaterial = '';
+    },
+    resetMaterialVarianceFilters() {
+      this.materialVarianceFrom = todayISO().slice(0, 8) + '01';
+      this.materialVarianceTo = todayISO();
+      this.materialVarianceMaterial = '';
+      this.materialVarianceSearch = '';
+      this.materialVarianceOnlyDiff = true;
+      this.materialVarianceIncludeDemo = false;
+      this.materialVarianceProductIds = [];
+      this.materialVarianceProductSearch = '';
+      this.materialVarianceSelectedMaterial = '';
+      this.materialStockWarehouse = '';
+    },
+    get materialVarianceRows() {
+      const q = String(this.materialVarianceSearch || '').toLowerCase();
+      const rows = [];
+      this.materialVarianceProductions.forEach(production => {
+        (production.materials || []).forEach(materialRow => {
+          if (!materialRow.materialId) return;
+          const material = this.material(materialRow.materialId);
+          if (!material.id) return;
+          const standardQty = Number(materialRow.standardQty) || 0;
+          const actualQty = Number(materialRow.qty) || 0;
+          const varianceQty = actualQty - standardQty;
+          if (this.materialVarianceOnlyDiff && Math.abs(varianceQty) < 0.0001) return;
+          if (this.materialVarianceMaterial && materialRow.materialId !== this.materialVarianceMaterial) return;
+          if (q && !((production.code || '') + ' ' + (production.description || '') + ' ' + this.productName(production.productId) + ' ' + (material.code || '') + ' ' + (material.name || '') + ' ' + (materialRow.note || '')).toLowerCase().includes(q)) return;
+          const price = Number(materialRow.price) || Number(material.avgCost) || Number(material.purchasePrice) || 0;
+          rows.push({
+            id:production.id + '-' + materialRow.materialId,
+            productionId:production.id,
+            productionCode:production.code,
+            date:production.date,
+            productId:production.productId,
+            productName:this.productName(production.productId),
+            warehouseId:production.warehouseId,
+            warehouseName:this.warehouseName(production.warehouseId),
+            materialId:materialRow.materialId,
+            materialCode:material.code || '-',
+            materialName:material.name || '-',
+            unit:material.unit || '',
+            standardQty,
+            actualQty,
+            varianceQty,
+            variancePct:standardQty > 0 ? (varianceQty / standardQty) * 100 : 0,
+            price,
+            varianceValue:varianceQty * price,
+            note:materialRow.note || '',
+            createdBy:production.createdBy || '',
+            corrected:!!(production.updatedAt && production.createdAt && production.updatedAt !== production.createdAt),
+            demo:this.isDemoProduction(production)
+          });
+        });
+      });
+      return rows.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.productionCode).localeCompare(String(a.productionCode)) || String(a.materialCode).localeCompare(String(b.materialCode)));
+    },
+    get materialVarianceSummary() {
+      const map = new Map();
+      this.materialVarianceRows.forEach(row => {
+        let summary = map.get(row.materialId);
+        if (!summary) {
+          summary = { materialId:row.materialId, code:row.materialCode, name:row.materialName, unit:row.unit, productionIds:new Set(), standardQty:0, actualQty:0, varianceQty:0, actualValue:0, varianceValue:0, lastDate:'' };
+          map.set(row.materialId, summary);
+        }
+        summary.productionIds.add(row.productionId);
+        summary.standardQty += row.standardQty;
+        summary.actualQty += row.actualQty;
+        summary.varianceQty += row.varianceQty;
+        summary.actualValue += row.actualQty * row.price;
+        summary.varianceValue += row.varianceValue;
+        if (String(row.date) > summary.lastDate) summary.lastDate = row.date;
+      });
+      return [...map.values()]
+        .map(summary => ({
+          materialId:summary.materialId,
+          code:summary.code,
+          name:summary.name,
+          unit:summary.unit,
+          standardQty:summary.standardQty,
+          actualQty:summary.actualQty,
+          varianceQty:summary.varianceQty,
+          varianceValue:summary.varianceValue,
+          lastDate:summary.lastDate,
+          productionCount:summary.productionIds.size,
+          avgPrice:summary.actualQty > 0 ? summary.actualValue / summary.actualQty : 0,
+          variancePct:summary.standardQty > 0 ? (summary.varianceQty / summary.standardQty) * 100 : 0
+        }))
+        .sort((a, b) => Math.abs(b.varianceValue) - Math.abs(a.varianceValue) || String(a.code).localeCompare(String(b.code)));
+    },
+    get materialVarianceSelectedMaterialRow() {
+      return this.materialVarianceSummary.find(row => row.materialId === this.materialVarianceSelectedMaterial) || null;
+    },
+    get filteredMaterialVarianceDetail() {
+      const selected = this.materialVarianceSelectedMaterialRow ? this.materialVarianceSelectedMaterial : '';
+      return this.materialVarianceRows.filter(row => !selected || row.materialId === selected);
+    },
+    get materialVarianceDetailTotals() {
+      return this.filteredMaterialVarianceDetail.reduce((totals, row) => {
+        totals.standardQty += row.standardQty;
+        totals.actualQty += row.actualQty;
+        totals.varianceQty += row.varianceQty;
+        totals.varianceValue += row.varianceValue;
+        return totals;
+      }, { standardQty:0, actualQty:0, varianceQty:0, varianceValue:0 });
+    },
+    get materialVarianceTotals() {
+      const productionIds = new Set(this.materialVarianceRows.filter(row => Math.abs(row.varianceQty) > 0.0001).map(row => row.productionId));
+      return {
+        productions:this.materialVarianceProductions.length,
+        productionsWithVariance:productionIds.size,
+        materials:this.materialVarianceSummary.filter(row => Math.abs(row.varianceQty) > 0.0001).length,
+        value:this.materialVarianceSummary.reduce((sum, row) => sum + row.varianceValue, 0)
+      };
     },
     get materialOpnameWarehouseQty() {
       return this.materialStockAt(this.materialOpnameForm.materialId, this.materialOpnameForm.warehouseId);

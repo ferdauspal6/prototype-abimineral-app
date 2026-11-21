@@ -541,6 +541,14 @@
       "w": 1440
     },
     {
+      "id": "stock-material-variance",
+      "name": "Selisih Bahan Baku",
+      "src": "index.html?canvas=stock-material-variance",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "production-modal",
       "name": "Buat Produksi",
       "src": "index.html?canvas=production-modal",

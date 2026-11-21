@@ -1435,12 +1435,49 @@
             <button class="seg-btn" :class="{ 'active': materialStockTab === 'active' }" @click="materialStockTab = 'active'">Stock Aktif</button>
             <button class="seg-btn" :class="{ 'active': materialStockTab === 'history' }" @click="materialStockTab = 'history'">Riwayat</button>
             <button class="seg-btn" :class="{ 'active': materialStockTab === 'opname' }" @click="materialStockTab = 'opname'">Opname</button>
+            <button class="seg-btn" :class="{ 'active': materialStockTab === 'selisih' }" @click="materialStockTab = 'selisih'">Selisih</button>
           </div>
-          <div class="flex flex-wrap items-center gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2 mb-3" x-show="materialStockTab !== 'selisih'">
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kode / nama barang..." x-model="materialStockSearch"></div>
             <select class="select w-44" x-model="materialStockWarehouse"><option value="">Semua Gudang</option><template x-for="w in warehouses" :key="w.id"><option :value="w.id" x-text="w.name"></option></template></select>
-            <span class="text-[11px] text-slate-500 ml-auto" x-show="materialStockTab !== 'opname'">Stok barang bertambah dari Penerimaan Barang.</span>
+            <span class="text-[11px] text-slate-500 ml-auto" x-show="['active','history'].includes(materialStockTab)">Stok barang bertambah dari Penerimaan Barang.</span>
             <button class="btn btn-primary ml-auto" x-show="materialStockTab === 'opname'" @click="openMaterialOpname()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Opname</button>
+          </div>
+          <div x-show="materialStockTab === 'selisih'" class="space-y-3 mb-3">
+            <div class="flex flex-wrap items-end gap-2">
+              <div><label class="label">Dari Tanggal</label><input type="date" class="input w-40" x-model="materialVarianceFrom"></div>
+              <div><label class="label">Sampai Tanggal</label><input type="date" class="input w-40" x-model="materialVarianceTo"></div>
+              <div class="relative" @click.outside="materialVarianceProductOpen = false">
+                <label class="label">Produk</label>
+                <button class="btn btn-outline min-w-[10rem] max-w-[15rem] justify-between text-left" @click="materialVarianceProductOpen = !materialVarianceProductOpen">
+                  <span class="min-w-0 flex-1 truncate" x-text="materialVarianceProductLabel"></span>
+                  <svg class="icon icon-xs"><use href="#i-chevron-down"></use></svg>
+                </button>
+                <div x-show="materialVarianceProductOpen" x-transition.opacity class="absolute left-0 mt-1 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                  <div class="input-icon w-full mb-2"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input input-sm" placeholder="Cari produk..." x-model="materialVarianceProductSearch"></div>
+                  <div class="flex items-center justify-between px-1 pb-2 text-[11px]"><button class="text-blue-600 hover:underline" @click="selectAllMaterialVarianceProducts()">Pilih semua</button><button class="text-slate-500 hover:underline" @click="clearMaterialVarianceProducts()">Bersihkan</button></div>
+                  <div class="max-h-64 space-y-0.5 overflow-y-auto">
+                    <template x-for="p in materialVarianceProductOptions" :key="p.id">
+                      <label class="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                        <input type="checkbox" class="checkbox mt-0.5" :checked="materialVarianceProductIds.includes(p.id)" @change="toggleMaterialVarianceProduct(p.id)">
+                        <span class="min-w-0"><span class="block truncate text-xs font-medium text-slate-700" x-text="p.name"></span><span class="block truncate text-[10px] text-slate-400" x-text="p.code + ' • ' + materialVarianceProductCount(p.id) + ' produksi'"></span></span>
+                      </label>
+                    </template>
+                    <div x-show="materialVarianceProductOptions.length === 0" class="px-2 py-4 text-center text-xs text-slate-400">Produk tidak ditemukan</div>
+                  </div>
+                </div>
+              </div>
+              <div><label class="label">Bahan</label><select class="select w-44" x-model="materialVarianceMaterial" @change="materialVarianceSelectedMaterial = ''"><option value="">Semua Bahan</option><template x-for="m in materials" :key="m.id"><option :value="m.id" x-text="m.name"></option></template></select></div>
+              <div><label class="label">Gudang</label><select class="select w-40" x-model="materialStockWarehouse"><option value="">Semua Gudang</option><template x-for="w in warehouses" :key="w.id"><option :value="w.id" x-text="w.name"></option></template></select></div>
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari bahan / nomor PRD..." x-model="materialVarianceSearch"></div>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 text-xs">
+              <label class="flex items-center gap-2"><input type="checkbox" class="checkbox" x-model="materialVarianceOnlyDiff"> Hanya bahan yang ada selisih</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="checkbox" x-model="materialVarianceIncludeDemo"> Sertakan produksi demo</label>
+              <button class="text-slate-500 hover:underline" @click="resetMaterialVarianceFilters()">Reset filter</button>
+              <span class="text-[11px] text-slate-400">Selisih = qty aktual dipakai − qty standar resep.</span>
+            </div>
+            <div x-show="materialVarianceDateInvalid" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">Tanggal awal melebihi tanggal akhir.</div>
           </div>
           <div x-show="materialStockTab === 'active'" class="table-wrap">
             <table class="data-table">
@@ -1493,6 +1530,80 @@
                 <tr x-show="filteredMaterialOpnames.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada stock opname barang</div><div class="text-xs text-slate-400">Buat opname untuk menyesuaikan stok fisik barang.</div></div></td></tr>
               </tbody>
             </table>
+          </div>
+          <div x-show="materialStockTab === 'selisih'" class="space-y-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div class="card kpi"><div class="kpi-label">Produksi Dianalisis</div><div class="kpi-value text-lg" x-text="fmt(materialVarianceTotals.productions)"></div></div>
+              <div class="card kpi"><div class="kpi-label">Produksi Berselisih</div><div class="kpi-value text-lg" x-text="fmt(materialVarianceTotals.productionsWithVariance)"></div></div>
+              <div class="card kpi"><div class="kpi-label">Bahan Berselisih</div><div class="kpi-value text-lg" x-text="fmt(materialVarianceTotals.materials)"></div></div>
+              <div class="card kpi"><div class="kpi-label">Total Nilai Selisih</div><div class="kpi-value text-lg" :class="materialVarianceTotals.value > 0 ? 'text-red-600' : (materialVarianceTotals.value < 0 ? 'text-emerald-600' : '')" x-text="rp(materialVarianceTotals.value)"></div></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><div class="section-title">Ringkasan Selisih per Bahan</div><div class="text-[11px] text-slate-400">Klik baris bahan untuk melihat detail produksi penyebab selisih.</div></div><span class="badge badge-slate" x-text="materialVarianceSummary.length + ' bahan'"></span></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Kode</th><th>Bahan</th><th class="num">Produksi</th><th class="num">Standar</th><th class="num">Aktual</th><th class="num">Selisih</th><th class="num">%</th><th class="num">Harga Rata-rata</th><th class="num">Nilai Selisih</th><th class="actions">Detail</th></tr></thead>
+                  <tbody>
+                    <template x-for="row in materialVarianceSummary" :key="row.materialId">
+                      <tr class="cursor-pointer" :class="{ 'bg-blue-50': materialVarianceSelectedMaterial === row.materialId }" @click="materialVarianceSelectedMaterial = materialVarianceSelectedMaterial === row.materialId ? '' : row.materialId">
+                        <td class="font-semibold" x-text="row.code"></td>
+                        <td><div class="font-semibold" x-text="row.name"></div><span class="sub" x-text="row.unit"></span></td>
+                        <td class="num" x-text="fmt(row.productionCount)"></td>
+                        <td class="num" x-text="fmt(row.standardQty)"></td>
+                        <td class="num" x-text="fmt(row.actualQty)"></td>
+                        <td class="num font-semibold" :class="row.varianceQty > 0 ? 'text-red-600' : (row.varianceQty < 0 ? 'text-emerald-600' : 'text-slate-500')" x-text="(row.varianceQty > 0 ? '+' : '') + fmt(row.varianceQty)"></td>
+                        <td class="num" :class="row.varianceQty > 0 ? 'text-red-600' : (row.varianceQty < 0 ? 'text-emerald-600' : 'text-slate-500')" x-text="fmt2(row.variancePct) + '%'"></td>
+                        <td class="num" x-text="rp(row.avgPrice)"></td>
+                        <td class="num font-semibold" :class="row.varianceValue > 0 ? 'text-red-600' : (row.varianceValue < 0 ? 'text-emerald-600' : 'text-slate-500')" x-text="rp(row.varianceValue)"></td>
+                        <td class="actions"><button class="icon-btn icon-btn-sm" title="Lihat detail"><svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button></td>
+                      </tr>
+                    </template>
+                    <tr x-show="materialVarianceSummary.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada selisih bahan</div><div class="text-xs text-slate-400">Ubah filter tanggal atau tampilkan bahan yang sesuai standar.</div></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div><div class="section-title" x-text="materialVarianceSelectedMaterialRow ? 'Detail Selisih — ' + materialVarianceSelectedMaterialRow.name : 'Detail Selisih — Semua Bahan'"></div><div class="text-[11px] text-slate-400">Nomor produksi dapat diklik untuk membuka dokumen PRD.</div></div>
+                <div class="flex items-center gap-2"><button x-show="materialVarianceSelectedMaterial" class="btn btn-outline btn-sm" @click="materialVarianceSelectedMaterial = ''">Semua Bahan</button><span class="badge badge-slate" x-text="filteredMaterialVarianceDetail.length + ' baris'"></span></div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Tanggal</th><th>No. Produksi</th><th>Produk</th><th>Gudang</th><th>Bahan</th><th class="num">Standar</th><th class="num">Aktual</th><th class="num">Selisih</th><th class="num">Harga</th><th class="num">Nilai</th><th>Alasan</th><th>Input by</th></tr></thead>
+                  <tbody>
+                    <template x-for="row in filteredMaterialVarianceDetail" :key="row.id">
+                      <tr>
+                        <td x-text="dateShort(row.date)"></td>
+                        <td><button class="font-semibold text-blue-600 hover:underline" @click="openProductionByRef(row.productionId)" x-text="row.productionCode"></button><span x-show="row.corrected" class="badge badge-yellow ml-1">Dikoreksi</span><span x-show="row.demo" class="badge badge-slate ml-1">Demo</span></td>
+                        <td x-text="row.productName"></td>
+                        <td x-text="row.warehouseName"></td>
+                        <td><div class="font-semibold" x-text="row.materialName"></div><span class="sub" x-text="row.materialCode"></span></td>
+                        <td class="num" x-text="fmt(row.standardQty)"></td>
+                        <td class="num" x-text="fmt(row.actualQty)"></td>
+                        <td class="num font-semibold" :class="row.varianceQty > 0 ? 'text-red-600' : (row.varianceQty < 0 ? 'text-emerald-600' : 'text-slate-500')" x-text="(row.varianceQty > 0 ? '+' : '') + fmt(row.varianceQty)"></td>
+                        <td class="num" x-text="rp(row.price)"></td>
+                        <td class="num font-semibold" :class="row.varianceValue > 0 ? 'text-red-600' : (row.varianceValue < 0 ? 'text-emerald-600' : 'text-slate-500')" x-text="rp(row.varianceValue)"></td>
+                        <td class="max-w-[220px] whitespace-normal text-slate-500" x-text="row.note || '-'"></td>
+                        <td x-text="row.createdBy || '-'"></td>
+                      </tr>
+                    </template>
+                    <tr x-show="filteredMaterialVarianceDetail.length === 0"><td colspan="12"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Tidak ada detail selisih</div><div class="text-xs text-slate-400">Coba ubah tanggal, produk, bahan, atau gudang.</div></div></td></tr>
+                    <tr x-show="filteredMaterialVarianceDetail.length > 0" class="bg-slate-50 font-bold">
+                      <td colspan="5" class="text-right">Total</td>
+                      <td class="num" x-text="fmt(materialVarianceDetailTotals.standardQty)"></td>
+                      <td class="num" x-text="fmt(materialVarianceDetailTotals.actualQty)"></td>
+                      <td class="num" :class="materialVarianceDetailTotals.varianceQty > 0 ? 'text-red-600' : (materialVarianceDetailTotals.varianceQty < 0 ? 'text-emerald-600' : '')" x-text="(materialVarianceDetailTotals.varianceQty > 0 ? '+' : '') + fmt(materialVarianceDetailTotals.varianceQty)"></td>
+                      <td></td>
+                      <td class="num" :class="materialVarianceDetailTotals.varianceValue > 0 ? 'text-red-600' : (materialVarianceDetailTotals.varianceValue < 0 ? 'text-emerald-600' : '')" x-text="rp(materialVarianceDetailTotals.varianceValue)"></td>
+                      <td colspan="2"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -4651,7 +4762,7 @@
 
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
-<script src="assets/app.js?v=20261121u"></script>
+<script src="assets/app.js?v=20261121w"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

@@ -53,6 +53,7 @@
   { "id": "stock-opname", "name": "Stock Opname", "group": "logistik", "groupName": "Logistik", "page": "stock", "state": { "stockView": "product", "stockTab": "opname" } },
   { "id": "stock-material", "name": "Stock Barang", "group": "logistik", "groupName": "Logistik", "page": "stock", "state": { "stockView": "material", "materialStockTab": "active" } },
   { "id": "stock-material-history", "name": "Riwayat Barang", "group": "logistik", "groupName": "Logistik", "page": "stock", "state": { "stockView": "material", "materialStockTab": "history" } },
+  { "id": "stock-material-variance", "name": "Selisih Bahan Baku", "group": "logistik", "groupName": "Logistik", "page": "stock", "state": { "stockView": "material", "materialStockTab": "selisih" } },
   { "id": "production-modal", "name": "Buat Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-modal" },
   { "id": "production-detail", "name": "Detail Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-detail" },
   { "id": "production-detail-logs", "name": "Detail Produksi — Riwayat", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-detail-logs" },
