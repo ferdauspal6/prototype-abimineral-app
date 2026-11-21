@@ -4,7 +4,7 @@ const rupiah2Fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency:
 const number2Fmt = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 16;
+const STORE_VERSION = 17;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
@@ -14,7 +14,7 @@ const DOMAIN_KEYS = [
   'categories', 'materials', 'suppliers', 'purchaseRequests', 'units', 'purchaseOrders',
   'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'accounts', 'journals',
   'recipes', 'productions', 'productionLogs',
-  'hppSettings', 'biayaProduksiBulanan', 'hppHarian', 'hppLog'
+  'hppSettings', 'biayaProduksiBulanan', 'hppHarian', 'hppLog', 'hppBulanan'
 ];
 
 const PAGE_PERMISSION = {
@@ -55,6 +55,8 @@ const PAGE_PERMISSION = {
   hpp: 'Laporan Keuangan',
   'hpp-create': 'Laporan Keuangan',
   'hpp-detail': 'Laporan Keuangan',
+  'hpp-bulanan-create': 'Laporan Keuangan',
+  'hpp-bulanan-detail': 'Laporan Keuangan',
   journals: 'Jurnal Umum',
   'journal-create': 'Jurnal Umum',
   ledger: 'Laporan Keuangan',
@@ -88,6 +90,12 @@ function previousMonthKey(period) {
 function monthLongLabel(period) {
   const parts = String(period || '').split('-');
   return (MONTH_LONG[Number(parts[1]) - 1] || '') + ' ' + (parts[0] || '');
+}
+function periodEndDate(period) {
+  const parts = String(period || todayISO().slice(0, 7)).split('-');
+  const year = Number(parts[0]) || new Date().getFullYear();
+  const month = Number(parts[1]) || (new Date().getMonth() + 1);
+  return isoLocal(new Date(year, month, 0));
 }
 
 /* ---------- DATE & CODE HELPERS ---------- */
@@ -303,6 +311,7 @@ function seedData() {
   const biayaProduksiBulanan = [];
   const hppHarian = [];
   const hppLog = [];
+  const hppBulanan = [];
 
   return {
     customers, products, promos, orders, deliveries, returns, warehouses,
@@ -311,7 +320,7 @@ function seedData() {
     categories, materials, suppliers, purchaseRequests, units, purchaseOrders,
     receipts, purchaseReturns, stockMovements, payables, accounts, journals, permissions,
     recipes, productions, productionLogs,
-    hppSettings, biayaProduksiBulanan, hppHarian, hppLog
+    hppSettings, biayaProduksiBulanan, hppHarian, hppLog, hppBulanan
   };
 }
 
@@ -374,6 +383,7 @@ function app() {
     biayaProduksiBulanan: seed.biayaProduksiBulanan,
     hppHarian: seed.hppHarian,
     hppLog: seed.hppLog,
+    hppBulanan: seed.hppBulanan,
     units: seed.units,
     accounts: seed.accounts,
     journals: seed.journals,
@@ -493,6 +503,11 @@ function app() {
         this.saveStore();
         return;
       }
+      if (parsed && parsed.version === 16 && parsed.data) {
+        this.migrateFromV16(parsed);
+        this.saveStore();
+        return;
+      }
       if (!parsed || parsed.version !== STORE_VERSION || !parsed.data) {
         this.seedDefaults();
         this.saveStore();
@@ -523,6 +538,9 @@ function app() {
           this.selectedCollectionId = parsed.ui.selectedCollectionId;
         }
       }
+    },
+    migrateFromV16(parsed) {
+      this.migrateFromV14(parsed);
     },
     applyLogisticRoleMigration() {
       const fresh = seedData();
@@ -1020,6 +1038,8 @@ function app() {
       this.biayaProduksiBulanan = Array.isArray(this.biayaProduksiBulanan) ? this.biayaProduksiBulanan : [];
       this.hppHarian = Array.isArray(this.hppHarian) ? this.hppHarian : [];
       this.hppLog = Array.isArray(this.hppLog) ? this.hppLog : [];
+      this.hppBulanan = Array.isArray(this.hppBulanan) ? this.hppBulanan : [];
+      this.hppSettings.electricityFormula = 'allocation';
       this.ensureOpeningBalanceAccount();
       (this.orders || []).forEach(order => {
         if (order.costAtOrder !== undefined) return;
@@ -1264,7 +1284,7 @@ function app() {
           { page: 'finance-expense', label: 'Pengeluaran Lainnya', icon: 'i-banknote-down', match: ['finance-expense'] },
           { page: 'coa', label: 'Chart of Accounts', icon: 'i-clipboard', match: ['coa'] },
           { page: 'opening-balance', label: 'Saldo Awal', icon: 'i-coins', match: ['opening-balance'] },
-          { page: 'hpp', label: 'HPP', icon: 'i-calculator', match: ['hpp','hpp-create','hpp-detail'] },
+          { page: 'hpp', label: 'HPP', icon: 'i-calculator', match: ['hpp','hpp-create','hpp-detail','hpp-bulanan-create','hpp-bulanan-detail'] },
           { page: 'journals', label: 'Jurnal Umum', icon: 'i-file', match: ['journals','journal-create'] },
           { page: 'ledger', label: 'Buku Besar', icon: 'i-chart', match: ['ledger'] },
           { page: 'reports', label: 'Laporan', icon: 'i-receipt', match: ['reports'] }
@@ -1320,6 +1340,8 @@ function app() {
         hpp: { title: 'HPP', crumb: 'Keuangan / HPP' },
         'hpp-create': { title: 'Buat HPP', crumb: 'Keuangan / HPP / Buat' },
         'hpp-detail': { title: 'Detail HPP', crumb: 'Keuangan / HPP / Detail' },
+        'hpp-bulanan-create': { title: 'Buat HPP Bulanan', crumb: 'Keuangan / HPP / Bulanan / Buat' },
+        'hpp-bulanan-detail': { title: 'Detail HPP Bulanan', crumb: 'Keuangan / HPP / Bulanan / Detail' },
         journals: { title: 'Jurnal Umum', crumb: 'Keuangan / Jurnal Umum' },
         'journal-create': { title: 'Buat Jurnal', crumb: 'Keuangan / Jurnal Umum / Buat' },
         ledger: { title: 'Buku Besar', crumb: 'Keuangan / Buku Besar' },
@@ -1680,6 +1702,11 @@ function app() {
         case 'report-profit': this.reportTab = 'profit'; this.page = 'reports'; break;
         case 'report-balance': this.reportTab = 'balance'; this.page = 'reports'; break;
         case 'report-revenue': this.reportTab = 'revenue'; this.page = 'reports'; break;
+        case 'hpp-bulanan-create': {
+          this.startHppBulananCreate();
+          this.page = 'hpp-bulanan-create';
+          break;
+        }
         case 'hpp-create': {
           const production = first(this.productions.filter(item => item.status === 'posted'));
           this.startHppCreate();
@@ -1770,6 +1797,7 @@ function app() {
         this.sessionPage = next;
         try { history.replaceState(null, '', '#' + next); } catch (e) {}
       }
+      if (['hpp-bulanan-create','hpp-bulanan-detail'].includes(this.page)) this.hppTab = 'bulanan';
       if (this.page === 'finance-income') this.financeTab = 'income';
       if (this.page === 'finance-expense') this.financeTab = 'expense';
       if (['delivery-check','delivery-detail'].includes(this.page) && this.deliveries.length) {
@@ -1951,6 +1979,7 @@ function app() {
       this.financeModalOpen = false;
       this.bankAccountModalOpen = false;
       this.bankTransferModalOpen = false;
+      this.hppBulananRevisionOpen = false;
       this.userModalOpen = false;
       this.roleModalOpen = false;
       this.stockModalOpen = false;
@@ -2124,6 +2153,12 @@ function app() {
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewProduction(row) },
           { label:'Koreksi', icon:'i-pencil', show:this.canCorrectProduction, run:() => this.openProductionCorrection(row) }
         ];
+        case 'hpp-bulanan': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.viewHppBulanan(row) },
+          { label:'Revisi', icon:'i-refresh', show:row.status === 'final', run:() => this.openHppBulananRevision(row) },
+          { label:'Terapkan ke Harga Modal', icon:'i-check', show:row.status === 'final', run:() => this.askHppBulananApply(row) },
+          { label:'Hapus Draft', icon:'i-trash', danger:true, show:row.status === 'draft', run:() => this.deleteHppBulanan(row) }
+        ];
         case 'bank-accounts': return [
           { label:'Edit', icon:'i-pencil', run:() => this.openBankAccount(row) },
           { label:row.status ? 'Nonaktifkan' : 'Aktifkan', icon:row.status ? 'i-x' : 'i-check', run:() => this.toggleBankAccount(row) },
@@ -2229,6 +2264,19 @@ function app() {
           this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:id, action:'delete', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft dihapus' });
           this.notify('Draft HPP dihapus');
         }
+      }
+      if (action === 'hpp-bulanan-finalize') {
+        this.persistHppBulananFinal();
+      }
+      if (action === 'hpp-bulanan-delete') {
+        const row = (this.hppBulanan || []).find(item => item.id === id);
+        if (row && row.status === 'draft') {
+          this.hppBulanan = this.hppBulanan.filter(item => item.id !== id);
+          this.notify('Draft HPP Bulanan dihapus');
+        }
+      }
+      if (action === 'hpp-bulanan-apply') {
+        this.applyHppBulananCost(id);
       }
       if (action === 'save-purchase-return') {
         this.savePurchaseReturn(true);
@@ -5531,12 +5579,15 @@ function app() {
 
     /* ---------- HPP ---------- */
     hppTab: 'daily',
+    hppBulananSearch: '', hppBulananStatus: '', hppBulananPeriodFilter: '',
+    hppBulananForm: null, hppBulananEditId: null, hppBulananDetailId: null,
+    hppBulananRevisionOpen: false, hppBulananRevisionId: null, hppBulananRevisionReason: '',
+    hppBulananSelfTestResult: null,
     hppSearch: '', hppStatus: '', hppProduct: '', hppDateFrom: '', hppDateTo: '',
     hppMonthlyPeriod: todayISO().slice(0, 7),
     hppMonthlyForm: {},
     hppSourcePeriod: '',
-    hppComparisonPeriod: '2026-10',
-    hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000, electricityFormula:'allocation', roundingMode:'none' },
+    hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000, roundingMode:'none' },
     hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialMode:'actual', materialOverrides:{}, depreciationTotal:0, costPeriods:{} },
     hppEditId: null,
     hppDetailId: null,
@@ -5547,15 +5598,28 @@ function app() {
     hppHistoryTitle: '',
     hppHistoryRows: [],
     hppSelfTestResult: null,
-    get hppComponents() {
+    get hppDailyComponents() {
       return [
         { key:'gaji', label:'Gaji Produksi', employee:true },
         { key:'uang_makan', label:'Uang Makan Produksi', employee:true },
         { key:'bpjs', label:'BPJS Produksi', employee:false },
-        { key:'listrik', label:'Listrik', kwh:true },
-        { key:'overhead', label:'Overhead' }
+        { key:'listrik', label:'Listrik', employee:false },
+        { key:'overhead', label:'Overhead', employee:false }
       ];
     },
+    get hppMonthlyComponents() {
+      return [
+        { key:'gaji', label:'Gaji Produksi', employee:true },
+        { key:'uang_makan', label:'Uang Makan Produksi', employee:true },
+        { key:'bpjs', label:'BPJS Produksi', employee:false },
+        { key:'listrik', label:'Listrik', employee:false },
+        { key:'overhead', label:'Overhead', employee:false },
+        { key:'air', label:'Air', employee:false },
+        { key:'bonusan', label:'Bonusan', employee:false },
+        { key:'reject', label:'Reject', employee:false }
+      ];
+    },
+    get hppComponents() { return this.hppMonthlyComponents; },
     initHpp() {
       this.loadHppSettingsForm();
       this.loadHppMonthly();
@@ -5566,7 +5630,6 @@ function app() {
         workingDays:Number(settings.workingDays) || 26,
         waterLitersPerKrt:Number(settings.waterLitersPerKrt) || 10.5,
         waterPricePerM3:Number(settings.waterPricePerM3) || 7000,
-        electricityFormula:settings.electricityFormula || 'allocation',
         roundingMode:settings.roundingMode || 'none'
       };
     },
@@ -5575,7 +5638,6 @@ function app() {
       const workingDays = Number(form.workingDays) || 0;
       const waterLitersPerKrt = Number(form.waterLitersPerKrt) || 0;
       const waterPricePerM3 = Number(form.waterPricePerM3) || 0;
-      const electricityFormula = form.electricityFormula === 'client' ? 'client' : 'allocation';
       const roundingMode = ['none','component','final'].includes(form.roundingMode) ? form.roundingMode : 'none';
       if (workingDays < 1 || workingDays > 31) { this.notify('Hari kerja harus antara 1 dan 31', 'error'); return; }
       if (waterLitersPerKrt < 0 || waterPricePerM3 < 0) { this.notify('Parameter air tidak boleh negatif', 'error'); return; }
@@ -5583,18 +5645,16 @@ function app() {
         workingDays:Number(this.hppSettings.workingDays) || 0,
         waterLitersPerKrt:Number(this.hppSettings.waterLitersPerKrt) || 0,
         waterPricePerM3:Number(this.hppSettings.waterPricePerM3) || 0,
-        electricityFormula:this.hppSettings.electricityFormula || 'allocation',
         roundingMode:this.hppSettings.roundingMode || 'none'
       };
       const changes = [];
       if (old.workingDays !== workingDays) changes.push('Hari kerja: ' + old.workingDays + ' → ' + workingDays);
       if (old.waterLitersPerKrt !== waterLitersPerKrt) changes.push('Liter air per Krt: ' + old.waterLitersPerKrt + ' → ' + waterLitersPerKrt);
       if (old.waterPricePerM3 !== waterPricePerM3) changes.push('Harga air per m³: ' + old.waterPricePerM3 + ' → ' + waterPricePerM3);
-      if (old.electricityFormula !== electricityFormula) changes.push('Rumus listrik: ' + this.hppElectricityFormulaLabel(old.electricityFormula) + ' → ' + this.hppElectricityFormulaLabel(electricityFormula));
       if (old.roundingMode !== roundingMode) changes.push('Pembulatan: ' + this.hppRoundingLabel(old.roundingMode) + ' → ' + this.hppRoundingLabel(roundingMode));
       if (!changes.length) { this.notify('Tidak ada perubahan pengaturan'); return; }
       this.hppSettings = Object.assign({}, this.hppSettings, {
-        workingDays, waterLitersPerKrt, waterPricePerM3, electricityFormula, roundingMode,
+        workingDays, waterLitersPerKrt, waterPricePerM3, electricityFormula:'allocation', roundingMode,
         updatedBy:this.currentUser, updatedAt:todayISO()
       });
       this.hppSettings.history = this.hppSettings.history || [];
@@ -5605,9 +5665,8 @@ function app() {
     getBiayaBulanan(period, component) {
       return (this.biayaProduksiBulanan || []).find(row => row.period === period && row.component === component) || null;
     },
-    get hppElectricityFormula() { return this.hppSettings.electricityFormula === 'client' ? 'client' : 'allocation'; },
     get hppRoundingMode() { return ['none','component','final'].includes(this.hppSettings.roundingMode) ? this.hppSettings.roundingMode : 'none'; },
-    hppElectricityFormulaLabel(value) { return (value || 'allocation') === 'client' ? 'Tarif per kWh (client)' : 'Alokasi biaya bulanan'; },
+    hppElectricityFormulaLabel() { return 'Alokasi biaya bulanan'; },
     hppRoundingLabel(value) {
       return { none:'Tidak dibulatkan', component:'Bulatkan tiap komponen', final:'Bulatkan HPP akhir' }[value || 'none'] || 'Tidak dibulatkan';
     },
@@ -5632,7 +5691,6 @@ function app() {
         component,
         value:Math.round(base[component] * factor),
         employeeCount:counts[component] != null ? counts[component] : null,
-        kwh:component === 'listrik' ? 53000 : null,
         sourceType:'manual',
         type:isOctober ? 'aktual' : 'estimasi',
         note:isOctober ? 'Data client HPP 30 Oktober' : 'Data dummy prototipe',
@@ -5660,7 +5718,6 @@ function app() {
         this.hppMonthlyForm[row.component] = {
           value:Number(row.value) || 0,
           employeeCount:row.employeeCount != null ? row.employeeCount : '',
-          kwh:row.kwh != null ? row.kwh : '',
           sourceType:'manual',
           type:'estimasi',
           note:'Salinan ' + monthLongLabel(period)
@@ -5679,24 +5736,22 @@ function app() {
       this.notify('Data dummy ' + monthLongLabel(period) + ' dimuat. Angka ini hanya untuk demo.');
     },
     hppComponentLabel(key) {
-      if (key === 'air') return 'Air';
       if (key === 'penyusutan') return 'Penyusutan';
-      const component = this.hppComponents.find(row => row.key === key);
+      const component = this.hppMonthlyComponents.find(row => row.key === key);
       return component ? component.label : key;
     },
     loadHppMonthly() {
       const form = {};
-      this.hppComponents.forEach(component => {
+      this.hppMonthlyComponents.forEach(component => {
         const row = this.getBiayaBulanan(this.hppMonthlyPeriod, component.key);
         form[component.key] = row ? {
           value:Number(row.value) || 0,
           employeeCount:row.employeeCount != null ? row.employeeCount : '',
-          kwh:row.kwh != null ? row.kwh : '',
           sourceType:row.sourceType || 'manual',
           type:row.type || 'estimasi',
           note:row.note || ''
         } : {
-          value:0, employeeCount:'', kwh:'', sourceType:'manual', type:'estimasi', note:''
+          value:0, employeeCount:'', sourceType:'manual', type:'estimasi', note:''
         };
       });
       this.hppMonthlyForm = form;
@@ -5709,13 +5764,12 @@ function app() {
       const period = this.hppMonthlyPeriod;
       if (!period) { this.notify('Pilih periode biaya', 'error'); return; }
       let changed = 0;
-      this.hppComponents.forEach(component => {
+      this.hppMonthlyComponents.forEach(component => {
         const form = this.hppMonthlyForm[component.key] || {};
         let row = this.getBiayaBulanan(period, component.key);
         const next = {
           value:Number(form.value) || 0,
           employeeCount:form.employeeCount === '' ? null : Number(form.employeeCount) || 0,
-          kwh:form.kwh === '' ? null : Number(form.kwh) || 0,
           sourceType:form.sourceType || 'manual',
           type:form.type || 'estimasi',
           note:form.note || ''
@@ -5738,12 +5792,11 @@ function app() {
         const before = {
           value:Number(row.value) || 0,
           employeeCount:row.employeeCount,
-          kwh:row.kwh,
           sourceType:row.sourceType,
           type:row.type,
           note:row.note || ''
         };
-        const different = ['value','employeeCount','kwh','sourceType','type','note'].some(key => String(before[key] == null ? '' : before[key]) !== String(next[key] == null ? '' : next[key]));
+        const different = ['value','employeeCount','sourceType','type','note'].some(key => String(before[key] == null ? '' : before[key]) !== String(next[key] == null ? '' : next[key]));
         if (!different) return;
         row.history = row.history || [];
         row.history.unshift({ at:todayISO(), by:this.currentUser, byRole:this.role, before, after:next });
@@ -5972,37 +6025,25 @@ function app() {
       const workingDays = Number(this.hppSettings.workingDays) || 0;
       const allocation = Number(this.hppForm.allocationPercent) || 0;
       const rounding = this.hppRoundingMode;
-      const clientFormula = this.hppElectricityFormula === 'client';
       const rows = [];
-      ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => {
-        const period = this.hppCostPeriod(component);
-        const source = this.getBiayaBulanan(period, component);
+      this.hppDailyComponents.forEach(component => {
+        const period = this.hppCostPeriod(component.key);
+        const source = this.getBiayaBulanan(period, component.key);
         const value = source ? Number(source.value) || 0 : 0;
-        const kwh = source && Number(source.kwh) > 0 ? Number(source.kwh) : 0;
-        const tariff = kwh > 0 ? value / kwh : 0;
-        let rawPerDus = 0;
-        let formula = '';
-        const isClientElectricity = component === 'listrik' && clientFormula;
-        if (isClientElectricity) {
-          rawPerDus = kwh > 0 && output > 0 ? ((value / kwh) / output) * (allocation / 100) : 0;
-          formula = '((' + this.fmt(value) + ' ÷ ' + this.fmt(kwh) + ' kWh) ÷ ' + this.fmt(output) + ') × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus);
-        } else {
-          rawPerDus = output > 0 && workingDays > 0 ? (value / workingDays / output) * (allocation / 100) : 0;
-          formula = '(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus);
-        }
-        let perDus = rawPerDus;
-        if (isClientElectricity) perDus = rawPerDus > 0 ? Math.max(1, Math.round(rawPerDus)) : 0;
-        else if (rounding === 'component') perDus = Math.round(rawPerDus);
-        let note = '';
-        if (isClientElectricity) {
-          note = 'Nilai asli ' + this.fmt2(rawPerDus) + ' / Krt' + (tariff > 0 ? ' • tarif ' + this.rp2(tariff) + '/kWh' : '');
-        } else if (Math.abs(perDus - rawPerDus) >= 0.005) {
-          note = 'Nilai asli ' + this.fmt2(rawPerDus);
-        }
+        const rawPerDus = output > 0 && workingDays > 0 ? (value / workingDays / output) * (allocation / 100) : 0;
+        const perDus = rounding === 'component' ? Math.round(rawPerDus) : rawPerDus;
         rows.push({
-          component, label:this.hppComponentLabel(component), period, source,
-          value, type:source ? source.type : '', perDus, rawPerDus, note, missing:!source,
-          kwh:source ? source.kwh : null, tariff, formula, electricityClient:isClientElectricity
+          component:component.key,
+          label:component.label,
+          period,
+          source,
+          value,
+          type:source ? source.type : '',
+          perDus,
+          rawPerDus,
+          note:Math.abs(perDus - rawPerDus) >= 0.005 ? 'Nilai asli ' + this.fmt2(rawPerDus) : '',
+          missing:!source,
+          formula:'(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus)
         });
       });
       const waterLiters = Number(this.hppSettings.waterLitersPerKrt) || 0;
@@ -6087,8 +6128,7 @@ function app() {
         costs:costs.map(row => ({
           component:row.component, sourcePeriod:row.period, sourceType:row.source ? row.source.sourceType : 'manual',
           type:row.type || '', monthlyValue:row.value, divisor:Number(this.hppSettings.workingDays) || 0,
-          perDus:row.perDus, rawPerDus:row.rawPerDus, note:row.note || '', formula:row.formula, kwh:row.kwh || null,
-          electricityClient:!!row.electricityClient
+          perDus:row.perDus, rawPerDus:row.rawPerDus, note:row.note || '', formula:row.formula
         })),
         productionIds:this.hppProductionIds,
         snapshot:JSON.parse(JSON.stringify({
@@ -6244,23 +6284,669 @@ function app() {
       if (!row || row.status !== 'draft') return;
       this.askConfirm('hpp-delete', row.id, 'Hapus draft HPP?', 'Draft ' + row.code + ' akan dihapus.');
     },
+
+    /* ---------- HPP BULANAN ---------- */
+    hppBulananStatusLabel(status) { return { draft:'Draft', final:'Final', revised:'Direvisi' }[status] || status; },
+    hppBulananStatusBadge(status) { return { draft:'badge-slate', final:'badge-green', revised:'badge-stone' }[status] || 'badge-slate'; },
+    get filteredHppBulanan() {
+      const q = String(this.hppBulananSearch || '').toLowerCase();
+      return (this.hppBulanan || [])
+        .filter(row => {
+          if (q && !((row.code || '') + ' ' + monthLongLabel(row.period)).toLowerCase().includes(q)) return false;
+          if (this.hppBulananStatus && row.status !== this.hppBulananStatus) return false;
+          if (this.hppBulananPeriodFilter && row.period !== this.hppBulananPeriodFilter) return false;
+          return true;
+        })
+        .sort((a, b) => String(b.period).localeCompare(String(a.period)) || Number(b.version) - Number(a.version));
+    },
+    get hppBulananPeriodOptions() {
+      return [...new Set((this.hppBulanan || []).map(row => row.period).filter(Boolean))].sort().reverse();
+    },
+    getHppBulananFinal(period, productId = '') {
+      const docs = (this.hppBulanan || []).filter(row => row.period === period && row.status === 'final');
+      if (!productId) return docs[0] || null;
+      return docs.find(row => (row.products || []).some(product => product.productId === productId)) || null;
+    },
+    getCogsBulanan(period) {
+      const doc = this.getHppBulananFinal(period);
+      return doc ? Number(doc.cogsTotal) || 0 : 0;
+    },
+    hppBulananCostValue(period, component, fallbackPeriod = '') {
+      const primary = this.getBiayaBulanan(period, component);
+      if (primary) return Number(primary.value) || 0;
+      const fallback = fallbackPeriod ? this.getBiayaBulanan(fallbackPeriod, component) : null;
+      return fallback ? Number(fallback.value) || 0 : 0;
+    },
+    hppBulananSource(component, usePeriod = false) {
+      if (!this.hppBulananForm) return 'manual';
+      const period = usePeriod ? this.hppBulananForm.period : this.hppBulananForm.costPeriod;
+      const row = this.getBiayaBulanan(period, component);
+      return row ? (row.sourceType || 'manual') : 'manual';
+    },
+    hppBulananSourceLabel(component, usePeriod = false) {
+      return { manual:'Manual', payroll:'Payroll', jurnal:'Jurnal' }[this.hppBulananSource(component, usePeriod)] || 'Manual';
+    },
+    defaultHppBulananPool(period, costPeriod) {
+      return {
+        gaji:this.hppBulananCostValue(costPeriod, 'gaji'),
+        uang_makan:this.hppBulananCostValue(costPeriod, 'uang_makan'),
+        bpjs:this.hppBulananCostValue(costPeriod, 'bpjs'),
+        air:this.hppBulananCostValue(period, 'air', costPeriod),
+        listrik:this.hppBulananCostValue(period, 'listrik', costPeriod),
+        overhead:this.hppBulananCostValue(period, 'overhead', costPeriod),
+        bonusan:this.hppBulananCostValue(period, 'bonusan', costPeriod),
+        reject:this.hppBulananCostValue(period, 'reject', costPeriod)
+      };
+    },
+    buildHppBulananProducts(period) {
+      const map = new Map();
+      (this.productions || [])
+        .filter(production => production.status === 'posted' && String(production.date || '').slice(0, 7) === period && !this.isDemoProduction(production))
+        .forEach(production => {
+          map.set(production.productId, (map.get(production.productId) || 0) + (Number(production.qty) || 0));
+        });
+      const end = periodEndDate(period);
+      return [...map.entries()].map(([productId, qtyDus]) => {
+        const recipes = (this.recipes || []).filter(recipe => recipe.productId === productId);
+        const materials = recipes.map(recipe => {
+          const material = this.material(recipe.materialId);
+          const average = this.materialAveragePriceAt(recipe.materialId, end);
+          const price = average != null ? average : (Number(material.purchasePrice) || 0);
+          return {
+            materialId:recipe.materialId,
+            pcsPerDus:Number(recipe.qtyPerUnit) || 0,
+            price,
+            priceSource:'avg',
+            note:'',
+            subtotal:(Number(recipe.qtyPerUnit) || 0) * price
+          };
+        });
+        return {
+          productId,
+          qtyDus,
+          qtySource:'produksi',
+          qtyNote:'',
+          pcsPerDus:Math.max(0, ...materials.map(material => Number(material.pcsPerDus) || 0)),
+          materials
+        };
+      });
+    },
+    startHppBulananCreate() {
+      this.hppTab = 'bulanan';
+      const period = todayISO().slice(0, 7);
+      const costPeriod = previousMonthKey(period);
+      const pool = this.defaultHppBulananPool(period, costPeriod);
+      this.hppBulananEditId = null;
+      this.hppBulananForm = {
+        period,
+        costPeriod,
+        includeBonus:true,
+        roundTariff:true,
+        pool,
+        bonusMode:'total',
+        bonusTotal:pool.bonusan,
+        bonusanRows:[],
+        rejectMode:'total',
+        rejectTotal:pool.reject,
+        rejectRows:[],
+        products:this.buildHppBulananProducts(period)
+      };
+      this.go('hpp-bulanan-create');
+    },
+    reloadHppBulananPeriod() {
+      if (!this.hppBulananForm) return;
+      const form = this.hppBulananForm;
+      const pool = this.defaultHppBulananPool(form.period, form.costPeriod);
+      form.pool = { ...form.pool, ...pool };
+      if (form.bonusMode === 'total') form.bonusTotal = pool.bonusan;
+      if (form.rejectMode === 'total') form.rejectTotal = pool.reject;
+      form.products = this.buildHppBulananProducts(form.period);
+    },
+    reloadHppBulananCostPeriod() {
+      if (!this.hppBulananForm) return;
+      const form = this.hppBulananForm;
+      form.pool.gaji = this.hppBulananCostValue(form.costPeriod, 'gaji');
+      form.pool.uang_makan = this.hppBulananCostValue(form.costPeriod, 'uang_makan');
+      form.pool.bpjs = this.hppBulananCostValue(form.costPeriod, 'bpjs');
+    },
+    setHppBulananBonusMode(mode) {
+      if (!this.hppBulananForm) return;
+      this.hppBulananForm.bonusMode = mode;
+      if (mode === 'detail' && !this.hppBulananForm.bonusanRows.length) this.addHppBulananBonusRow();
+    },
+    setHppBulananRejectMode(mode) {
+      if (!this.hppBulananForm) return;
+      this.hppBulananForm.rejectMode = mode;
+      if (mode === 'detail' && !this.hppBulananForm.rejectRows.length) this.addHppBulananRejectRow();
+    },
+    addHppBulananBonusRow() {
+      if (!this.hppBulananForm) return;
+      const product = (this.products || []).find(item => item.status) || {};
+      this.hppBulananForm.bonusanRows.push({ productId:product.id || '', qtyDus:0, valuePerDus:0, valueSource:'hpp-dasar', total:0 });
+    },
+    removeHppBulananBonusRow(index) {
+      if (!this.hppBulananForm) return;
+      this.hppBulananForm.bonusanRows.splice(index, 1);
+    },
+    hppBulananDasarForProduct(productId) {
+      const recipes = (this.recipes || []).filter(recipe => recipe.productId === productId);
+      if (!recipes.length) return 0;
+      const end = periodEndDate(this.hppBulananForm ? this.hppBulananForm.period : todayISO().slice(0, 7));
+      const bahan = recipes.reduce((sum, recipe) => {
+        const material = this.material(recipe.materialId);
+        const average = this.materialAveragePriceAt(recipe.materialId, end);
+        const price = average != null ? average : (Number(material.purchasePrice) || 0);
+        return sum + (Number(recipe.qtyPerUnit) || 0) * price;
+      }, 0);
+      return bahan + this.hppBulananBaseTariff;
+    },
+    hppBulananBonusRowValue(row) {
+      if (!row) return 0;
+      if (row.valueSource === 'manual') return Math.max(0, Number(row.valuePerDus) || 0);
+      return this.hppBulananDasarForProduct(row.productId);
+    },
+    addHppBulananRejectRow() {
+      if (!this.hppBulananForm) return;
+      const material = (this.materials || []).find(item => item.status) || {};
+      const end = periodEndDate(this.hppBulananForm.period);
+      const average = material.id ? this.materialAveragePriceAt(material.id, end) : null;
+      this.hppBulananForm.rejectRows.push({
+        materialId:material.id || '',
+        qty:0,
+        price:average != null ? average : (Number(material.purchasePrice) || 0),
+        note:''
+      });
+    },
+    removeHppBulananRejectRow(index) {
+      if (!this.hppBulananForm) return;
+      this.hppBulananForm.rejectRows.splice(index, 1);
+    },
+    addHppBulananRejectFromOpname() {
+      const form = this.hppBulananForm;
+      if (!form) return;
+      const rows = (this.opnames || []).filter(row => row.materialId && String(row.date || '').slice(0, 7) === form.period && (Number(row.qty) || 0) > 0);
+      if (!rows.length) { this.notify('Tidak ada opname bahan positif pada periode ini', 'error'); return; }
+      const totals = {};
+      rows.forEach(row => { totals[row.materialId] = (totals[row.materialId] || 0) + (Number(row.qty) || 0); });
+      const end = periodEndDate(form.period);
+      form.rejectMode = 'detail';
+      Object.keys(totals).forEach(materialId => {
+        const average = this.materialAveragePriceAt(materialId, end);
+        const material = this.material(materialId);
+        form.rejectRows.push({
+          materialId,
+          qty:totals[materialId],
+          price:average != null ? average : (Number(material.purchasePrice) || 0),
+          note:'Dari opname'
+        });
+      });
+    },
+    syncHppBulananCostComponents() {
+      const form = this.hppBulananForm;
+      if (!form) return;
+      const values = { air:Number(form.pool.air) || 0, bonusan:this.hppBulananBonusTotal, reject:this.hppBulananRejectTotal };
+      this.biayaProduksiBulanan = this.biayaProduksiBulanan || [];
+      Object.keys(values).forEach(component => {
+        let row = this.getBiayaBulanan(form.period, component);
+        if (!row) {
+          row = {
+            id:'bpb' + Date.now() + Math.random().toString(16).slice(2),
+            period:form.period,
+            component,
+            value:values[component],
+            employeeCount:null,
+            sourceType:'manual',
+            type:'estimasi',
+            note:'HPP Bulanan',
+            createdBy:this.currentUser,
+            updatedBy:this.currentUser,
+            updatedAt:todayISO(),
+            history:[]
+          };
+          this.biayaProduksiBulanan.push(row);
+          return;
+        }
+        row.value = values[component];
+        row.sourceType = 'manual';
+        row.type = 'estimasi';
+        row.note = 'HPP Bulanan';
+        row.updatedBy = this.currentUser;
+        row.updatedAt = todayISO();
+      });
+    },
+    onHppBulananRejectMaterial(row) {
+      if (!row || !this.hppBulananForm) return;
+      const end = periodEndDate(this.hppBulananForm.period);
+      const average = this.materialAveragePriceAt(row.materialId, end);
+      const material = this.material(row.materialId);
+      row.price = average != null ? average : (Number(material.purchasePrice) || 0);
+    },
+    get hppBulananBonusTotal() {
+      const form = this.hppBulananForm;
+      if (!form) return 0;
+      if (form.bonusMode === 'total') return Math.max(0, Number(form.bonusTotal) || 0);
+      return (form.bonusanRows || []).reduce((sum, row) => sum + (Number(row.qtyDus) || 0) * this.hppBulananBonusRowValue(row), 0);
+    },
+    get hppBulananRejectTotal() {
+      const form = this.hppBulananForm;
+      if (!form) return 0;
+      if (form.rejectMode === 'total') return Math.max(0, Number(form.rejectTotal) || 0);
+      return (form.rejectRows || []).reduce((sum, row) => sum + (Number(row.qty) || 0) * (Number(row.price) || 0), 0);
+    },
+    get hppBulananBasePool() {
+      const pool = this.hppBulananForm ? this.hppBulananForm.pool : {};
+      return ['gaji','uang_makan','bpjs','air','listrik','overhead'].reduce((sum, key) => sum + (Number(pool[key]) || 0), 0);
+    },
+    get hppBulananEffectivePool() {
+      const form = this.hppBulananForm;
+      if (!form) return 0;
+      return this.hppBulananBasePool + (form.includeBonus ? this.hppBulananBonusTotal : 0) + this.hppBulananRejectTotal;
+    },
+    get hppBulananTotalDus() {
+      return (this.hppBulananForm ? this.hppBulananForm.products : []).reduce((sum, product) => sum + (Number(product.qtyDus) || 0), 0);
+    },
+    get hppBulananTariffRaw() {
+      const total = this.hppBulananTotalDus;
+      return total > 0 ? this.hppBulananEffectivePool / total : 0;
+    },
+    get hppBulananTariffPerDus() {
+      return this.hppBulananForm && this.hppBulananForm.roundTariff ? Math.round(this.hppBulananTariffRaw) : this.hppBulananTariffRaw;
+    },
+    get hppBulananBaseTariff() {
+      const total = this.hppBulananTotalDus;
+      return total > 0 ? this.hppBulananBasePool / total : 0;
+    },
+    hppBulananProductComputed(product) {
+      const tariff = this.hppBulananTariffPerDus;
+      const baseTariff = this.hppBulananBaseTariff;
+      const materials = (product.materials || []).map(material => ({
+        ...material,
+        subtotal:(Number(material.pcsPerDus) || 0) * (Number(material.price) || 0)
+      }));
+      const bahanPerDus = materials.reduce((sum, material) => sum + material.subtotal, 0);
+      const pcsPerDus = Number(product.pcsPerDus) || Math.max(0, ...materials.map(material => Number(material.pcsPerDus) || 0));
+      const hppPerDus = bahanPerDus + tariff;
+      const qtyDus = Number(product.qtyDus) || 0;
+      return {
+        ...product,
+        materials,
+        bahanPerDus,
+        pcsPerDus,
+        hppDasarPerDus:bahanPerDus + baseTariff,
+        hppPerDus,
+        hppPerPcs:pcsPerDus > 0 ? hppPerDus / pcsPerDus : 0,
+        totalCost:hppPerDus * qtyDus
+      };
+    },
+    get hppBulananProductsComputed() {
+      return (this.hppBulananForm ? this.hppBulananForm.products : []).map(product => this.hppBulananProductComputed(product));
+    },
+    get hppBulananCogsTotal() {
+      return this.hppBulananProductsComputed.reduce((sum, product) => sum + product.totalCost, 0);
+    },
+    hppBulananValidationError() {
+      const form = this.hppBulananForm;
+      if (!form) return 'Form HPP Bulanan belum tersedia';
+      if (!form.period) return 'Periode wajib dipilih';
+      if (!(form.products || []).length) return 'Tidak ada produk dengan resep dan produksi pada periode ini';
+      if (this.hppBulananTotalDus <= 0) return 'Total dus harus lebih dari 0';
+      for (const product of form.products) {
+        const name = this.productName(product.productId);
+        if ((Number(product.qtyDus) || 0) <= 0) return 'Qty dus ' + name + ' harus lebih dari 0';
+        if (product.qtySource === 'manual' && !String(product.qtyNote || '').trim()) return 'Alasan wajib diisi untuk qty manual ' + name;
+        if (!(product.materials || []).length) return 'Produk ' + name + ' belum punya resep';
+        for (const material of product.materials) {
+          if (!material.materialId) return 'Bahan pada ' + name + ' belum dipilih';
+          if ((Number(material.pcsPerDus) || 0) <= 0) return 'Pcs per dus bahan ' + this.materialName(material.materialId) + ' harus lebih dari 0';
+          if ((Number(material.price) || 0) < 0) return 'Harga bahan ' + this.materialName(material.materialId) + ' tidak boleh negatif';
+          if (material.priceSource === 'manual' && !String(material.note || '').trim()) return 'Catatan wajib diisi untuk harga manual ' + this.materialName(material.materialId);
+        }
+      }
+      if (form.bonusMode === 'detail' && (form.bonusanRows || []).some(row => !row.productId)) return 'Produk bonusan wajib dipilih';
+      if (form.rejectMode === 'detail' && (form.rejectRows || []).some(row => !row.materialId)) return 'Barang reject wajib dipilih';
+      return null;
+    },
+    hppBulananPayload(status) {
+      const form = this.hppBulananForm;
+      const products = this.hppBulananProductsComputed.map(product => ({
+        productId:product.productId,
+        qtyDus:Number(product.qtyDus) || 0,
+        qtySource:product.qtySource || 'produksi',
+        qtyNote:product.qtyNote || '',
+        pcsPerDus:Number(product.pcsPerDus) || 0,
+        materials:(product.materials || []).map(material => ({
+          materialId:material.materialId,
+          pcsPerDus:Number(material.pcsPerDus) || 0,
+          price:Number(material.price) || 0,
+          priceSource:material.priceSource || 'avg',
+          note:material.note || '',
+          subtotal:Number(material.subtotal) || 0
+        })),
+        bahanPerDus:product.bahanPerDus,
+        hppDasarPerDus:product.hppDasarPerDus,
+        hppPerDus:product.hppPerDus,
+        hppPerPcs:product.hppPerPcs,
+        totalCost:product.totalCost
+      }));
+      const bonusanTotal = this.hppBulananBonusTotal;
+      const rejectTotal = this.hppBulananRejectTotal;
+      const pool = {
+        gaji:Number(form.pool.gaji) || 0,
+        uang_makan:Number(form.pool.uang_makan) || 0,
+        bpjs:Number(form.pool.bpjs) || 0,
+        air:Number(form.pool.air) || 0,
+        listrik:Number(form.pool.listrik) || 0,
+        overhead:Number(form.pool.overhead) || 0,
+        bonusan:bonusanTotal,
+        reject:rejectTotal
+      };
+      const version = (this.hppBulanan || []).filter(row => row.period === form.period).reduce((max, row) => Math.max(max, Number(row.version) || 0), 0) + 1;
+      return {
+        id:'hpb' + Date.now(),
+        code:'HPB-' + form.period + '-' + String(version).padStart(4, '0'),
+        period:form.period,
+        version,
+        status,
+        costPeriod:form.costPeriod,
+        includeBonus:!!form.includeBonus,
+        roundTariff:!!form.roundTariff,
+        pool,
+        bonusanRows:(form.bonusanRows || []).map(row => ({
+          productId:row.productId,
+          qtyDus:Number(row.qtyDus) || 0,
+          valuePerDus:this.hppBulananBonusRowValue(row),
+          valueSource:row.valueSource || 'hpp-dasar',
+          total:(Number(row.qtyDus) || 0) * this.hppBulananBonusRowValue(row)
+        })),
+        rejectRows:(form.rejectRows || []).map(row => ({
+          materialId:row.materialId,
+          qty:Number(row.qty) || 0,
+          price:Number(row.price) || 0,
+          total:(Number(row.qty) || 0) * (Number(row.price) || 0),
+          note:row.note || ''
+        })),
+        poolTotal:this.hppBulananEffectivePool,
+        totalDus:this.hppBulananTotalDus,
+        tariffRaw:this.hppBulananTariffRaw,
+        tariffPerDus:this.hppBulananTariffPerDus,
+        products,
+        cogsTotal:products.reduce((sum, product) => sum + product.totalCost, 0),
+        createdBy:this.currentUser,
+        createdAt:todayISO(),
+        finalizedBy:'',
+        finalizedAt:'',
+        reviseReason:'',
+        appliedBy:'',
+        appliedAt:'',
+        history:[]
+      };
+    },
+    saveHppBulananDraft() {
+      const error = this.hppBulananValidationError();
+      if (error) { this.notify(error, 'error'); return; }
+      const payload = this.hppBulananPayload('draft');
+      if (this.hppBulananEditId) {
+        const row = (this.hppBulanan || []).find(item => item.id === this.hppBulananEditId);
+        if (!row) { this.notify('Draft HPP Bulanan tidak ditemukan', 'error'); return; }
+        const history = row.history || [];
+        Object.assign(row, payload, { id:row.id, code:row.code, version:row.version, createdAt:row.createdAt, createdBy:row.createdBy });
+        this.hppBulananDetailId = row.id;
+        this.hppBulananEditId = row.id;
+        row.history = history;
+        row.history.unshift({ action:'draft', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft diperbarui' });
+      } else {
+        payload.history = [{ action:'draft', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft dibuat' }];
+        (this.hppBulanan = this.hppBulanan || []).unshift(payload);
+        this.hppBulananDetailId = payload.id;
+        this.hppBulananEditId = payload.id;
+      }
+      this.syncHppBulananCostComponents();
+      this.persist();
+      this.notify('Draft HPP Bulanan disimpan');
+      this.go('hpp-bulanan-detail');
+    },
+    askHppBulananFinalize() {
+      const error = this.hppBulananValidationError();
+      if (error) { this.notify(error, 'error'); return; }
+      const duplicate = (this.hppBulanan || []).find(row => row.period === this.hppBulananForm.period && row.status === 'final' && row.id !== this.hppBulananEditId);
+      if (duplicate) { this.notify('Sudah ada HPP Bulanan final untuk periode ini. Gunakan Revisi.', 'error'); return; }
+      this.askConfirm('hpp-bulanan-finalize', null, 'Finalisasi HPP Bulanan?', 'Dokumen akan dikunci. COGS bulan: ' + this.rp(this.hppBulananCogsTotal) + '.', false, 'Finalisasi');
+    },
+    persistHppBulananFinal() {
+      const error = this.hppBulananValidationError();
+      if (error) { this.notify(error, 'error'); return; }
+      const payload = this.hppBulananPayload('final');
+      payload.finalizedBy = this.currentUser;
+      payload.finalizedAt = todayISO();
+      let row;
+      if (this.hppBulananEditId) {
+        row = (this.hppBulanan || []).find(item => item.id === this.hppBulananEditId);
+        if (row) {
+          const history = row.history || [];
+          Object.assign(row, payload, { id:row.id, code:row.code, version:row.version, createdAt:row.createdAt, createdBy:row.createdBy });
+          row.history = history;
+        }
+      } else {
+        row = payload;
+        (this.hppBulanan = this.hppBulanan || []).unshift(row);
+      }
+      if (row) {
+        row.history = row.history || [];
+        row.history.unshift({ action:'final', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Finalisasi HPP Bulanan' });
+        this.syncHppBulananCostComponents();
+        this.hppBulananDetailId = row.id;
+        this.persist();
+        this.notify('HPP Bulanan berhasil difinalisasi');
+        this.go('hpp-bulanan-detail');
+      }
+    },
+    editHppBulanan(row) {
+      if (!row || row.status !== 'draft') return;
+      this.hppBulananEditId = row.id;
+      this.hppBulananDetailId = row.id;
+      this.hppBulananForm = {
+        period:row.period,
+        costPeriod:row.costPeriod,
+        includeBonus:row.includeBonus !== false,
+        roundTariff:row.roundTariff !== false,
+        pool:{ ...row.pool },
+        bonusMode:(row.bonusanRows || []).length ? 'detail' : 'total',
+        bonusTotal:Number(row.pool && row.pool.bonusan) || 0,
+        bonusanRows:JSON.parse(JSON.stringify(row.bonusanRows || [])),
+        rejectMode:(row.rejectRows || []).length ? 'detail' : 'total',
+        rejectTotal:Number(row.pool && row.pool.reject) || 0,
+        rejectRows:JSON.parse(JSON.stringify(row.rejectRows || [])),
+        products:JSON.parse(JSON.stringify(row.products || []))
+      };
+      this.hppTab = 'bulanan';
+      this.go('hpp-bulanan-create');
+    },
+    viewHppBulanan(row) {
+      if (!row) return;
+      this.hppTab = 'bulanan';
+      this.hppBulananDetailId = row.id;
+      this.go('hpp-bulanan-detail');
+    },
+    get selectedHppBulanan() {
+      return (this.hppBulanan || []).find(row => row.id === this.hppBulananDetailId) || {};
+    },
+    hppBulananVersionRows(row) {
+      if (!row) return [];
+      return (this.hppBulanan || []).filter(item => item.period === row.period).sort((a, b) => Number(a.version) - Number(b.version));
+    },
+    openHppBulananRevision(row) {
+      if (!row || row.status !== 'final') return;
+      this.hppBulananRevisionId = row.id;
+      this.hppBulananRevisionReason = '';
+      this.hppBulananRevisionOpen = true;
+    },
+    saveHppBulananRevision() {
+      const old = (this.hppBulanan || []).find(row => row.id === this.hppBulananRevisionId);
+      if (!old) { this.notify('HPP Bulanan tidak ditemukan', 'error'); return; }
+      if (!String(this.hppBulananRevisionReason || '').trim()) { this.notify('Alasan revisi wajib diisi', 'error'); return; }
+      old.status = 'revised';
+      old.reviseReason = this.hppBulananRevisionReason.trim();
+      const next = JSON.parse(JSON.stringify(old));
+      next.id = 'hpb' + Date.now();
+      next.version = (Number(old.version) || 1) + 1;
+      next.code = 'HPB-' + old.period + '-' + String(next.version).padStart(4, '0');
+      next.status = 'draft';
+      next.createdBy = this.currentUser;
+      next.createdAt = todayISO();
+      next.finalizedBy = '';
+      next.finalizedAt = '';
+      next.appliedBy = '';
+      next.appliedAt = '';
+      next.history = next.history || [];
+      next.history.unshift({ action:'revisi', by:this.currentUser, byRole:this.role, at:todayISO(), note:this.hppBulananRevisionReason.trim() });
+      old.history = old.history || [];
+      old.history.unshift({ action:'revised', by:this.currentUser, byRole:this.role, at:todayISO(), note:this.hppBulananRevisionReason.trim() });
+      (this.hppBulanan = this.hppBulanan || []).unshift(next);
+      this.hppBulananRevisionOpen = false;
+      this.hppBulananEditId = next.id;
+      this.hppBulananForm = {
+        period:next.period,
+        costPeriod:next.costPeriod,
+        includeBonus:next.includeBonus !== false,
+        roundTariff:next.roundTariff !== false,
+        pool:{ ...next.pool },
+        bonusMode:(next.bonusanRows || []).length ? 'detail' : 'total',
+        bonusTotal:Number(next.pool && next.pool.bonusan) || 0,
+        bonusanRows:JSON.parse(JSON.stringify(next.bonusanRows || [])),
+        rejectMode:(next.rejectRows || []).length ? 'detail' : 'total',
+        rejectTotal:Number(next.pool && next.pool.reject) || 0,
+        rejectRows:JSON.parse(JSON.stringify(next.rejectRows || [])),
+        products:JSON.parse(JSON.stringify(next.products || []))
+      };
+      this.persist();
+      this.notify('Revisi HPP Bulanan dibuat. Versi lama ditandai Direvisi.');
+      this.go('hpp-bulanan-create');
+    },
+    askHppBulananApply(row) {
+      if (!row || row.status !== 'final') { this.notify('Hanya HPP Bulanan final yang dapat diterapkan', 'error'); return; }
+      this.askConfirm('hpp-bulanan-apply', row.id, 'Terapkan ke Harga Modal?', 'Harga modal ' + (row.products || []).length + ' produk akan diperbarui dari HPP Bulanan ' + row.code + '.', false, 'Terapkan');
+    },
+    applyHppBulananCost(id) {
+      const row = (this.hppBulanan || []).find(item => item.id === id);
+      if (!row || row.status !== 'final') return;
+      (row.products || []).forEach(item => {
+        const product = this.product(item.productId);
+        if (!product.id) return;
+        const oldCost = Number(product.cost) || 0;
+        const newCost = Math.round(Number(item.hppPerDus) || 0);
+        product.cost = newCost;
+        product.costHistory = product.costHistory || [];
+        product.costHistory.unshift({ at:todayISO(), by:this.currentUser, old:oldCost, new:newCost, hppId:row.id, hppCode:row.code });
+      });
+      row.appliedBy = this.currentUser;
+      row.appliedAt = todayISO();
+      row.history = row.history || [];
+      row.history.unshift({ action:'apply-cost', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Harga modal diperbarui' });
+      this.persist();
+      this.notify('Harga modal produk diperbarui');
+    },
+    deleteHppBulanan(row) {
+      if (!row || row.status !== 'draft') return;
+      this.askConfirm('hpp-bulanan-delete', row.id, 'Hapus draft HPP Bulanan?', 'Draft ' + row.code + ' akan dihapus.');
+    },
+    calculateHppBulanan(input) {
+      const pool = input.pool || {};
+      const includeBonus = input.includeBonus !== false;
+      const roundTariff = input.roundTariff !== false;
+      const basePool = ['gaji','uang_makan','bpjs','air','listrik','overhead'].reduce((sum, key) => sum + (Number(pool[key]) || 0), 0);
+      const bonusTotal = input.bonusTotal != null ? Number(input.bonusTotal) || 0 : Number(pool.bonusan) || 0;
+      const rejectTotal = input.rejectTotal != null ? Number(input.rejectTotal) || 0 : Number(pool.reject) || 0;
+      const products = (input.products || []).map(product => {
+        const materials = (product.materials || []).map(material => ({
+          ...material,
+          subtotal:(Number(material.pcsPerDus) || 0) * (Number(material.price) || 0)
+        }));
+        const bahanPerDus = materials.reduce((sum, material) => sum + material.subtotal, 0);
+        const pcsPerDus = Number(product.pcsPerDus) || Math.max(0, ...materials.map(material => Number(material.pcsPerDus) || 0));
+        return { ...product, materials, bahanPerDus, pcsPerDus };
+      });
+      const totalDus = input.totalDus != null ? Number(input.totalDus) || 0 : products.reduce((sum, product) => sum + (Number(product.qtyDus) || 0), 0);
+      const effectivePool = basePool + (includeBonus ? bonusTotal : 0) + rejectTotal;
+      const tariffRaw = totalDus > 0 ? effectivePool / totalDus : 0;
+      const tariffPerDus = roundTariff ? Math.round(tariffRaw) : tariffRaw;
+      const baseTariff = totalDus > 0 ? basePool / totalDus : 0;
+      const computedProducts = products.map(product => {
+        const hppPerDus = product.bahanPerDus + tariffPerDus;
+        const qtyDus = Number(product.qtyDus) || 0;
+        return {
+          ...product,
+          hppDasarPerDus:product.bahanPerDus + baseTariff,
+          hppPerDus,
+          hppPerPcs:product.pcsPerDus > 0 ? hppPerDus / product.pcsPerDus : 0,
+          totalCost:hppPerDus * qtyDus
+        };
+      });
+      return {
+        basePool,
+        effectivePool,
+        bonusTotal,
+        rejectTotal,
+        totalDus,
+        tariffRaw,
+        tariffPerDus,
+        baseTariff,
+        products:computedProducts,
+        cogsTotal:computedProducts.reduce((sum, product) => sum + product.totalCost, 0)
+      };
+    },
+    runHppBulananSelfTest() {
+      const pool = {
+        gaji:32637692,
+        uang_makan:7720000,
+        bpjs:3382080,
+        air:286400,
+        listrik:14567560,
+        overhead:3587000,
+        bonusan:9187785,
+        reject:4902758
+      };
+      const products = [
+        { productId:'cup', qtyDus:38288, pcsPerDus:48, materials:[
+          { materialId:'lid', pcsPerDus:48, price:41 }, { materialId:'cup', pcsPerDus:48, price:123 },
+          { materialId:'straw', pcsPerDus:48, price:15 }, { materialId:'box', pcsPerDus:1, price:3309 },
+          { materialId:'lakban', pcsPerDus:2, price:31 }
+        ] },
+        { productId:'b660', qtyDus:85, pcsPerDus:24, materials:[
+          { materialId:'botol', pcsPerDus:24, price:815 }, { materialId:'tutup', pcsPerDus:24, price:122 },
+          { materialId:'shiring', pcsPerDus:24, price:46 }, { materialId:'box', pcsPerDus:1, price:4667 },
+          { materialId:'lakban', pcsPerDus:2, price:32 }
+        ] },
+        { productId:'b330', qtyDus:423, pcsPerDus:24, materials:[
+          { materialId:'botol', pcsPerDus:24, price:836 }, { materialId:'tutup', pcsPerDus:24, price:122 },
+          { materialId:'shiring', pcsPerDus:24, price:46 }, { materialId:'box', pcsPerDus:1, price:3314 },
+          { materialId:'lakban', pcsPerDus:2, price:31 }
+        ] }
+      ];
+      const rounded = this.calculateHppBulanan({ pool, products, includeBonus:true, roundTariff:true });
+      const raw = this.calculateHppBulanan({ pool, products, includeBonus:true, roundTariff:false });
+      const noBonus = this.calculateHppBulanan({ pool, products, includeBonus:false, roundTariff:true });
+      const hppExpected = [13929, 30289, 29438];
+      const costExpected = [533313552, 2574565, 12452274];
+      const ok = rounded.tariffPerDus === 1966
+        && rounded.products.every((product, index) => Math.abs(product.hppPerDus - hppExpected[index]) < 0.01)
+        && rounded.products.every((product, index) => Math.abs(product.totalCost - costExpected[index]) < 0.5)
+        && Math.abs(rounded.cogsTotal - 548340391) < 0.5
+        && Math.abs(raw.tariffRaw - 1965.96) < 0.01
+        && noBonus.tariffPerDus === 1729;
+      this.hppBulananSelfTestResult = { ok, rounded, raw, noBonus, expected:{ tariff:1966, hpp:hppExpected, cost:costExpected, cogs:548340391 } };
+      this.notify(ok ? 'Self-test HPP Bulanan berhasil: COGS ' + this.rp(rounded.cogsTotal) : 'Self-test HPP Bulanan gagal', ok ? 'success' : 'error');
+    },
     calculateHpp(input) {
       const output = Number(input.outputQty) || 0;
       const workingDays = Number(input.workingDays) || 0;
       const allocation = Number(input.allocationPercent) || 0;
       const rounding = input.roundingMode || 'none';
-      const electricityFormula = input.electricityFormula || 'allocation';
       const material = (input.materials || []).reduce((sum, row) => sum + (Number(row.qtyPerDus) || 0) * (Number(row.price) || 0), 0);
       let monthly = 0;
       (input.monthlyCosts || []).forEach(row => {
-        const value = Number(row.value) || 0;
         let per = 0;
-        if (row.component === 'listrik' && electricityFormula === 'client') {
-          const kwh = Number(row.kwh) || 0;
-          per = kwh > 0 && output > 0 ? ((value / kwh) / output) * (allocation / 100) : 0;
-          per = per > 0 ? Math.max(1, Math.round(per)) : 0;
-        } else if (output > 0 && workingDays > 0) {
-          per = (value / workingDays / output) * (allocation / 100);
+        if (output > 0 && workingDays > 0) {
+          per = ((Number(row.value) || 0) / workingDays / output) * (allocation / 100);
           if (rounding === 'component') per = Math.round(per);
         }
         monthly += per;
@@ -6275,7 +6961,7 @@ function app() {
       return { material, monthly, water, depreciation, production, hpp };
     },
     runHppSelfTest() {
-      const base = {
+      const result = this.calculateHpp({
         outputQty:1515,
         workingDays:26,
         allocationPercent:100,
@@ -6285,63 +6971,19 @@ function app() {
         ],
         monthlyCosts:[
           { component:'gaji', value:32637692 }, { component:'uang_makan', value:7720000 },
-          { component:'bpjs', value:3382080 }, { component:'listrik', value:14567560, kwh:53000 },
+          { component:'bpjs', value:3382080 }, { component:'listrik', value:14567560 },
           { component:'overhead', value:0 }
         ],
         waterLitersPerKrt:10.5,
         waterPricePerM3:7000,
-        depreciationTotal:0
-      };
-      const correct = this.calculateHpp({ ...base, electricityFormula:'allocation', roundingMode:'none' });
-      const client = this.calculateHpp({
-        ...base,
-        materials:[],
-        monthlyCosts:[{ component:'listrik', value:14567560, kwh:53000 }],
-        waterLitersPerKrt:0,
-        waterPricePerM3:0,
-        electricityFormula:'client',
+        depreciationTotal:0,
         roundingMode:'none'
       });
       const expected = 13852.76;
-      const clientListrik = client.monthly;
-      const ok = Math.abs(correct.hpp - expected) <= 0.05 && clientListrik === 1;
-      this.hppSelfTestResult = { ok, result:correct, expected, clientListrik };
-      this.notify(ok ? 'Self-test HPP berhasil: ' + this.rp2(correct.hpp) : 'Self-test HPP gagal: ' + this.rp2(correct.hpp), ok ? 'success' : 'error');
+      const ok = Math.abs(result.hpp - expected) <= 0.05;
+      this.hppSelfTestResult = { ok, result, expected };
+      this.notify(ok ? 'Self-test HPP berhasil: ' + this.rp2(result.hpp) : 'Self-test HPP gagal: ' + this.rp2(result.hpp), ok ? 'success' : 'error');
     },
-    get hppComparison() {
-      const period = '2026-10';
-      const output = 1515;
-      const days = Number(this.hppSettings.workingDays) || 26;
-      const valueOf = (component, fallback) => {
-        const row = this.getBiayaBulanan(period, component);
-        return row ? Number(row.value) || 0 : fallback;
-      };
-      const gaji = valueOf('gaji', 32637692);
-      const uangMakan = valueOf('uang_makan', 7720000);
-      const bpjs = valueOf('bpjs', 3382080);
-      const listrik = valueOf('listrik', 14567560);
-      const listrikRow = this.getBiayaBulanan(period, 'listrik');
-      const kwh = listrikRow && Number(listrikRow.kwh) > 0 ? Number(listrikRow.kwh) : 53000;
-      const material = 12299;
-      const laborCorrect = (gaji + uangMakan + bpjs) / days / output;
-      const listrikCorrect = listrik / days / output;
-      const airCorrect = ((Number(this.hppSettings.waterLitersPerKrt) || 0) / 1000) * (Number(this.hppSettings.waterPricePerM3) || 0);
-      const correct = material + laborCorrect + listrikCorrect + airCorrect;
-      const laborClient = 828.60 + 196.00 + 85.80;
-      const client = material + laborClient + 1 + 73;
-      return {
-        period, output, days, material,
-        gajiCorrect:gaji / days / output,
-        uangMakanCorrect:uangMakan / days / output,
-        bpjsCorrect:bpjs / days / output,
-        listrikCorrect, airCorrect, correct,
-        listrikClientRaw:kwh > 0 ? (listrik / kwh) / output : 0,
-        listrikClientDisplay:1, airClient:73, client,
-        difference:correct - client,
-        tariff:kwh > 0 ? listrik / kwh : 0
-      };
-    },
-
     /* ---------- LEDGER & TRIAL BALANCE ---------- */
     ledgerAccountId: 'acc1', ledgerFrom: '', ledgerTo: todayISO(),
     reportTab: 'trial', reportAsOf: todayISO(), reportFrom: todayISO().slice(0, 8) + '01', reportTo: todayISO(), reportShowZero: false,

@@ -773,6 +773,22 @@
       "w": 1440
     },
     {
+      "id": "hpp-bulanan",
+      "name": "HPP — Bulanan",
+      "src": "index.html?canvas=hpp-bulanan",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "hpp-bulanan-create",
+      "name": "HPP — Buat Bulanan",
+      "src": "index.html?canvas=hpp-bulanan-create",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440
+    },
+    {
       "id": "hpp-monthly",
       "name": "HPP — Biaya Bulanan",
       "src": "index.html?canvas=hpp-monthly",

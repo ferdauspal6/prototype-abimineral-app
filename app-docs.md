@@ -205,20 +205,14 @@ Aturan utama:
 - Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli master barang.
 - Biaya bulanan: gaji, uang makan, BPJS, listrik, overhead.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
+- Listrik per Krt memakai rumus yang sama: `biaya listrik bulanan ÷ hari kerja ÷ hasil produksi`.
 - Air = `(liter per Krt ÷ 1.000) × harga per m³`.
 - Penyusutan = `nilai penyusutan ÷ hasil produksi × alokasi%`.
-- **Rumus Listrik** dapat dipilih di Pengaturan:
-  - **Alokasi biaya bulanan** (default): `biaya bulanan ÷ hari kerja ÷ hasil produksi`.
-  - **Tarif per kWh (client)**: `(biaya bulanan ÷ kWh) ÷ hasil produksi`; nilai per Krt ditampilkan **Rp 1** dengan keterangan nilai asli **Rp 0,18** dan tarif **Rp 274,86/kWh**.
 - **Pembulatan** dapat dipilih di Pengaturan:
   - **Tidak dibulatkan** (default, presisi penuh),
   - **Bulatkan tiap komponen**,
   - **Bulatkan HPP akhir**.
   - Nilai asli komponen yang dibulatkan tetap ditampilkan sebagai keterangan.
-- Panel **Perbandingan dengan Sheet Client** hanya ada di tab Pengaturan:
-  - Sheet client: listrik Rp 1, air 73, HPP **13.483,40/Krt**.
-  - Rumus benar: listrik Rp 369,83, air 73,50, HPP **13.852,76/Krt**.
-  - Selisih **369,36/Krt**, bersumber dari listrik dan pembulatan manual client.
 - **Ambil dari periode** (dropdown) menggantikan tombol salin:
   - pilihan September, Oktober, November 2026, dan periode lain yang punya data;
   - periode aktif dinonaktifkan;
@@ -233,7 +227,19 @@ Aturan utama:
 - Final mengunci snapshot.
 - Terapkan ke Harga Modal memakai pembulatan rupiah dan dicatat di riwayat.
 - Order baru menyimpan `costAtOrder` agar perubahan Harga Modal tidak mengubah COGS historis.
-- Self-test internal memverifikasi contoh HPP 13.852,76 dan listrik client Rp 1.
+- Self-test internal memverifikasi HPP Harian **13.852,76/Krt**.
+- Tab HPP: **Harian**, **Bulanan**, **Biaya Bulanan**, **Pengaturan**.
+- **HPP Bulanan per Produk**:
+  - Pool = gaji + uang makan + BPJS + bonusan + reject + air + listrik + overhead.
+  - Tarif per dus = pool ÷ total dus seluruh produk.
+  - HPP per dus = bahan baku per dus + tarif per dus.
+  - HPP per pcs = HPP per dus ÷ pcs per dus produk.
+  - COGS bulan = Σ HPP per dus × dus produk.
+  - Opsi memasukkan bonusan ke pool dan membulatkan tarif.
+  - Bonusan dan reject bisa input total atau rincian.
+  - Qty dus default dari produksi posted; manual wajib alasan.
+  - Harga bahan default rata-rata akhir periode; override wajib catatan.
+  - Self-test September 2026: tarif **1.966**, HPP **13.929 / 30.289 / 29.438**, COGS **548.340.391**.
 
 ### 2.7 L4 — Penerimaan Barang
 
