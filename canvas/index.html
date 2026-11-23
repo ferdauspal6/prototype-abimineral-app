@@ -91,7 +91,7 @@
   </header>
   <div id="stage">
     <div id="world"></div>
-    <div id="hint">Klik screen untuk preview &middot; drag untuk pan &middot; Ctrl/⌘ + scroll untuk zoom &middot; 0 = fit &middot; Esc = tutup preview</div>
+    <div id="hint">Klik screen untuk preview &middot; drag kiri/tengah untuk pan &middot; Ctrl/⌘ + scroll untuk zoom &middot; 0 = fit &middot; Esc = tutup preview</div>
     <div id="toast"></div>
     <div id="warning" hidden></div>
   </div>
@@ -445,16 +445,24 @@
     }, { passive:false });
 
     stage.addEventListener('pointerdown', function(event){
-      if (event.button !== 0) return;
+      if (event.button !== 0 && event.button !== 1) return;
       if (event.target.closest && event.target.closest('#inspect')) return;
-      drag = { x:event.clientX, y:event.clientY, tx:tx, ty:ty, moved:false, captured:false };
+      if (event.button === 1){
+        event.preventDefault();
+        suppressClick = true;
+      }
+      drag = { x:event.clientX, y:event.clientY, tx:tx, ty:ty, moved:false, captured:false, button:event.button };
       stage.classList.add('grabbing');
+      if (event.button === 1){
+        try { stage.setPointerCapture(event.pointerId); drag.captured = true; } catch(e){}
+      }
     });
     stage.addEventListener('pointermove', function(event){
       if (!drag) return;
       var dx = event.clientX - drag.x, dy = event.clientY - drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
       if (!drag.moved) return;
+      if (drag.button === 1) suppressClick = true;
       if (!drag.captured){
         try { stage.setPointerCapture(event.pointerId); } catch(e){}
         drag.captured = true;
@@ -465,12 +473,14 @@
       render();
     });
     stage.addEventListener('pointerup', function(event){
-      if (drag && drag.moved) suppressClick = true;
+      if (drag && (drag.moved || drag.button === 1)) suppressClick = true;
       if (drag && drag.captured){ try { stage.releasePointerCapture(event.pointerId); } catch(e){} }
       drag = null;
       stage.classList.remove('grabbing');
-      setTimeout(function(){ suppressClick = false; }, 60);
+      setTimeout(function(){ suppressClick = false; }, 80);
     });
+    stage.addEventListener('mousedown', function(event){ if (event.button === 1) event.preventDefault(); });
+    stage.addEventListener('auxclick', function(event){ if (event.button === 1) event.preventDefault(); });
     stage.addEventListener('pointercancel', function(){ drag = null; stage.classList.remove('grabbing'); });
 
     document.addEventListener('keydown', function(event){

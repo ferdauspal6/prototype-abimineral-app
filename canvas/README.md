@@ -6,7 +6,7 @@ canvas tetap ringan meski berisi ratusan screen.
 
 Fitur:
 
-- pan dan zoom,
+- pan dengan drag kiri atau tengah, dan zoom,
 - filter **Semua Screen** atau per grup/modul,
 - jump ke screen,
 - klik screen untuk preview besar,
