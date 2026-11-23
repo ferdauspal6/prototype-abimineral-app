@@ -4,7 +4,7 @@
 // Usage: node canvas/build.mjs [--root <dir>] [rootDir]
 // Root defaults to the project folder that contains this canvas/ kit.
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, sep, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -415,6 +415,15 @@ orderedScreens.sort((a, b) => {
   const pb = prevOrder.has(b.id) ? prevOrder.get(b.id) : Number.MAX_SAFE_INTEGER;
   return pa - pb;
 });
+
+for (const screen of orderedScreens) {
+  const previewFile = join(scriptDir, "previews", screen.id + ".jpg");
+  if (existsSync(previewFile)) {
+    screen.preview = `canvas/previews/${screen.id}.jpg`;
+    screen.previewW = Number(screen.w || cfg.defaultWidth || 1440);
+    screen.previewH = Number(screen.h || 900);
+  }
+}
 
 const RESERVED = ["title", "defaultWidth", "rowWidth", "ignore", "canvasVersion", "assets", "bundleFiles", "groups", "screens", "links"];
 const extras = {};

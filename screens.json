@@ -112,14 +112,20 @@
       "id": "flow",
       "name": "Alur Operasional",
       "src": "flow.html",
-      "group": "root"
+      "group": "root",
+      "preview": "canvas/previews/flow.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "index",
       "name": "Aplikasi Utama",
       "src": "index.html",
       "group": "root",
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/index.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "dashboard",
@@ -127,7 +133,10 @@
       "src": "index.html?canvas=dashboard",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/dashboard.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "dashboard-recap-cash",
@@ -135,7 +144,10 @@
       "src": "index.html?canvas=dashboard-recap-cash",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/dashboard-recap-cash.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "dashboard-stock-popular",
@@ -143,7 +155,10 @@
       "src": "index.html?canvas=dashboard-stock-popular",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/dashboard-stock-popular.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "dashboard-stock-holding",
@@ -151,7 +166,10 @@
       "src": "index.html?canvas=dashboard-stock-holding",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/dashboard-stock-holding.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "customers",
@@ -159,7 +177,10 @@
       "src": "index.html?canvas=customers",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/customers.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "customer-modal",
@@ -167,7 +188,10 @@
       "src": "index.html?canvas=customer-modal",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/customer-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "promos",
@@ -175,7 +199,10 @@
       "src": "index.html?canvas=promos",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/promos.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "promo-modal",
@@ -183,7 +210,10 @@
       "src": "index.html?canvas=promo-modal",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/promo-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-customer",
@@ -191,7 +221,10 @@
       "src": "index.html?canvas=order-customer",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-customer.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-customer-schedule",
@@ -199,7 +232,10 @@
       "src": "index.html?canvas=order-customer-schedule",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-customer-schedule.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-create",
@@ -207,7 +243,10 @@
       "src": "index.html?canvas=order-create",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-create-history",
@@ -215,7 +254,10 @@
       "src": "index.html?canvas=order-create-history",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-create-history.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "orders",
@@ -223,7 +265,10 @@
       "src": "index.html?canvas=orders",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/orders.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-filter-customer",
@@ -231,7 +276,10 @@
       "src": "index.html?canvas=order-filter-customer",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-filter-customer.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-detail",
@@ -239,7 +287,10 @@
       "src": "index.html?canvas=order-detail",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "invoice",
@@ -247,7 +298,10 @@
       "src": "index.html?canvas=invoice",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/invoice.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "bulk-invoice",
@@ -255,7 +309,10 @@
       "src": "index.html?canvas=bulk-invoice",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/bulk-invoice.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-success",
@@ -263,7 +320,10 @@
       "src": "index.html?canvas=order-success",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-success.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "deliveries",
@@ -271,7 +331,10 @@
       "src": "index.html?canvas=deliveries",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/deliveries.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "delivery-create",
@@ -279,7 +342,10 @@
       "src": "index.html?canvas=delivery-create",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/delivery-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "delivery-check",
@@ -287,7 +353,10 @@
       "src": "index.html?canvas=delivery-check",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/delivery-check.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "delivery-detail",
@@ -295,7 +364,10 @@
       "src": "index.html?canvas=delivery-detail",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/delivery-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "delivery-invoice",
@@ -303,7 +375,10 @@
       "src": "index.html?canvas=delivery-invoice",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/delivery-invoice.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "returns",
@@ -311,7 +386,10 @@
       "src": "index.html?canvas=returns",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/returns.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "return-modal",
@@ -319,7 +397,10 @@
       "src": "index.html?canvas=return-modal",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/return-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-preview",
@@ -327,7 +408,10 @@
       "src": "index.html?canvas=order-preview",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-stock-confirm",
@@ -335,7 +419,10 @@
       "src": "index.html?canvas=order-stock-confirm",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-stock-confirm.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "order-preview-shortage",
@@ -343,7 +430,10 @@
       "src": "index.html?canvas=order-preview-shortage",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/order-preview-shortage.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "delivery-preview",
@@ -351,7 +441,10 @@
       "src": "index.html?canvas=delivery-preview",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/delivery-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "collection-preview",
@@ -359,7 +452,10 @@
       "src": "index.html?canvas=collection-preview",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/collection-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "report-modal",
@@ -367,7 +463,10 @@
       "src": "index.html?canvas=report-modal",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/report-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "camera-modal",
@@ -375,7 +474,10 @@
       "src": "index.html?canvas=camera-modal",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/camera-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "confirm-modal",
@@ -383,7 +485,10 @@
       "src": "index.html?canvas=confirm-modal",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/confirm-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "action-menu",
@@ -391,7 +496,10 @@
       "src": "index.html?canvas=action-menu",
       "group": "penjualan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/action-menu.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "warehouses",
@@ -399,7 +507,10 @@
       "src": "index.html?canvas=warehouses",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/warehouses.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "warehouse-modal",
@@ -407,7 +518,10 @@
       "src": "index.html?canvas=warehouse-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/warehouse-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "products",
@@ -415,7 +529,10 @@
       "src": "index.html?canvas=products",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/products.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "product-categories",
@@ -423,7 +540,10 @@
       "src": "index.html?canvas=product-categories",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/product-categories.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "product-form",
@@ -431,7 +551,10 @@
       "src": "index.html?canvas=product-form",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/product-form.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "recipe-preview",
@@ -439,7 +562,10 @@
       "src": "index.html?canvas=recipe-preview",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/recipe-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "product-category-modal",
@@ -447,7 +573,10 @@
       "src": "index.html?canvas=product-category-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/product-category-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "materials",
@@ -455,7 +584,10 @@
       "src": "index.html?canvas=materials",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/materials.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "material-categories",
@@ -463,7 +595,10 @@
       "src": "index.html?canvas=material-categories",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/material-categories.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "material-modal",
@@ -471,7 +606,10 @@
       "src": "index.html?canvas=material-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/material-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "material-category-modal",
@@ -479,7 +617,10 @@
       "src": "index.html?canvas=material-category-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/material-category-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-modal",
@@ -487,7 +628,10 @@
       "src": "index.html?canvas=stock-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "opname-modal",
@@ -495,7 +639,10 @@
       "src": "index.html?canvas=opname-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/opname-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-active",
@@ -503,7 +650,10 @@
       "src": "index.html?canvas=stock-active",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-active.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-production",
@@ -511,7 +661,10 @@
       "src": "index.html?canvas=stock-production",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-production.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-history",
@@ -519,7 +672,10 @@
       "src": "index.html?canvas=stock-history",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-history.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-opname",
@@ -527,7 +683,10 @@
       "src": "index.html?canvas=stock-opname",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-opname.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-material",
@@ -535,7 +694,10 @@
       "src": "index.html?canvas=stock-material",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-material.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-material-history",
@@ -543,7 +705,10 @@
       "src": "index.html?canvas=stock-material-history",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-material-history.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "stock-material-variance",
@@ -551,7 +716,10 @@
       "src": "index.html?canvas=stock-material-variance",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/stock-material-variance.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "production-modal",
@@ -559,7 +727,10 @@
       "src": "index.html?canvas=production-modal",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/production-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "production-detail",
@@ -567,7 +738,10 @@
       "src": "index.html?canvas=production-detail",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/production-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "production-detail-logs",
@@ -575,7 +749,10 @@
       "src": "index.html?canvas=production-detail-logs",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/production-detail-logs.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "production-correction",
@@ -583,7 +760,10 @@
       "src": "index.html?canvas=production-correction",
       "group": "logistik",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/production-correction.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "suppliers",
@@ -591,7 +771,10 @@
       "src": "index.html?canvas=suppliers",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/suppliers.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "supplier-modal",
@@ -599,7 +782,10 @@
       "src": "index.html?canvas=supplier-modal",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/supplier-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-requests",
@@ -607,7 +793,10 @@
       "src": "index.html?canvas=purchase-requests",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-requests.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-request-create",
@@ -615,7 +804,10 @@
       "src": "index.html?canvas=purchase-request-create",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-request-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-request-preview",
@@ -623,7 +815,10 @@
       "src": "index.html?canvas=purchase-request-preview",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-request-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-request-detail",
@@ -631,7 +826,10 @@
       "src": "index.html?canvas=purchase-request-detail",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-request-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-request-reject",
@@ -639,7 +837,10 @@
       "src": "index.html?canvas=purchase-request-reject",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-request-reject.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-orders",
@@ -647,7 +848,10 @@
       "src": "index.html?canvas=purchase-orders",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-orders.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-order-create",
@@ -655,7 +859,10 @@
       "src": "index.html?canvas=purchase-order-create",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-order-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-order-preview",
@@ -663,7 +870,10 @@
       "src": "index.html?canvas=purchase-order-preview",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-order-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-order-detail",
@@ -671,7 +881,10 @@
       "src": "index.html?canvas=purchase-order-detail",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-order-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-order-reject",
@@ -679,7 +892,10 @@
       "src": "index.html?canvas=purchase-order-reject",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-order-reject.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receipts",
@@ -687,7 +903,10 @@
       "src": "index.html?canvas=receipts",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receipts.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receipt-create",
@@ -695,7 +914,10 @@
       "src": "index.html?canvas=receipt-create",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receipt-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receipt-preview",
@@ -703,7 +925,10 @@
       "src": "index.html?canvas=receipt-preview",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receipt-preview.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receipt-detail",
@@ -711,7 +936,10 @@
       "src": "index.html?canvas=receipt-detail",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receipt-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receipt-history",
@@ -719,7 +947,10 @@
       "src": "index.html?canvas=receipt-history",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receipt-history.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-returns",
@@ -727,7 +958,10 @@
       "src": "index.html?canvas=purchase-returns",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-returns.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-return-create",
@@ -735,7 +969,10 @@
       "src": "index.html?canvas=purchase-return-create",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-return-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "purchase-return-detail",
@@ -743,7 +980,10 @@
       "src": "index.html?canvas=purchase-return-detail",
       "group": "pembelian",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/purchase-return-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "coa",
@@ -751,7 +991,10 @@
       "src": "index.html?canvas=coa",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/coa.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "finance-accounts",
@@ -759,7 +1002,10 @@
       "src": "index.html?canvas=finance-accounts",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/finance-accounts.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "opening-balance",
@@ -767,7 +1013,10 @@
       "src": "index.html?canvas=opening-balance",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/opening-balance.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "hpp",
@@ -775,7 +1024,10 @@
       "src": "index.html?canvas=hpp",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/hpp.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "hpp-bulanan",
@@ -783,7 +1035,10 @@
       "src": "index.html?canvas=hpp-bulanan",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/hpp-bulanan.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "hpp-bulanan-create",
@@ -791,7 +1046,10 @@
       "src": "index.html?canvas=hpp-bulanan-create",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/hpp-bulanan-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "hpp-monthly",
@@ -799,7 +1057,10 @@
       "src": "index.html?canvas=hpp-monthly",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/hpp-monthly.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "hpp-settings",
@@ -807,7 +1068,10 @@
       "src": "index.html?canvas=hpp-settings",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/hpp-settings.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "hpp-create",
@@ -815,7 +1079,10 @@
       "src": "index.html?canvas=hpp-create",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/hpp-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "account-modal",
@@ -823,7 +1090,10 @@
       "src": "index.html?canvas=account-modal",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/account-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "journals",
@@ -831,7 +1101,10 @@
       "src": "index.html?canvas=journals",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/journals.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "journal-create",
@@ -839,7 +1112,10 @@
       "src": "index.html?canvas=journal-create",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/journal-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "journal-detail",
@@ -847,7 +1123,10 @@
       "src": "index.html?canvas=journal-detail",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/journal-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "journal-void",
@@ -855,7 +1134,10 @@
       "src": "index.html?canvas=journal-void",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/journal-void.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "ledger",
@@ -863,7 +1145,10 @@
       "src": "index.html?canvas=ledger",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/ledger.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "reports-neraca-saldo",
@@ -871,7 +1156,10 @@
       "src": "index.html?canvas=reports-neraca-saldo",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/reports-neraca-saldo.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "reports-laba-rugi",
@@ -879,7 +1167,10 @@
       "src": "index.html?canvas=reports-laba-rugi",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/reports-laba-rugi.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "reports-neraca",
@@ -887,7 +1178,10 @@
       "src": "index.html?canvas=reports-neraca",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/reports-neraca.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "reports-pendapatan",
@@ -895,7 +1189,10 @@
       "src": "index.html?canvas=reports-pendapatan",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/reports-pendapatan.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "payables",
@@ -903,7 +1200,10 @@
       "src": "index.html?canvas=payables",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/payables.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "payable-detail",
@@ -911,7 +1211,10 @@
       "src": "index.html?canvas=payable-detail",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/payable-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "payable-payment",
@@ -919,7 +1222,10 @@
       "src": "index.html?canvas=payable-payment",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/payable-payment.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "finance-income",
@@ -927,7 +1233,10 @@
       "src": "index.html?canvas=finance-income",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/finance-income.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "finance-expense",
@@ -935,7 +1244,10 @@
       "src": "index.html?canvas=finance-expense",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/finance-expense.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "finance-modal",
@@ -943,7 +1255,10 @@
       "src": "index.html?canvas=finance-modal",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/finance-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receivables-active",
@@ -951,7 +1266,10 @@
       "src": "index.html?canvas=receivables-active",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receivables-active.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receivables-collections",
@@ -959,7 +1277,10 @@
       "src": "index.html?canvas=receivables-collections",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receivables-collections.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receivables-paid",
@@ -967,7 +1288,10 @@
       "src": "index.html?canvas=receivables-paid",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receivables-paid.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receivables-payments",
@@ -975,7 +1299,10 @@
       "src": "index.html?canvas=receivables-payments",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receivables-payments.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "collection-create",
@@ -983,7 +1310,10 @@
       "src": "index.html?canvas=collection-create",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/collection-create.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "receivable-payment-modal",
@@ -991,7 +1321,10 @@
       "src": "index.html?canvas=receivable-payment-modal",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/receivable-payment-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "collection-confirm",
@@ -999,7 +1332,10 @@
       "src": "index.html?canvas=collection-confirm",
       "group": "keuangan",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/collection-confirm.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "users",
@@ -1007,7 +1343,10 @@
       "src": "index.html?canvas=users",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/users.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "user-modal",
@@ -1015,7 +1354,10 @@
       "src": "index.html?canvas=user-modal",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/user-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "roles",
@@ -1023,7 +1365,10 @@
       "src": "index.html?canvas=roles",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/roles.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "role-modal",
@@ -1031,7 +1376,10 @@
       "src": "index.html?canvas=role-modal",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/role-modal.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "settings-profile",
@@ -1039,7 +1387,10 @@
       "src": "index.html?canvas=settings-profile",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/settings-profile.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "settings-password",
@@ -1047,7 +1398,10 @@
       "src": "index.html?canvas=settings-password",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/settings-password.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "settings-2fa",
@@ -1055,7 +1409,10 @@
       "src": "index.html?canvas=settings-2fa",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/settings-2fa.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "settings-appearance",
@@ -1063,7 +1420,10 @@
       "src": "index.html?canvas=settings-appearance",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/settings-appearance.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "settings-data",
@@ -1071,7 +1431,10 @@
       "src": "index.html?canvas=settings-data",
       "group": "pengguna",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/settings-data.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "login",
@@ -1079,7 +1442,10 @@
       "src": "index.html?canvas=login",
       "group": "auth",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/login.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "assets-logo",
@@ -1095,7 +1461,10 @@
       "src": "index.html?canvas=employees",
       "group": "hr",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/employees.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "attendance",
@@ -1103,7 +1472,10 @@
       "src": "index.html?canvas=attendance",
       "group": "hr",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/attendance.jpg",
+      "previewW": 1440,
+      "previewH": 900
     },
     {
       "id": "payroll",
@@ -1111,7 +1483,10 @@
       "src": "index.html?canvas=payroll",
       "group": "hr",
       "virtual": true,
-      "w": 1440
+      "w": 1440,
+      "preview": "canvas/previews/payroll.jpg",
+      "previewW": 1440,
+      "previewH": 900
     }
   ],
   "links": []

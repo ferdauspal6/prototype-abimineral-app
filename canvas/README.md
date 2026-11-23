@@ -1,23 +1,48 @@
 # Design Canvas — mini-framework
 
-A pannable, zoomable canvas that shows every page of a static HTML design at
-once, grouped by module, with an element inspector (Tailwind classes, size,
-spacing, typography, colors, computed CSS). Vanilla JS, no build step, no npm
-dependencies. Works for desktop pages and mobile screens alike.
+Canvas statis untuk melihat seluruh halaman prototype dalam satu layar.
+Setiap screen dirender sebagai **gambar preview**, bukan iframe hidup, sehingga
+canvas tetap ringan meski berisi ratusan screen.
+
+Fitur:
+
+- pan dan zoom,
+- filter **Semua Screen** atau per grup/modul,
+- jump ke screen,
+- klik screen untuk preview besar,
+- **Inspect di Canvas** memuat satu iframe on-demand,
+- **Buka Live** membuka screen interaktif di tab baru untuk DevTools.
 
 ## Quick start
 
 ```bash
-# from the project root
+# dari root project
+node canvas/build.mjs
+node canvas/capture.mjs    # butuh playwright-core
 node canvas/serve.mjs
-# -> serves the project and opens http://localhost:8000/canvas/
+# -> http://localhost:8000/canvas/
 ```
 
-Or double-click `canvas/start.command` (macOS) / `canvas/start.bat` (Windows).
+Preview disimpan di:
 
-The viewer **must be served over HTTP** — opening `canvas/index.html` by
-double-clicking (`file://`) cannot load `screens.json` or inspect frames, and
-will show a warning.
+```text
+canvas/previews/<screen-id>.jpg
+```
+
+`capture.mjs` membutuhkan `playwright-core`. Jika library tidak berada di
+project, arahkan env:
+
+```bash
+PLAYWRIGHT_CORE=/path/to/playwright-core/index.js node canvas/capture.mjs
+```
+
+Browser Chromium dicari otomatis di cache Playwright. Jika perlu:
+
+```bash
+CHROME_PATH=/path/to/chrome node canvas/capture.mjs
+```
+
+Viewer tetap harus dibuka lewat HTTP server.
 
 ## SPA state catalog (virtual screens)
 
@@ -31,15 +56,18 @@ project therefore keeps a catalog in `canvas-screens.json`:
 ```
 
 `node canvas/build.mjs` turns each entry into a virtual screen named
-`index.html?canvas=<id>`, grouped under its module in `screens.json`. The app
-reads `?canvas=` on boot and applies `page`, tabs (`state`), and the popup
-named by `setup`.
+`index.html?canvas=<id>`, grouped under its module in `screens.json`.
 
-- Frames load **on demand**: the overview shows a placeholder per screen.
-  Click a placeholder, use the **Jump** menu, or click a module title.
-- **Muat Semua** loads every screen (heavy for large catalogs).
-- The viewer measures each page's natural height so long tables are not cut.
-- Add or edit screens in `canvas-screens.json`, then rerun the build.
+Alur preview:
+
+1. `node canvas/build.mjs` membuat `screens.json`.
+2. `node canvas/capture.mjs` membuka setiap screen, mengambil screenshot,
+   lalu menyimpannya ke `canvas/previews/`.
+3. `capture.mjs` otomatis menjalankan `build.mjs` lagi agar manifest memuat
+   field `preview`.
+
+Viewer tidak memuat iframe saat startup. Iframe hanya dibuat ketika pengguna
+memilih **Inspect di Canvas**, maksimal satu iframe dalam satu waktu.
 
 ## Use in another project
 
