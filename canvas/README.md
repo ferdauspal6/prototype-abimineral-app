@@ -1,17 +1,23 @@
 # Design Canvas — mini-framework
 
-Canvas statis untuk melihat seluruh halaman prototype dalam satu layar.
-Setiap screen dirender sebagai **gambar preview**, bukan iframe hidup, sehingga
-canvas tetap ringan meski berisi ratusan screen.
+Canvas hybrid: seluruh screen tampil sebagai **gambar preview** agar ringan,
+lalu satu screen bisa dimuat sebagai **iframe live** saat dibutuhkan.
 
 Fitur:
 
 - pan dengan drag kiri atau tengah, dan zoom,
 - filter **Semua Screen** atau per grup/modul,
 - jump ke screen,
-- klik screen untuk preview besar,
-- **Inspect di Canvas** memuat satu iframe on-demand,
-- **Buka Live** membuka screen interaktif di tab baru untuk DevTools.
+- tombol **Live** pada preview memuat satu iframe interaktif,
+- **Tutup Live** mengembalikan semua screen ke preview,
+- inspector elemen: Tailwind classes, ukuran, padding, margin, typography,
+  warna, dan box model,
+- measure tool Alt + hover,
+- panel Colors & Fonts,
+- Export ZIP.
+
+Canvas tidak memuat iframe saat startup. Hanya satu iframe live yang boleh
+aktif. Saat pindah screen atau grup, iframe lama dihapus.
 
 ## Quick start
 
@@ -67,7 +73,7 @@ Alur preview:
    field `preview`.
 
 Viewer tidak memuat iframe saat startup. Iframe hanya dibuat ketika pengguna
-memilih **Inspect di Canvas**, maksimal satu iframe dalam satu waktu.
+menekan **Live** pada preview, maksimal satu iframe dalam satu waktu.
 
 ## Use in another project
 
