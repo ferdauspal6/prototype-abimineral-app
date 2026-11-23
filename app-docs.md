@@ -91,14 +91,15 @@ Purchase Request (L2):
 - Hanya memilih Master Barang, tidak bisa memilih produk jadi.
 - Tidak membuat jurnal, utang, atau perubahan stok.
 - Approve/reject hanya oleh role **Manager**.
-- Manager tidak dapat approve PR miliknya sendiri.
+- Jika pembuat PR adalah Manager, Submit langsung menjadi `approved` (auto approve) karena hanya ada satu Manager.
 - Admin dan Developer tidak dapat approve PR.
 - PR ikut terhapus saat **Hapus Transaksi**; master tetap.
 
 Purchase Order (L3):
 - Dibuat dari PR `approved`/`processing` atau manual.
 - Qty PO dibatasi sisa qty PR; satu PR bisa dipecah ke beberapa PO.
-- Semua PO memerlukan approval Manager; Admin/Developer tidak approve; Manager tidak bisa approve PO sendiri.
+- Semua PO memerlukan approval Manager; Admin/Developer tidak approve.
+- Jika pembuat PO adalah Manager, Submit langsung `approved` dan menjalankan reservasi qty PR serta update harga master (auto approve).
 - Harga awal dari Master Barang dan dapat diubah. Harga master diperbarui saat PO disetujui.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
 - Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.
@@ -203,9 +204,11 @@ Aturan utama:
 - HPP per Krt = bahan baku per Krt + biaya produksi per Krt.
 - Bahan memakai qty aktual dari PRD atau standar dari resep.
 - Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli master barang.
-- Biaya bulanan: gaji, uang makan, BPJS, listrik, overhead.
+- Biaya bulanan: gaji, uang makan, BPJS, listrik produksi, overhead.
+- Sumber **Gaji Produksi** dapat Manual atau **Payroll** Posted (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
+- **Listrik Produksi** hanya bersumber dari Manual atau Jurnal. Jurnal mengambil total debit jurnal posted ke akun `5-1600 Beban Listrik Produksi`; akun `5-1610 Beban Listrik Kantor` tidak masuk HPP.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
-- Listrik per Krt memakai rumus yang sama: `biaya listrik bulanan ÷ hari kerja ÷ hasil produksi`.
+- Listrik Produksi per Krt memakai rumus yang sama: `biaya listrik produksi bulanan ÷ hari kerja ÷ hasil produksi`.
 - Air = `(liter per Krt ÷ 1.000) × harga per m³`.
 - Penyusutan = `nilai penyusutan ÷ hasil produksi × alokasi%`.
 - **Pembulatan** dapat dipilih di Pengaturan:
@@ -653,12 +656,18 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Pengaturan jam masuk, toleransi, libur mingguan, libur nasional, dan aturan potong HK per jenis keterangan.
    - Alfa otomatis untuk hari kerja tanpa scan dan tanpa keterangan.
 3. **Payroll**:
+   - Halaman utama berupa daftar payroll: No. Payroll, Tanggal Terbit, Periode, Jumlah Pegawai, Total Diterima, Status, Input by, dan Action.
+   - Tombol **Buat Payroll** membuka form periode payroll + periode absensi, lalu membuat **Draft**.
+   - Status: `draft → submitted → posted` (+ `rejected` / `direvisi`).
+   - Draft dan Ditolak dapat diedit, diajukan, atau dihapus. Menunggu Persetujuan dan Posted terkunci.
+   - Submit memerlukan persetujuan **Manager**. Jika pembuat adalah Manager, Submit langsung Posted (auto approve).
+   - Manager dapat menolak dengan alasan; payroll Ditolak dapat diperbaiki dan diajukan lagi.
+   - Revisi payroll Posted membuat versi Draft baru; versi lama menjadi Direvisi.
    - Periode payroll dan periode absensi terpisah (default absensi bulan sebelumnya).
    - HK, hari telat, hari makan, dan HK lembur terisi dari rekap absensi.
    - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan; lembur = HK lembur × (gaji/hari + uang makan/hari).
    - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
-   - Finalisasi mengunci dokumen; revisi membuat versi baru.
-   - Kirim ke HPP menulis gaji, uang makan, dan BPJS perusahaan kelompok Produksi ke Biaya Bulanan periode absensi.
+   - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari Biaya Bulanan dengan memilih payroll Posted.
 4. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
 5. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.
 

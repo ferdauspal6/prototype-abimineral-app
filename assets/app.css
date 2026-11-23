@@ -123,20 +123,20 @@ html.canvas-measuring *::after { transition: none !important; animation: none !i
 .data-table .sub { display: block; font-size: .68rem; color: #94a3b8; margin-top: .1rem; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Attendance recap: frozen NIP/Nama + distinct day/summary columns (beats .data-table th) */
-.data-table th.att-frozen { position: sticky; top: 0; z-index: 5; background: #f1f5f9; }
-.data-table th.att-nip { left: 0; }
-.data-table th.att-nama { left: 92px; }
-.data-table td.att-frozen { position: sticky; z-index: 4; background: #fff; }
-.data-table td.att-nip { left: 0; }
-.data-table td.att-nama { left: 92px; }
-.data-table th.att-day { position: sticky; top: 0; z-index: 3; background: #e2e8f0; }
-.data-table th.att-day.off { background: #cbd5e1; color: #64748b; }
-.data-table th.att-sum { position: sticky; top: 0; z-index: 3; background: #f1f5f9; }
-.data-table th.att-sum.att-start { border-left: 1px solid #cbd5e1; }
-.data-table td.att-day { position: relative; background: #f8fafc; }
-.data-table td.att-day.off { background: #f1f5f9; }
-.data-table td.att-sum { background: #fff; }
-.data-table td.att-sum.att-start { border-left: 1px solid #e2e8f0; }
+.data-table th.frozen-col { position: sticky; top: 0; z-index: 5; background: #f1f5f9; }
+.data-table th.frozen-nip { left: 0; }
+.data-table th.frozen-nama { left: 92px; }
+.data-table td.frozen-col { position: sticky; z-index: 4; background: #fff; }
+.data-table td.frozen-nip { left: 0; }
+.data-table td.frozen-nama { left: 92px; }
+.data-table th.matrix-day { position: sticky; top: 0; z-index: 3; background: #e2e8f0; }
+.data-table th.matrix-day.off { background: #cbd5e1; color: #64748b; }
+.data-table th.matrix-sum { position: sticky; top: 0; z-index: 3; background: #f1f5f9; }
+.data-table th.matrix-sum.matrix-start { border-left: 1px solid #cbd5e1; }
+.data-table td.matrix-day { position: relative; background: #f8fafc; }
+.data-table td.matrix-day.off { background: #f1f5f9; }
+.data-table td.matrix-sum { background: #fff; }
+.data-table td.matrix-sum.matrix-start { border-left: 1px solid #e2e8f0; }
 .sort-btn { display: inline-flex; align-items: center; gap: .25rem; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
 .sort-btn:hover { color: #0f172a; }
 .sort-btn svg { opacity: .45; }

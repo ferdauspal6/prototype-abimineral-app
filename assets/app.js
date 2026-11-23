@@ -4,7 +4,7 @@ const rupiah2Fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency:
 const number2Fmt = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 18;
+const STORE_VERSION = 19;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
@@ -250,7 +250,9 @@ function seedData() {
     { id:'acc16', code:'5-1300', name:'Beban Transportasi', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'BBM dan transportasi' },
     { id:'acc17', code:'5-1400', name:'Beban Selisih Persediaan', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Selisih stock opname' },
     { id:'acc21', code:'5-1500', name:'Beban Pemeliharaan', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Perawatan gudang dan kendaraan' },
-    { id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun penyeimbang saldo awal' }
+    { id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun penyeimbang saldo awal' },
+    { id:'acc25', code:'5-1600', name:'Beban Listrik Produksi', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan produksi' },
+    { id:'acc26', code:'5-1610', name:'Beban Listrik Kantor', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan kantor' }
   ];
 
   const journals = [];
@@ -580,17 +582,22 @@ function app() {
         return;
       }
       if (parsed && (parsed.version === 14 || parsed.version === 15) && parsed.data) {
-        this.migrateFromV14(parsed);
+        this.migrateFromV18(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 16 && parsed.data) {
-        this.migrateFromV16(parsed);
+        this.migrateFromV18(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 17 && parsed.data) {
-        this.migrateFromV17(parsed);
+        this.migrateFromV18(parsed);
+        this.saveStore();
+        return;
+      }
+      if (parsed && parsed.version === 18 && parsed.data) {
+        this.migrateFromV18(parsed);
         this.saveStore();
         return;
       }
@@ -627,6 +634,90 @@ function app() {
     },
     migrateFromV16(parsed) {
       this.migrateFromV14(parsed);
+    },
+    migrateFromV18(parsed) {
+      this.migrateFromV17(parsed);
+      const fresh = seedData();
+      // Ensure the two electricity accounts exist.
+      const requiredAccounts = fresh.accounts.filter(account => ['5-1600','5-1610'].includes(account.code));
+      requiredAccounts.forEach(account => {
+        if (!(this.accounts || []).some(item => item.code === account.code || item.name === account.name)) {
+          this.accounts.push({ ...account });
+        }
+      });
+      // Payroll lifecycle: final -> posted, with approval metadata.
+      (this.payrolls || []).forEach(doc => {
+        if (doc.status === 'final') {
+          doc.status = 'posted';
+          doc.approvedBy = doc.approvedBy || doc.finalizedBy || doc.createdBy || '';
+          doc.approvedAt = doc.approvedAt || doc.finalizedAt || doc.postedAt || doc.createdAt || todayISO();
+          doc.postedBy = doc.postedBy || doc.finalizedBy || doc.createdBy || '';
+          doc.postedAt = doc.postedAt || doc.finalizedAt || doc.approvedAt;
+        }
+        doc.submittedBy = doc.submittedBy || '';
+        doc.submittedAt = doc.submittedAt || '';
+        doc.rejectedBy = doc.rejectedBy || '';
+        doc.rejectedAt = doc.rejectedAt || '';
+        doc.rejectReason = doc.rejectReason || '';
+        const creator = (this.users || []).find(user => user.name === doc.createdBy || user.id === doc.createdBy);
+        if (doc.status === 'submitted' && creator && (creator.roles || []).includes('Manager')) {
+          doc.status = 'posted';
+          doc.approvedBy = creator.name;
+          doc.approvedAt = todayISO();
+          doc.postedBy = creator.name;
+          doc.postedAt = todayISO();
+          doc.history = doc.history || [];
+          doc.history.unshift({ action:'approved', by:creator.name, byRole:'Manager', at:todayISO(), note:'Auto approve Manager' });
+        }
+        delete doc.finalizedBy;
+        delete doc.finalizedAt;
+        delete doc.hppSentAt;
+      });
+      // Link legacy payroll-sourced monthly costs when possible.
+      (this.biayaProduksiBulanan || []).forEach(row => {
+        row.sourcePayrollId = row.sourcePayrollId || '';
+        row.sourcePayrollPeriod = row.sourcePayrollPeriod || '';
+        row.sourceJournalId = row.sourceJournalId || '';
+        if (row.sourceType === 'payroll' && !row.sourcePayrollPeriod) {
+          const doc = (this.payrolls || [])
+            .filter(item => item.period === row.period && item.status === 'posted')
+            .sort((a, b) => (Number(b.version) || 0) - (Number(a.version) || 0))[0];
+          if (doc) {
+            row.sourcePayrollId = doc.id;
+            row.sourcePayrollPeriod = doc.period;
+          } else {
+            row.sourceType = 'manual';
+          }
+        }
+      });
+      // Manager-created PR/PO no longer wait for another Manager.
+      const managerRecord = user => (this.users || []).find(item => item.name === user || item.id === user) || null;
+      const isManager = user => {
+        const record = managerRecord(user);
+        return !!(record && (record.roles || []).includes('Manager'));
+      };
+      (this.purchaseRequests || []).forEach(pr => {
+        if (pr.status === 'submitted' && isManager(pr.requesterId || pr.createdBy)) {
+          const record = managerRecord(pr.requesterId || pr.createdBy);
+          pr.status = 'approved';
+          pr.approvedBy = (record && record.name) || pr.requesterId || '';
+          pr.approvedAt = todayISO();
+          pr.history = pr.history || [];
+          pr.history.push({ action:'approved', by:pr.approvedBy, byRole:'Manager', at:todayISO(), note:'Auto approve Manager' });
+        }
+      });
+      (this.purchaseOrders || []).forEach(po => {
+        if (po.status === 'pending_approval' && isManager(po.createdById || po.createdBy)) {
+          const record = managerRecord(po.createdById || po.createdBy);
+          po.status = 'approved';
+          po.approvedBy = (record && record.name) || po.createdById || '';
+          po.approvedAt = todayISO();
+          po.history = po.history || [];
+          po.history.push({ action:'approved', by:po.approvedBy, byRole:'Manager', at:todayISO(), note:'Auto approve Manager' });
+          this.reservePRQuantities(po);
+          this.updateMaterialPrices(po);
+        }
+      });
     },
     migrateFromV17(parsed) {
       this.migrateFromV16(parsed);
@@ -2131,7 +2222,7 @@ function app() {
       this.attendanceNoteOpen = false;
       this.attendanceSettingsOpen = false;
       this.payrollRevisionOpen = false;
-      this.payrollHppOpen = false;
+      this.payrollRejectOpen = false;
       this.payrollSettingsOpen = false;
       this.exportModalOpen = false;
       this.userModalOpen = false;
@@ -2310,6 +2401,14 @@ function app() {
         case 'employees': return [
           { label:'Edit', icon:'i-pencil', run:() => this.openEmployee(row) },
           { label:row.status ? 'Nonaktifkan' : 'Aktifkan', icon:row.status ? 'i-x' : 'i-check', run:() => this.toggleEmployeeStatus(row) }
+        ];
+        case 'payroll': return [
+          { label:'Lihat Detail', icon:'i-eye', run:() => this.openPayrollDetail(row) },
+          { label:'Edit', icon:'i-pencil', show:['draft','rejected'].includes(row.status), run:() => this.editPayroll(row) },
+          { label:'Ajukan Persetujuan', icon:'i-send', show:['draft','rejected'].includes(row.status), run:() => { this.openPayrollDetail(row); this.askPayrollSubmit(); } },
+          { label:'Setujui', icon:'i-check', show:this.canApprovePayroll && row.status === 'submitted' && row.createdBy !== this.currentUserId, run:() => { this.openPayrollDetail(row); this.askPayrollApprove(row); } },
+          { label:'Tolak', icon:'i-x', danger:true, show:this.canApprovePayroll && row.status === 'submitted' && row.createdBy !== this.currentUserId, run:() => this.openPayrollReject(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:['draft','rejected'].includes(row.status), run:() => this.askPayrollDelete(row) }
         ];
         case 'hpp-bulanan': return [
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewHppBulanan(row) },
@@ -2647,11 +2746,14 @@ function app() {
         this.persist();
         this.notify('Keterangan absensi dihapus');
       }
-      if (action === 'payroll-finalize') {
-        this.commitPayrollFinal();
+      if (action === 'payroll-submit') {
+        this.commitPayrollSubmit();
       }
-      if (action === 'payroll-send-hpp') {
-        this.sendPayrollToHpp(true);
+      if (action === 'payroll-approve') {
+        this.commitPayrollApprove();
+      }
+      if (action === 'payroll-delete') {
+        this.deletePayroll(id);
       }
       if (action === 'post-journal') {
         const journal = this.journals.find(item => item.id === id);
@@ -3833,13 +3935,25 @@ function app() {
         this.notify('Anda tidak berhak mengajukan PR ini', 'error');
         return;
       }
+      const autoApprove = this.role === 'Manager';
       if (!confirmed) {
-        this.askSave('submit-pr', pr.id, 'PR ' + pr.code + ' akan diajukan untuk approval Manager.', 'Submit');
+        this.askSave('submit-pr', pr.id, autoApprove
+          ? 'PR ' + pr.code + ' akan langsung disetujui karena Anda Manager.'
+          : 'PR ' + pr.code + ' akan diajukan untuk approval Manager.', 'Submit');
+        return;
+      }
+      pr.history = pr.history || [];
+      pr.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+      if (autoApprove) {
+        pr.status = 'approved';
+        pr.approvedBy = this.currentUser;
+        pr.approvedAt = todayISO();
+        pr.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Auto approve Manager' });
+        this.persist();
+        this.notify('PR berhasil disubmit dan langsung disetujui');
         return;
       }
       pr.status = 'submitted';
-      pr.history = pr.history || [];
-      pr.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
       this.persist();
       this.notify('PR berhasil disubmit');
     },
@@ -4206,13 +4320,35 @@ function app() {
       };
       const error = this.poValidationError(po.items || []);
       if (error) { this.notify(error, 'error'); return; }
+      const autoApprove = this.role === 'Manager';
       if (!confirmed) {
-        this.askSave('submit-po', po.id, 'PO ' + po.code + ' akan disubmit untuk approval Manager.', 'Submit');
+        this.askSave('submit-po', po.id, autoApprove
+          ? 'PO ' + po.code + ' akan langsung disetujui karena Anda Manager.'
+          : 'PO ' + po.code + ' akan disubmit untuk approval Manager.', 'Submit');
+        return;
+      }
+      if (autoApprove) {
+        const poError = this.poApprovalError(po);
+        if (poError) { this.notify(poError, 'error'); return; }
+      }
+      po.history = po.history || [];
+      po.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+      if (autoApprove) {
+        po.status = 'approved';
+        po.approvedBy = this.currentUser;
+        po.approvedAt = todayISO();
+        po.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Auto approve Manager' });
+        this.reservePRQuantities(po);
+        this.updateMaterialPrices(po);
+        if (po.prId) {
+          const pr = this.purchaseRequests.find(item => item.id === po.prId);
+          if (pr) this.updatePRStatus(pr);
+        }
+        this.persist();
+        this.notify('PO berhasil disubmit dan langsung disetujui');
         return;
       }
       po.status = 'pending_approval';
-      po.history = po.history || [];
-      po.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
       if (po.prId) {
         const pr = this.purchaseRequests.find(item => item.id === po.prId);
         if (pr) this.updatePRStatus(pr);
@@ -5779,10 +5915,11 @@ function app() {
     },
     payrollPeriod: todayISO().slice(0, 7),
     payrollAttendancePeriod: previousMonthKey(todayISO().slice(0, 7)),
+    payrollView: 'list', payrollSelectedId: null,
+    payrollListSearch: '', payrollListStatus: '', payrollListPeriod: '',
     payrollSearch: '',
     payrollRevisionOpen: false, payrollRevisionReason: '',
-    payrollHppOpen: false,
-    payrollHppForm: { period:previousMonthKey(todayISO().slice(0, 7)), basis:'before' },
+    payrollRejectOpen: false, payrollRejectId: null, payrollRejectReason: '',
     payrollSettingsOpen: false,
     payrollSettingsForm: { hkStandar:26, mealDefault:20000, hppGroups:['Produksi'], hppSalaryBasis:'before' },
     hrSelfTestResult: null,
@@ -5806,7 +5943,7 @@ function app() {
         { key:'gaji', label:'Gaji Produksi', employee:true },
         { key:'uang_makan', label:'Uang Makan Produksi', employee:true },
         { key:'bpjs', label:'BPJS Produksi', employee:false },
-        { key:'listrik', label:'Listrik', employee:false },
+        { key:'listrik', label:'Listrik Produksi', employee:false },
         { key:'overhead', label:'Overhead', employee:false }
       ];
     },
@@ -5815,7 +5952,7 @@ function app() {
         { key:'gaji', label:'Gaji Produksi', employee:true },
         { key:'uang_makan', label:'Uang Makan Produksi', employee:true },
         { key:'bpjs', label:'BPJS Produksi', employee:false },
-        { key:'listrik', label:'Listrik', employee:false },
+        { key:'listrik', label:'Listrik Produksi', employee:false },
         { key:'overhead', label:'Overhead', employee:false },
         { key:'air', label:'Air', employee:false },
         { key:'bonusan', label:'Bonusan', employee:false },
@@ -5951,13 +6088,46 @@ function app() {
           value:Number(row.value) || 0,
           employeeCount:row.employeeCount != null ? row.employeeCount : '',
           sourceType:row.sourceType || 'manual',
+          sourcePayrollId:row.sourcePayrollId || '',
+          sourcePayrollPeriod:row.sourcePayrollPeriod || '',
+          sourceJournalId:row.sourceJournalId || '',
           type:row.type || 'estimasi',
           note:row.note || ''
         } : {
-          value:0, employeeCount:'', sourceType:'manual', type:'estimasi', note:''
+          value:0, employeeCount:'', sourceType:'manual', sourcePayrollId:'', sourcePayrollPeriod:'', sourceJournalId:'', type:'estimasi', note:''
         };
       });
+      const linked = form.gaji && form.gaji.sourceType === 'payroll' && form.gaji.sourcePayrollPeriod;
+      if (linked) this.applyHppPayrollToForm(form);
+      else if (form.gaji && form.gaji.sourceType === 'payroll') {
+        ['gaji','uang_makan','bpjs'].forEach(key => {
+          if (!form[key]) return;
+          form[key].sourceType = 'manual';
+          form[key].sourcePayrollId = '';
+          form[key].sourcePayrollPeriod = '';
+        });
+      }
+      if (form.listrik && form.listrik.sourceType === 'jurnal') form.listrik.value = this.listrikJournalValue(this.hppMonthlyPeriod);
       this.hppMonthlyForm = form;
+    },
+    applyHppPayrollToForm(form) {
+      const period = form.gaji.sourcePayrollPeriod;
+      const doc = this.postedPayrollForPeriod(period);
+      if (!doc) return;
+      const summary = this.hppPayrollSummary(period);
+      form.gaji.value = summary.gaji;
+      form.gaji.employeeCount = summary.headcount;
+      form.uang_makan.value = summary.uangMakan;
+      form.uang_makan.employeeCount = summary.headcount;
+      form.bpjs.value = summary.bpjs;
+      ['gaji','uang_makan','bpjs'].forEach(key => {
+        if (!form[key]) return;
+        form[key].sourceType = 'payroll';
+        form[key].sourcePayrollId = doc.id;
+        form[key].sourcePayrollPeriod = doc.period;
+        form[key].type = 'aktual';
+        form[key].note = 'Payroll ' + monthLongLabel(doc.period);
+      });
     },
     setHppMonthlyPeriod(value) {
       this.hppMonthlyPeriod = value;
@@ -5974,6 +6144,9 @@ function app() {
           value:Number(form.value) || 0,
           employeeCount:form.employeeCount === '' ? null : Number(form.employeeCount) || 0,
           sourceType:form.sourceType || 'manual',
+          sourcePayrollId:form.sourcePayrollId || '',
+          sourcePayrollPeriod:form.sourcePayrollPeriod || '',
+          sourceJournalId:form.sourceJournalId || '',
           type:form.type || 'estimasi',
           note:form.note || ''
         };
@@ -5996,10 +6169,13 @@ function app() {
           value:Number(row.value) || 0,
           employeeCount:row.employeeCount,
           sourceType:row.sourceType,
+          sourcePayrollId:row.sourcePayrollId || '',
+          sourcePayrollPeriod:row.sourcePayrollPeriod || '',
+          sourceJournalId:row.sourceJournalId || '',
           type:row.type,
           note:row.note || ''
         };
-        const different = ['value','employeeCount','sourceType','type','note'].some(key => String(before[key] == null ? '' : before[key]) !== String(next[key] == null ? '' : next[key]));
+        const different = ['value','employeeCount','sourceType','sourcePayrollId','sourcePayrollPeriod','sourceJournalId','type','note'].some(key => String(before[key] == null ? '' : before[key]) !== String(next[key] == null ? '' : next[key]));
         if (!different) return;
         row.history = row.history || [];
         row.history.unshift({ at:todayISO(), by:this.currentUser, byRole:this.role, before, after:next });
@@ -6527,6 +6703,10 @@ function app() {
       return row ? (row.sourceType || 'manual') : 'manual';
     },
     hppBulananSourceLabel(component, usePeriod = false) {
+      if (!this.hppBulananForm) return 'Manual';
+      const period = usePeriod ? this.hppBulananForm.period : this.hppBulananForm.costPeriod;
+      const row = this.getBiayaBulanan(period, component);
+      if (row && row.sourceType === 'payroll') return row.sourcePayrollPeriod ? 'Payroll ' + monthLongLabel(row.sourcePayrollPeriod) : 'Payroll';
       return { manual:'Manual', payroll:'Payroll', jurnal:'Jurnal' }[this.hppBulananSource(component, usePeriod)] || 'Manual';
     },
     defaultHppBulananPool(period, costPeriod) {
@@ -7577,9 +7757,58 @@ function app() {
         .filter(doc => doc.period === period)
         .sort((a, b) => Number(b.version) - Number(a.version))[0] || null;
     },
-    get payrollDoc() { return this.payrollForPeriod(this.payrollPeriod); },
-    payrollStatusLabel(status) { return { draft:'Draft', final:'Final', revised:'Direvisi' }[status] || 'Belum dibuat'; },
-    payrollStatusBadge(status) { return { draft:'badge-slate', final:'badge-green', revised:'badge-stone' }[status] || 'badge-slate'; },
+    postedPayrollForPeriod(period) {
+      return (this.payrolls || [])
+        .filter(doc => doc.period === period && doc.status === 'posted')
+        .sort((a, b) => Number(b.version) - Number(a.version))[0] || null;
+    },
+    get payrollSelectedDoc() {
+      return (this.payrolls || []).find(doc => doc.id === this.payrollSelectedId) || null;
+    },
+    get payrollDoc() {
+      if (this.payrollView === 'detail') return this.payrollSelectedDoc;
+      return this.payrollForPeriod(this.payrollPeriod);
+    },
+    get payrollList() {
+      const map = new Map();
+      (this.payrolls || []).forEach(doc => {
+        const key = doc.period || doc.id;
+        const current = map.get(key);
+        if (!current) { map.set(key, doc); return; }
+        const currentArchived = current.status === 'revised';
+        const nextArchived = doc.status === 'revised';
+        if (currentArchived && !nextArchived) { map.set(key, doc); return; }
+        if (currentArchived === nextArchived && (Number(doc.version) || 0) > (Number(current.version) || 0)) map.set(key, doc);
+      });
+      return [...map.values()].sort((a, b) => String(b.period).localeCompare(String(a.period)) || (Number(b.version) || 0) - (Number(a.version) || 0));
+    },
+    get filteredPayrollList() {
+      const q = String(this.payrollListSearch || '').toLowerCase();
+      return this.payrollList.filter(doc => {
+        if (this.payrollListStatus && doc.status !== this.payrollListStatus) return false;
+        if (this.payrollListPeriod && doc.period !== this.payrollListPeriod) return false;
+        if (!q) return true;
+        return [doc.code, doc.period, doc.createdBy, doc.approvedBy].join(' ').toLowerCase().includes(q);
+      });
+    },
+    get payrollListPeriods() {
+      return [...new Set(this.payrollList.map(doc => doc.period).filter(Boolean))].sort().reverse();
+    },
+    get payrollPreviewRows() {
+      if (!this.payrollPeriod) return [];
+      return this.buildPayrollRows(this.payrollPeriod, this.payrollAttendancePeriod);
+    },
+    get payrollPreviewTotal() {
+      return this.payrollPreviewRows.reduce((sum, row) => sum + this.payrollRowCalc(row).totalDiterima, 0);
+    },
+    payrollDocTotal(doc) {
+      return ((doc && doc.rows) || []).reduce((sum, row) => sum + this.payrollRowCalc(row).totalDiterima, 0);
+    },
+    payrollDocEmployees(doc) { return ((doc && doc.rows) || []).length; },
+    payrollIssuedDate(doc) { return (doc && (doc.postedAt || doc.approvedAt)) || ''; },
+    get canApprovePayroll() { return this.role === 'Manager'; },
+    payrollStatusLabel(status) { return { draft:'Draft', submitted:'Menunggu Persetujuan', posted:'Posted', rejected:'Ditolak', revised:'Direvisi', final:'Posted' }[status] || 'Belum dibuat'; },
+    payrollStatusBadge(status) { return { draft:'badge-slate', submitted:'badge-yellow', posted:'badge-green', rejected:'badge-red', revised:'badge-stone', final:'badge-green' }[status] || 'badge-slate'; },
     payrollRowCalc(row) {
       const hkStandar = Number(row.hkStandar) || Number(this.hrSettings.hkStandar) || 26;
       const basicSalary = Number(row.basicSalary) || 0;
@@ -7683,10 +7912,29 @@ function app() {
       this.persist();
       this.notify('Pengaturan payroll disimpan');
     },
+    openPayrollCreate() {
+      this.payrollView = 'create';
+      this.payrollSelectedId = null;
+      if (!this.payrollPeriod) this.payrollPeriod = todayISO().slice(0, 7);
+      if (!this.payrollAttendancePeriod) this.payrollAttendancePeriod = previousMonthKey(this.payrollPeriod);
+    },
+    openPayrollDetail(doc) {
+      if (!doc) return;
+      this.payrollSelectedId = doc.id;
+      this.payrollView = 'detail';
+    },
+    editPayroll(doc) {
+      if (!doc || !['draft','rejected'].includes(doc.status)) { this.notify('Hanya payroll Draft atau Ditolak yang dapat diedit', 'error'); return; }
+      this.openPayrollDetail(doc);
+    },
+    backToPayrollList() {
+      this.payrollView = 'list';
+      this.payrollSelectedId = null;
+    },
     startPayroll() {
       if (!this.payrollPeriod) { this.notify('Pilih periode payroll', 'error'); return; }
       const existing = this.payrollForPeriod(this.payrollPeriod);
-      if (existing) { this.notify('Payroll periode ini sudah ada. Gunakan Revisi bila sudah final.', 'error'); return; }
+      if (existing) { this.notify('Payroll periode ini sudah ada. Gunakan Revisi untuk membuat versi baru.', 'error'); return; }
       const rows = this.buildPayrollRows(this.payrollPeriod, this.payrollAttendancePeriod);
       if (!rows.length) { this.notify('Tidak ada pegawai aktif', 'error'); return; }
       const doc = {
@@ -7698,15 +7946,19 @@ function app() {
         status:'draft',
         rows,
         createdBy:this.currentUser,
-        finalizedBy:'',
-        finalizedAt:'',
+        submittedBy:'', submittedAt:'',
+        approvedBy:'', approvedAt:'',
+        postedBy:'', postedAt:'',
+        rejectedBy:'', rejectedAt:'', rejectReason:'',
+        revisedFromId:'',
         reviseReason:'',
-        hppSentAt:'',
         history:[{ action:'draft', by:this.currentUser, at:todayISO(), note:'Payroll dibuat' }]
       };
       (this.payrolls = this.payrolls || []).unshift(doc);
+      this.payrollSelectedId = doc.id;
+      this.payrollView = 'detail';
       this.persist();
-      this.notify('Payroll ' + this.payrollPeriod + ' dibuat');
+      this.notify('Draft payroll ' + this.payrollPeriod + ' dibuat');
     },
     onPayrollHkChange(row) {
       row.hk = Math.max(0, Number(row.hk) || 0);
@@ -7714,9 +7966,10 @@ function app() {
       this.persist();
     },
     onPayrollRowChange() { this.persist(); },
+    payrollEditable(doc) { return !!doc && ['draft','rejected'].includes(doc.status); },
     recalcPayroll() {
       const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'draft') return;
+      if (!this.payrollEditable(doc)) return;
       (doc.rows || []).forEach(row => {
         const employee = this.employee(row.employeeId);
         if (!employee.id) return;
@@ -7746,34 +7999,111 @@ function app() {
       if (zeroSalary > 0) warnings.push(zeroSalary + ' pegawai belum punya gaji pokok');
       return warnings;
     },
-    askPayrollFinalize() {
+    askPayrollSubmit() {
       const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'draft') return;
+      if (!this.payrollEditable(doc)) { this.notify('Payroll ini tidak dapat diajukan', 'error'); return; }
       const warnings = this.payrollWarnings();
-      this.askConfirm('payroll-finalize', doc.id, 'Finalisasi payroll?', (warnings.length ? 'Peringatan: ' + warnings.join('; ') + '. ' : '') + 'Payroll akan dikunci setelah finalisasi.', false, 'Finalisasi');
+      const auto = this.role === 'Manager';
+      const message = (warnings.length ? 'Peringatan: ' + warnings.join('; ') + '. ' : '')
+        + (auto ? 'Payroll akan langsung disetujui dan diposting karena Anda Manager.' : 'Payroll akan dikunci dan menunggu persetujuan Manager.');
+      this.askConfirm('payroll-submit', doc.id, auto ? 'Ajukan dan setujui payroll?' : 'Ajukan payroll?', message, false, auto ? 'Ajukan & Setujui' : 'Ajukan');
     },
-    commitPayrollFinal() {
+    commitPayrollSubmit() {
       const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'draft') return;
-      doc.status = 'final';
-      doc.finalizedBy = this.currentUser;
-      doc.finalizedAt = todayISO();
+      if (!this.payrollEditable(doc)) return;
+      doc.submittedBy = this.currentUser;
+      doc.submittedAt = todayISO();
+      doc.rejectReason = '';
       doc.history = doc.history || [];
-      doc.history.unshift({ action:'final', by:this.currentUser, at:todayISO(), note:'Finalisasi payroll' });
+      doc.history.unshift({ action:'submitted', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+      if (this.role === 'Manager') {
+        doc.status = 'posted';
+        doc.approvedBy = this.currentUser;
+        doc.approvedAt = todayISO();
+        doc.postedBy = this.currentUser;
+        doc.postedAt = todayISO();
+        doc.history.unshift({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Auto approve Manager' });
+        this.persist();
+        this.notify('Payroll diajukan dan langsung diposting');
+      } else {
+        doc.status = 'submitted';
+        this.persist();
+        this.notify('Payroll diajukan untuk persetujuan Manager');
+      }
+    },
+    askPayrollApprove(doc = this.payrollDoc) {
+      if (!this.canApprovePayroll) { this.notify('Persetujuan payroll hanya dapat dilakukan oleh role Manager', 'error'); return; }
+      if (!doc || doc.status !== 'submitted') { this.notify('Payroll ini tidak menunggu persetujuan', 'error'); return; }
+      if (doc.createdBy === this.currentUser) { this.notify('Manager tidak dapat menyetujui payroll miliknya sendiri', 'error'); return; }
+      this.askConfirm('payroll-approve', doc.id, 'Setujui payroll?', 'Payroll ' + doc.code + ' akan diposting atas nama ' + this.currentUser + '.', false, 'Setujui');
+    },
+    commitPayrollApprove() {
+      const doc = this.payrollDoc;
+      if (!this.canApprovePayroll || !doc || doc.status !== 'submitted' || doc.createdBy === this.currentUser) {
+        this.notify('Payroll tidak dapat disetujui', 'error');
+        return;
+      }
+      doc.status = 'posted';
+      doc.approvedBy = this.currentUser;
+      doc.approvedAt = todayISO();
+      doc.postedBy = this.currentUser;
+      doc.postedAt = todayISO();
+      doc.history = doc.history || [];
+      doc.history.unshift({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
       this.persist();
-      this.notify('Payroll berhasil difinalisasi');
-      this.payrollHppForm = { period:doc.attendancePeriod, basis:this.hrSettings.hppSalaryBasis || 'before' };
-      this.payrollHppOpen = true;
+      this.notify('Payroll ' + doc.code + ' disetujui dan diposting');
+    },
+    openPayrollReject(doc = this.payrollDoc) {
+      if (!this.canApprovePayroll) { this.notify('Penolakan payroll hanya dapat dilakukan oleh role Manager', 'error'); return; }
+      if (!doc || doc.status !== 'submitted') { this.notify('Payroll ini tidak menunggu persetujuan', 'error'); return; }
+      if (doc.createdBy === this.currentUser) { this.notify('Manager tidak dapat menolak payroll miliknya sendiri', 'error'); return; }
+      this.payrollRejectId = doc.id;
+      this.payrollRejectReason = '';
+      this.payrollRejectOpen = true;
+    },
+    submitPayrollReject() {
+      const doc = (this.payrolls || []).find(item => item.id === this.payrollRejectId);
+      if (!doc || !this.canApprovePayroll) return;
+      if (!String(this.payrollRejectReason || '').trim()) { this.notify('Alasan penolakan wajib diisi', 'error'); return; }
+      doc.status = 'rejected';
+      doc.rejectReason = this.payrollRejectReason.trim();
+      doc.rejectedBy = this.currentUser;
+      doc.rejectedAt = todayISO();
+      doc.history = doc.history || [];
+      doc.history.unshift({ action:'rejected', by:this.currentUser, byRole:this.role, at:todayISO(), note:doc.rejectReason });
+      this.payrollRejectOpen = false;
+      this.persist();
+      this.notify('Payroll ditolak');
+    },
+    askPayrollDelete(doc = this.payrollDoc) {
+      if (!doc || !['draft','rejected'].includes(doc.status)) { this.notify('Hanya payroll Draft atau Ditolak yang dapat dihapus', 'error'); return; }
+      this.askConfirm('payroll-delete', doc.id, 'Hapus payroll?', 'Payroll ' + doc.code + ' akan dihapus permanen.', true);
+    },
+    deletePayroll(id) {
+      const doc = (this.payrolls || []).find(item => item.id === id);
+      if (!doc || !['draft','rejected'].includes(doc.status)) return;
+      this.payrolls = (this.payrolls || []).filter(item => item.id !== id);
+      const previous = (this.payrolls || [])
+        .filter(item => item.period === doc.period && item.status === 'revised')
+        .sort((a, b) => (Number(b.version) || 0) - (Number(a.version) || 0))[0];
+      if (previous) {
+        previous.status = 'posted';
+        previous.history = previous.history || [];
+        previous.history.unshift({ action:'restored', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Draft revisi dihapus' });
+      }
+      if (this.payrollSelectedId === id) this.backToPayrollList();
+      this.persist();
+      this.notify('Payroll dihapus');
     },
     openPayrollRevision() {
       const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'final') return;
+      if (!doc || doc.status !== 'posted') { this.notify('Hanya payroll Posted yang dapat direvisi', 'error'); return; }
       this.payrollRevisionReason = '';
       this.payrollRevisionOpen = true;
     },
     savePayrollRevision() {
       const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'final') return;
+      if (!doc || doc.status !== 'posted') return;
       if (!String(this.payrollRevisionReason || '').trim()) { this.notify('Alasan revisi wajib diisi', 'error'); return; }
       const old = doc;
       old.status = 'revised';
@@ -7783,15 +8113,20 @@ function app() {
       next.code = 'PAY-' + old.period + '-' + String(next.version).padStart(4, '0');
       next.status = 'draft';
       next.createdBy = this.currentUser;
-      next.finalizedBy = '';
-      next.finalizedAt = '';
-      next.hppSentAt = '';
+      next.submittedBy = ''; next.submittedAt = '';
+      next.approvedBy = ''; next.approvedAt = '';
+      next.postedBy = ''; next.postedAt = '';
+      next.rejectedBy = ''; next.rejectedAt = ''; next.rejectReason = '';
+      next.revisedFromId = old.id;
+      next.reviseReason = this.payrollRevisionReason.trim();
       next.history = next.history || [];
       next.history.unshift({ action:'revisi', by:this.currentUser, at:todayISO(), note:this.payrollRevisionReason.trim() });
       (this.payrolls = this.payrolls || []).unshift(next);
+      this.payrollSelectedId = next.id;
+      this.payrollView = 'detail';
       this.payrollRevisionOpen = false;
       this.persist();
-      this.notify('Revisi payroll dibuat');
+      this.notify('Revisi payroll dibuat sebagai Draft');
     },
     get exportModalTitle() {
       return { employees:'Export Data Pegawai', attendance:'Export Rekap Absensi', payroll:'Export Payroll' }[this.exportKind] || 'Export';
@@ -7821,10 +8156,7 @@ function app() {
       }
       this.exportModalOpen = false;
     },
-    getPayrollSummary(period, group = 'Produksi', basisOverride = '') {
-      const doc = (this.payrolls || [])
-        .filter(item => item.period === period && item.status === 'final')
-        .sort((a, b) => Number(b.version) - Number(a.version))[0];
+    getPayrollSummaryForDoc(doc, group = 'Produksi', basisOverride = '') {
       if (!doc) return { gaji:0, uangMakan:0, lembur:0, bpjsPerusahaan:0, headcount:0 };
       const rows = (doc.rows || []).filter(row => row.group === group).map(row => ({ ...row, ...this.payrollRowCalc(row) }));
       const basis = basisOverride || this.hrSettings.hppSalaryBasis || 'before';
@@ -7836,70 +8168,84 @@ function app() {
         headcount:rows.length
       };
     },
-    askPayrollSendHpp() {
-      const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'final') { this.notify('Finalisasi payroll sebelum mengirim ke HPP', 'error'); return; }
-      this.payrollHppForm = { period:doc.attendancePeriod, basis:this.hrSettings.hppSalaryBasis || 'before' };
-      this.payrollHppOpen = true;
+    getPayrollSummary(period, group = 'Produksi', basisOverride = '') {
+      return this.getPayrollSummaryForDoc(this.postedPayrollForPeriod(period), group, basisOverride);
     },
-    sendPayrollToHpp(confirmed = false) {
-      const doc = this.payrollDoc;
-      if (!doc || doc.status !== 'final') { this.notify('Payroll harus final', 'error'); return; }
-      const form = this.payrollHppForm;
+    get payrollPostedPeriods() {
+      return [...new Set((this.payrolls || []).filter(doc => doc.status === 'posted').map(doc => doc.period).filter(Boolean))].sort().reverse();
+    },
+    get hppPayrollSourcePeriods() {
+      const limit = this.hppMonthlyPeriod || '';
+      return this.payrollPostedPeriods.filter(period => !limit || period <= limit).slice(0, 3);
+    },
+    hppPayrollSummary(period) {
+      const doc = this.postedPayrollForPeriod(period);
+      if (!doc) return { gaji:0, uangMakan:0, bpjs:0, headcount:0 };
       const groups = this.hrSettings.hppGroups || ['Produksi'];
-      const summaries = groups.map(group => ({ group, ...this.getPayrollSummary(doc.period, group, form.basis) }));
-      const totals = summaries.reduce((sum, item) => ({
-        gaji:sum.gaji + item.gaji,
-        uangMakan:sum.uangMakan + item.uangMakan,
-        bpjs:sum.bpjs + item.bpjsPerusahaan,
-        headcount:sum.headcount + item.headcount
-      }), { gaji:0, uangMakan:0, bpjs:0, headcount:0 });
-      const values = {
-        gaji:{ value:totals.gaji, employeeCount:totals.headcount },
-        uang_makan:{ value:totals.uangMakan, employeeCount:totals.headcount },
-        bpjs:{ value:totals.bpjs, employeeCount:totals.headcount }
-      };
-      const existing = Object.keys(values).map(component => ({ component, row:this.getBiayaBulanan(form.period, component), value:values[component].value })).filter(item => item.row && Number(item.row.value) !== item.value);
-      if (existing.length && !confirmed) {
-        this.askConfirm('payroll-send-hpp', null, 'Timpa biaya bulanan?', 'Nilai ' + existing.map(item => this.hppComponentLabel(item.component)).join(', ') + ' pada ' + monthLongLabel(form.period) + ' akan diperbarui dari payroll.', false, 'Kirim');
+      return groups.reduce((totals, group) => {
+        const summary = this.getPayrollSummaryForDoc(doc, group, this.hrSettings.hppSalaryBasis || 'before');
+        totals.gaji += summary.gaji;
+        totals.uangMakan += summary.uangMakan;
+        totals.bpjs += summary.bpjsPerusahaan;
+        totals.headcount += summary.headcount;
+        return totals;
+      }, { gaji:0, uangMakan:0, bpjs:0, headcount:0 });
+    },
+    get hppMonthlyFollowsPayroll() {
+      return !!(this.hppMonthlyForm && this.hppMonthlyForm.gaji && this.hppMonthlyForm.gaji.sourceType === 'payroll');
+    },
+    get hppMonthlyPayrollLabel() {
+      const period = this.hppMonthlyForm && this.hppMonthlyForm.gaji ? this.hppMonthlyForm.gaji.sourcePayrollPeriod : '';
+      return period ? 'Payroll ' + monthLongLabel(period) : 'Payroll';
+    },
+    setHppMonthlyPayroll(period) {
+      const form = this.hppMonthlyForm;
+      if (!form || !form.gaji) return;
+      if (!period) {
+        ['gaji','uang_makan','bpjs'].forEach(key => {
+          if (!form[key]) return;
+          form[key].sourceType = 'manual';
+          form[key].sourcePayrollId = '';
+          form[key].sourcePayrollPeriod = '';
+        });
         return;
       }
-      this.biayaProduksiBulanan = this.biayaProduksiBulanan || [];
-      Object.keys(values).forEach(component => {
-        const payload = values[component];
-        let row = this.getBiayaBulanan(form.period, component);
-        if (!row) {
-          row = {
-            id:'bpb' + Date.now() + Math.random().toString(16).slice(2),
-            period:form.period,
-            component,
-            value:payload.value,
-            employeeCount:payload.employeeCount,
-            sourceType:'payroll',
-            type:'aktual',
-            note:doc.code + ' v' + doc.version,
-            createdBy:this.currentUser,
-            updatedBy:this.currentUser,
-            updatedAt:todayISO(),
-            history:[]
-          };
-          this.biayaProduksiBulanan.push(row);
-          return;
-        }
-        row.history = row.history || [];
-        row.history.unshift({ at:todayISO(), by:this.currentUser, before:{ value:row.value, sourceType:row.sourceType }, after:{ value:payload.value, sourceType:'payroll' }, note:doc.code + ' v' + doc.version });
-        row.value = payload.value;
-        row.employeeCount = payload.employeeCount;
-        row.sourceType = 'payroll';
-        row.type = 'aktual';
-        row.note = doc.code + ' v' + doc.version;
-        row.updatedBy = this.currentUser;
-        row.updatedAt = todayISO();
+      const doc = this.postedPayrollForPeriod(period);
+      if (!doc) { this.notify('Payroll ' + monthLongLabel(period) + ' belum Posted', 'error'); return; }
+      const summary = this.hppPayrollSummary(period);
+      form.gaji.value = summary.gaji;
+      form.gaji.employeeCount = summary.headcount;
+      form.uang_makan.value = summary.uangMakan;
+      form.uang_makan.employeeCount = summary.headcount;
+      form.bpjs.value = summary.bpjs;
+      ['gaji','uang_makan','bpjs'].forEach(key => {
+        if (!form[key]) return;
+        form[key].sourceType = 'payroll';
+        form[key].sourcePayrollId = doc.id;
+        form[key].sourcePayrollPeriod = doc.period;
+        form[key].type = 'aktual';
+        form[key].note = 'Payroll ' + monthLongLabel(doc.period);
       });
-      doc.hppSentAt = todayISO();
-      this.payrollHppOpen = false;
-      this.persist();
-      this.notify('Payroll dikirim ke biaya bulanan ' + monthLongLabel(form.period));
+    },
+    electricityProductionAccount() {
+      return (this.accounts || []).find(account => account.code === '5-1600' || account.name === 'Beban Listrik Produksi') || null;
+    },
+    listrikJournalValue(period) {
+      const account = this.electricityProductionAccount();
+      if (!account || !period) return 0;
+      return (this.journals || [])
+        .filter(journal => journal.status === 'posted' && String(journal.date || '').slice(0, 7) === period)
+        .reduce((total, journal) => total + (journal.lines || []).filter(line => line.accountId === account.id).reduce((sum, line) => sum + (Number(line.debit) || 0), 0), 0);
+    },
+    setHppMonthlyListrikSource(source) {
+      const form = this.hppMonthlyForm;
+      if (!form || !form.listrik) return;
+      form.listrik.sourceType = source === 'jurnal' ? 'jurnal' : 'manual';
+      if (form.listrik.sourceType === 'jurnal') {
+        form.listrik.value = this.listrikJournalValue(this.hppMonthlyPeriod);
+        form.listrik.type = 'aktual';
+        form.listrik.note = 'Jurnal Beban Listrik Produksi ' + monthLongLabel(this.hppMonthlyPeriod);
+      }
     },
     attendanceHkFromCounts(counts) {
       const rules = this.hrSettings.hkRules || {};
@@ -7915,7 +8261,7 @@ function app() {
       const mealNoToggle = 26;
       const t4 = this.attendanceHkFromCounts({ alfa:1, izin:1, cuti:1, sakit:1 });
       const t5 = this.matchAttendanceEmployee({ pin:'1001', nip:'', name:'NAMA MESIN BERBEDA' });
-      const tempDoc = { id:'selftest-payroll', period:'2099-01', version:1, status:'final', rows:[{ employeeId:'emp1', potBpjsKet:123000, bpjsPerusahaan:456000 }] };
+      const tempDoc = { id:'selftest-payroll', period:'2099-01', version:1, status:'posted', rows:[{ employeeId:'emp1', potBpjsKet:123000, bpjsPerusahaan:456000 }] };
       (this.payrolls = this.payrolls || []).push(tempDoc);
       const lastRow = this.lastPayrollRowFor('emp1');
       this.payrolls = this.payrolls.filter(doc => doc.id !== 'selftest-payroll');

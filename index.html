@@ -16,7 +16,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="assets/app.css?v=20261123a">
+  <link rel="stylesheet" href="assets/app.css?v=20261123b">
 </head>
 <body x-data="app()" x-init="initCanvas()" @keydown.escape.window="closeModals()" class="bg-slate-50 text-slate-900 antialiased">
 
@@ -2549,14 +2549,32 @@
                 <template x-for="component in hppComponents" :key="component.key">
                   <tr>
                     <td><div class="font-semibold" x-text="component.label"></div><span class="sub" x-show="component.key === 'bpjs'" title="Hanya porsi perusahaan">Porsi perusahaan</span></td>
-                    <td class="num"><input type="number" min="0" class="input input-sm w-44 text-right" x-model.number="hppMonthlyForm[component.key].value"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-44 text-right" x-model.number="hppMonthlyForm[component.key].value" :disabled="hppMonthlyFollowsPayroll && ['gaji','uang_makan','bpjs'].includes(component.key)"></td>
                     <td>
                       <div class="flex flex-wrap items-center gap-1">
-                        <input x-show="component.employee" type="number" min="0" class="input input-sm w-24" placeholder="Pegawai" x-model="hppMonthlyForm[component.key].employeeCount">
-                        <span class="text-[10px] text-slate-400" x-show="component.key === 'listrik'">Biaya bulanan</span>
+                        <input x-show="component.employee" type="number" min="0" class="input input-sm w-24" placeholder="Pegawai" x-model="hppMonthlyForm[component.key].employeeCount" :disabled="hppMonthlyFollowsPayroll && ['gaji','uang_makan'].includes(component.key)">
+                        <span class="text-[10px] text-slate-400" x-show="component.key === 'listrik'" x-text="hppMonthlyForm.listrik.sourceType === 'jurnal' ? 'Beban Listrik Produksi' : 'Biaya bulanan'"></span>
                       </div>
                     </td>
-                    <td><select class="select input-sm w-32" x-model="hppMonthlyForm[component.key].sourceType"><option value="manual">Manual</option><option value="payroll" disabled title="Tersedia setelah modul HR dibuat">Payroll</option><option value="jurnal" disabled title="Tersedia pada tahap berikutnya">Jurnal</option></select></td>
+                    <td>
+                      <template x-if="component.key === 'gaji'">
+                        <select class="select input-sm w-44" x-model="hppMonthlyForm.gaji.sourcePayrollPeriod" @change="setHppMonthlyPayroll($event.target.value)">
+                          <option value="">Manual</option>
+                          <template x-for="period in hppPayrollSourcePeriods" :key="period"><option :value="period" x-text="'Payroll ' + monthLongLabel(period)"></option></template>
+                        </select>
+                      </template>
+                      <template x-if="component.key === 'listrik'">
+                        <select class="select input-sm w-36" x-model="hppMonthlyForm.listrik.sourceType" @change="setHppMonthlyListrikSource($event.target.value)">
+                          <option value="manual">Manual</option><option value="jurnal">Jurnal</option>
+                        </select>
+                      </template>
+                      <template x-if="component.key === 'uang_makan' || component.key === 'bpjs'">
+                        <span class="badge badge-slate" x-text="hppMonthlyFollowsPayroll ? 'Ikut ' + hppMonthlyPayrollLabel : 'Manual'"></span>
+                      </template>
+                      <template x-if="!['gaji','listrik','uang_makan','bpjs'].includes(component.key)">
+                        <span class="badge badge-slate">Manual</span>
+                      </template>
+                    </td>
                     <td><select class="select input-sm w-32" x-model="hppMonthlyForm[component.key].type"><option value="estimasi">Estimasi</option><option value="aktual">Aktual</option></select></td>
                     <td><input class="input input-sm" placeholder="Opsional" x-model="hppMonthlyForm[component.key].note"></td>
                     <td class="actions"><button class="icon-btn icon-btn-sm" @click="openHppHistory(component.key)" title="Riwayat"><svg class="icon icon-sm"><use href="#i-clock"></use></svg></button></td>
@@ -2566,7 +2584,7 @@
             </table>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
-            <div class="text-[11px] text-slate-400">BPJS hanya porsi perusahaan. Payroll dan Jurnal belum aktif.</div>
+            <div class="text-[11px] text-slate-400">Gaji memakai payroll Posted terbaru (maks. 3 periode). Uang makan dan BPJS otomatis mengikuti payroll. Listrik hanya Manual atau Jurnal Beban Listrik Produksi.</div>
             <button class="btn btn-primary" @click="saveHppMonthly()">Simpan Biaya Bulanan</button>
           </div>
         </div>
@@ -3089,21 +3107,21 @@
           <table class="data-table" style="min-width:1700px">
             <thead>
               <tr>
-                <th class="att-frozen att-nip" style="min-width:92px">NIP</th>
-                <th class="att-frozen att-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
+                <th class="frozen-col frozen-nip" style="min-width:92px">NIP</th>
+                <th class="frozen-col frozen-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
                 <template x-for="date in hrPeriodDays(attendancePeriod)" :key="date">
-                  <th class="att-day text-center" style="min-width:34px" :class="isWeeklyOffDate(date) || isHolidayDate(date) ? 'off' : ''" x-text="date.slice(-2)"></th>
+                  <th class="matrix-day text-center" style="min-width:34px" :class="isWeeklyOffDate(date) || isHolidayDate(date) ? 'off' : ''" x-text="date.slice(-2)"></th>
                 </template>
-                <th class="att-sum att-start num">Hadir</th><th class="att-sum num">Izin</th><th class="att-sum num">Sakit</th><th class="att-sum num">Cuti</th><th class="att-sum num">Alfa</th><th class="att-sum num">Lembur</th><th class="att-sum num">Telat</th><th class="att-sum num">HK</th>
+                <th class="matrix-sum matrix-start num">Hadir</th><th class="matrix-sum num">Izin</th><th class="matrix-sum num">Sakit</th><th class="matrix-sum num">Cuti</th><th class="matrix-sum num">Alfa</th><th class="matrix-sum num">Lembur</th><th class="matrix-sum num">Telat</th><th class="matrix-sum num">HK</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="row in attendanceRecapRows" :key="row.employee.id">
                 <tr>
-                  <td class="att-frozen att-nip font-semibold" x-text="row.employee.nip"></td>
-                  <td class="att-frozen att-nama" style="box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.employee.name"></div><span class="sub" x-text="row.employee.group + ' • ' + row.employee.position"></span></td>
+                  <td class="frozen-col frozen-nip font-semibold" x-text="row.employee.nip"></td>
+                  <td class="frozen-col frozen-nama" style="box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.employee.name"></div><span class="sub" x-text="row.employee.group + ' • ' + row.employee.position"></span></td>
                   <template x-for="day in row.days" :key="day.date">
-                    <td class="att-day text-center cursor-pointer p-1" :class="isWeeklyOffDate(day.date) || isHolidayDate(day.date) ? 'off' : ''" @click="openAttendanceNote(row.employee.id, day.date)" :title="day.scan ? ('Scan ' + day.scan.scan1 + (day.scan.scan2 ? ' / ' + day.scan.scan2 : '')) : (day.notes.map(n => attendanceTypeLabel(n.type)).join(', ') || attendanceStatusLabel(day.status))">
+                    <td class="matrix-day text-center cursor-pointer p-1" :class="isWeeklyOffDate(day.date) || isHolidayDate(day.date) ? 'off' : ''" @click="openAttendanceNote(row.employee.id, day.date)" :title="day.scan ? ('Scan ' + day.scan.scan1 + (day.scan.scan2 ? ' / ' + day.scan.scan2 : '')) : (day.notes.map(n => attendanceTypeLabel(n.type)).join(', ') || attendanceStatusLabel(day.status))">
                       <div class="relative inline-flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold" :class="attendanceStatusClass(day.status)">
                         <span x-text="day.status"></span>
                         <span x-show="day.late" class="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-orange-500"></span>
@@ -3111,7 +3129,7 @@
                       </div>
                     </td>
                   </template>
-                  <td class="att-sum att-start num" x-text="row.summary.hadir"></td><td class="att-sum num" x-text="row.summary.izin"></td><td class="att-sum num" x-text="row.summary.sakit"></td><td class="att-sum num" x-text="row.summary.cuti"></td><td class="att-sum num text-yellow-700" x-text="row.summary.alfa"></td><td class="att-sum num" x-text="row.summary.lembur"></td><td class="att-sum num" x-text="row.summary.telat"></td><td class="att-sum num font-semibold" x-text="row.summary.hkDibayar"></td>
+                  <td class="matrix-sum matrix-start num" x-text="row.summary.hadir"></td><td class="matrix-sum num" x-text="row.summary.izin"></td><td class="matrix-sum num" x-text="row.summary.sakit"></td><td class="matrix-sum num" x-text="row.summary.cuti"></td><td class="matrix-sum num text-yellow-700" x-text="row.summary.alfa"></td><td class="matrix-sum num" x-text="row.summary.lembur"></td><td class="matrix-sum num" x-text="row.summary.telat"></td><td class="matrix-sum num font-semibold" x-text="row.summary.hkDibayar"></td>
                 </tr>
               </template>
             </tbody>
@@ -3198,75 +3216,141 @@
 
       <!-- PAYROLL -->
       <section x-show="page === 'payroll'">
-        <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
-          <div class="flex flex-wrap items-end gap-2">
-            <div><label class="label mb-0">Periode Payroll</label><input type="month" class="input w-40" x-model="payrollPeriod" @change="onPayrollPeriodChange()"></div>
-            <div><label class="label mb-0">Periode Absensi</label><input type="month" class="input w-40" x-model="payrollAttendancePeriod"></div>
-            <span class="badge" :class="payrollStatusBadge(payrollDoc && payrollDoc.status)" x-text="payrollDoc ? payrollStatusLabel(payrollDoc.status) + ' v' + payrollDoc.version : 'Belum dibuat'"></span>
+
+        <!-- PAYROLL LIST -->
+        <div x-show="payrollView === 'list'">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari no. / pembuat..." x-model="payrollListSearch"></div>
+              <select class="select w-44" x-model="payrollListPeriod"><option value="">Semua Periode</option><template x-for="period in payrollListPeriods" :key="period"><option :value="period" x-text="monthLongLabel(period)"></option></template></select>
+              <select class="select w-44" x-model="payrollListStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="submitted">Menunggu Persetujuan</option><option value="posted">Posted</option><option value="rejected">Ditolak</option></select>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="btn btn-outline" @click="openPayrollSettings()" title="Pengaturan Payroll"><svg class="icon icon-sm"><use href="#i-settings"></use></svg></button>
+              <button class="btn btn-primary" @click="openPayrollCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Payroll</button>
+            </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button x-show="!payrollDoc" class="btn btn-primary" @click="startPayroll()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Payroll</button>
-            <button x-show="payrollDoc && payrollDoc.status === 'draft'" class="btn btn-outline" @click="recalcPayroll()">Hitung Ulang HK</button>
-            <button x-show="payrollDoc && payrollDoc.status === 'draft'" class="btn btn-primary" @click="askPayrollFinalize()">Finalisasi</button>
-            <button x-show="payrollDoc && payrollDoc.status === 'final'" class="btn btn-outline" @click="openPayrollRevision()">Revisi</button>
-            <button x-show="payrollDoc && payrollDoc.status === 'final'" class="btn btn-primary" @click="askPayrollSendHpp()">Kirim ke HPP</button>
-            <button class="btn btn-outline" @click="openPayrollSettings()" title="Pengaturan Payroll"><svg class="icon icon-sm"><use href="#i-settings"></use></svg></button>
-            <button class="btn btn-outline" @click="openExportModal('payroll')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
-          </div>
-        </div>
-        <div x-show="payrollDoc && payrollDoc.status === 'draft' && payrollWarnings().length" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-          <b>Perhatian:</b> <span x-text="payrollWarnings().join(' • ')"></span>
-        </div>
-        <div x-show="!payrollDoc" class="card p-10 text-center"><svg class="icon icon-xl text-slate-300 mx-auto"><use href="#i-banknote"></use></svg><div class="font-semibold mt-3">Payroll belum dibuat</div><div class="text-xs text-slate-400 mt-1">Pilih periode lalu klik Buat Payroll.</div></div>
-        <template x-if="payrollDoc">
-          <div>
-            <div class="table-wrap overflow-auto max-h-[65vh]">
-              <table class="data-table" style="min-width:2300px">
-                <thead class="sticky top-0 z-30"><tr>
-                  <th class="sticky left-0 z-40 bg-white" style="min-width:92px">NIP</th>
-                  <th class="sticky z-40 bg-white" style="left:92px;min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
-                  <th>Kelompok / Posisi</th><th class="num">Gaji Pokok</th><th class="num">Gaji/Hari</th><th class="num">HK</th><th class="num">Gaji Sesuai HK</th><th class="num">Makan/Hari</th><th class="num">Hari Telat</th><th class="num">Hari Makan</th><th class="num">Tunj. Makan</th><th class="num">HK Lembur</th><th class="num">Tunj. Lembur</th><th class="num">Pot. Abs Sakit</th><th class="num">Pot. Hutang</th><th class="num">Pot. Telat</th><th class="num">Pot. BPJS Ket</th><th class="num">Penyesuaian</th><th class="num">Total Diterima</th><th class="num">BPJS Perusahaan</th><th>Catatan</th>
-                </tr></thead>
-                <tbody>
-                  <template x-for="row in (payrollDoc.rows || [])" :key="row.employeeId">
-                    <tr>
-                      <td class="sticky left-0 z-20 bg-white font-semibold" x-text="row.nip"></td>
-                      <td class="sticky z-20 bg-white" style="left:92px;box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.name"></div><span class="sub" x-text="row.group"></span></td>
-                      <td><div x-text="row.group"></div><span class="sub" x-text="row.position"></span></td>
-                      <td class="num" x-text="rp(row.basicSalary)"></td>
-                      <td class="num" x-text="rp2(payrollRowCalc(row).gajiPerHari)"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hk" @change="onPayrollHkChange(row)" :disabled="payrollDoc.status !== 'draft'"><span x-show="Number(row.hk) !== Number(row.hkAbsensi)" class="badge badge-yellow ml-1" title="HK diubah dari absensi">*</span></td>
-                      <td class="num" x-text="rp(payrollRowCalc(row).gajiSesuaiHK)"></td>
-                      <td class="num" x-text="rp(row.mealPerDay)"></td>
-                      <td class="num" x-text="row.hariTelat"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hariMakan" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num" x-text="rp(payrollRowCalc(row).tunjMakan)"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hkLembur" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num" x-text="rp(payrollRowCalc(row).tunjLembur)"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potAbsSakit" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potHutang" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potTelat" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potBpjsKet" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num"><input type="number" class="input input-sm w-24 text-right" x-model.number="row.penyesuaian" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td class="num font-bold" x-text="rp(payrollRowCalc(row).totalDiterima)"></td>
-                      <td class="num"><input type="number" min="0" class="input input-sm w-28 text-right" x-model.number="row.bpjsPerusahaan" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'"></td>
-                      <td><input class="input input-sm w-48" x-model="row.note" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'" placeholder="Opsional"></td>
-                    </tr>
-                  </template>
-                  <tr class="bg-slate-100 font-bold sticky bottom-0 z-20">
-                    <td class="sticky left-0 z-30 bg-slate-100" colspan="2">TOTAL</td>
-                    <td x-text="payrollTotals.employees + ' pegawai'"></td>
-                    <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td class="num" x-text="rp(payrollTotals.bpjsPerusahaan)"></td><td></td>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>No. Payroll</th><th>Tanggal Terbit</th><th>Periode</th><th class="num">Jumlah Pegawai</th><th class="num">Total</th><th>Status</th><th>Input by</th><th class="actions">Action</th></tr></thead>
+              <tbody>
+                <template x-for="doc in filteredPayrollList" :key="doc.id">
+                  <tr>
+                    <td><button class="font-semibold text-blue-600 hover:underline" @click="openPayrollDetail(doc)" x-text="doc.code"></button><span class="sub" x-text="'v' + doc.version + (doc.reviseReason ? ' • ' + doc.reviseReason : '')"></span></td>
+                    <td x-text="payrollIssuedDate(doc) ? dateShort(payrollIssuedDate(doc)) : '—'"></td>
+                    <td x-text="monthLongLabel(doc.period)"></td>
+                    <td class="num" x-text="payrollDocEmployees(doc)"></td>
+                    <td class="num font-semibold" x-text="rp(payrollDocTotal(doc))"></td>
+                    <td><span class="badge" :class="payrollStatusBadge(doc.status)" x-text="payrollStatusLabel(doc.status)"></span></td>
+                    <td x-text="doc.createdBy || '-'"></td>
+                    <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'payroll', doc)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
                   </tr>
-                </tbody>
-              </table>
+                </template>
+                <tr x-show="filteredPayrollList.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-banknote"></use></svg><div class="font-semibold mt-2">Belum ada payroll</div><div class="text-xs text-slate-400">Klik Buat Payroll untuk membuat draft pertama.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PAYROLL CREATE -->
+        <div x-show="payrollView === 'create'">
+          <div class="flex items-center gap-2 mb-4">
+            <button class="icon-btn" @click="backToPayrollList()"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+            <div><div class="section-title">Buat Payroll</div><div class="text-[11px] text-slate-400">Tentukan periode payroll dan periode absensi sumber.</div></div>
+          </div>
+          <div class="card p-4 max-w-3xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div><label class="label">Periode Payroll <span class="req">*</span></label><input type="month" class="input" x-model="payrollPeriod" @change="onPayrollPeriodChange()"></div>
+              <div><label class="label">Periode Absensi</label><input type="month" class="input" x-model="payrollAttendancePeriod"></div>
             </div>
-            <div class="card mt-4">
-              <div class="card-header"><div class="section-title">Ringkasan per Kelompok</div></div>
-              <div class="table-wrap"><table class="data-table"><thead><tr><th>Kelompok</th><th class="num">Pegawai</th><th class="num">Gaji Pokok</th><th class="num">Tunj. Makan</th><th class="num">Total Diterima</th><th class="num">BPJS Perusahaan</th></tr></thead><tbody><template x-for="group in payrollByGroup" :key="group.group"><tr><td class="font-semibold" x-text="group.group"></td><td class="num" x-text="group.employees"></td><td class="num" x-text="rp(group.basicSalary)"></td><td class="num" x-text="rp(group.tunjMakan)"></td><td class="num font-semibold" x-text="rp(group.totalDiterima)"></td><td class="num" x-text="rp(group.bpjsPerusahaan)"></td></tr></template></tbody></table></div>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Jumlah Pegawai</div><div class="font-semibold mt-1 text-sm" x-text="payrollPreviewRows.length + ' pegawai'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Estimasi Total Diterima</div><div class="font-semibold mt-1 text-sm" x-text="rp(payrollPreviewTotal)"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Status Awal</div><div class="mt-1"><span class="badge badge-slate">Draft</span></div></div>
+            </div>
+            <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Payroll dibuat sebagai Draft. Setelah diajukan, payroll menunggu persetujuan Manager sebelum Posted.</div>
+            <div class="mt-4 flex justify-end gap-2"><button class="btn btn-outline" @click="backToPayrollList()">Batal</button><button class="btn btn-primary" @click="startPayroll()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Draft</button></div>
+          </div>
+        </div>
+
+        <!-- PAYROLL DETAIL -->
+        <div x-show="payrollView === 'detail' && payrollDoc">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="icon-btn" @click="backToPayrollList()"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+              <div><div class="section-title" x-text="payrollDoc?.code"></div><div class="text-[11px] text-slate-400" x-text="'Payroll ' + monthLongLabel(payrollDoc?.period) + ' • Absensi ' + monthLongLabel(payrollDoc?.attendancePeriod)"></div></div>
+              <span class="badge" :class="payrollStatusBadge(payrollDoc?.status)" x-text="payrollStatusLabel(payrollDoc?.status) + ' v' + payrollDoc?.version"></span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button x-show="payrollDoc?.status === 'draft'" class="btn btn-outline" @click="recalcPayroll()">Hitung Ulang HK</button>
+              <button x-show="payrollEditable(payrollDoc)" class="btn btn-primary" @click="askPayrollSubmit()"><svg class="icon icon-sm"><use href="#i-send"></use></svg> Ajukan Persetujuan</button>
+              <button x-show="canApprovePayroll && payrollDoc?.status === 'submitted' && payrollDoc?.createdBy !== currentUser" class="btn btn-primary" @click="askPayrollApprove()">Setujui</button>
+              <button x-show="canApprovePayroll && payrollDoc?.status === 'submitted' && payrollDoc?.createdBy !== currentUser" class="btn btn-outline text-red-600" @click="openPayrollReject()">Tolak</button>
+              <button x-show="payrollDoc?.status === 'posted'" class="btn btn-outline" @click="openPayrollRevision()">Revisi</button>
+              <button x-show="payrollEditable(payrollDoc)" class="btn btn-outline text-red-600" @click="askPayrollDelete(payrollDoc)">Hapus</button>
+              <button class="btn btn-outline" @click="openExportModal('payroll')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
             </div>
           </div>
-        </template>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3 text-xs">
+            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2"><div class="text-slate-400">Dibuat oleh</div><div class="font-semibold mt-1" x-text="payrollDoc?.createdBy || '-'"></div></div>
+            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2"><div class="text-slate-400">Diajukan</div><div class="font-semibold mt-1" x-text="payrollDoc?.submittedAt ? dateShort(payrollDoc?.submittedAt) + ' • ' + (payrollDoc?.submittedBy || '-') : '—'"></div></div>
+            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2"><div class="text-slate-400">Tanggal Terbit</div><div class="font-semibold mt-1" x-text="payrollIssuedDate(payrollDoc) ? dateShort(payrollIssuedDate(payrollDoc)) : '—'"></div></div>
+            <div class="rounded-lg border border-slate-200 bg-white px-3 py-2"><div class="text-slate-400">Disetujui oleh</div><div class="font-semibold mt-1" x-text="payrollDoc?.approvedBy || '—'"></div></div>
+          </div>
+          <div x-show="payrollDoc?.status === 'rejected'" class="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700"><b>Ditolak:</b> <span x-text="payrollDoc?.rejectReason || '-'"></span><span class="text-red-500" x-text="payrollDoc?.rejectedBy ? ' • ' + payrollDoc?.rejectedBy : ''"></span></div>
+          <div x-show="payrollDoc?.status === 'submitted'" class="mb-3 rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-[11px] text-yellow-800">Payroll menunggu persetujuan Manager. Data terkunci sampai disetujui atau ditolak.</div>
+          <div x-show="payrollEditable(payrollDoc) && payrollWarnings().length" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+            <b>Perhatian:</b> <span x-text="payrollWarnings().join(' • ')"></span>
+          </div>
+          <div class="table-wrap overflow-auto max-h-[65vh]">
+            <table class="data-table" style="min-width:2300px">
+              <thead>
+                <tr>
+                  <th class="frozen-col frozen-nip" style="min-width:92px">NIP</th>
+                  <th class="frozen-col frozen-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
+                  <th>Kelompok / Posisi</th><th class="num">Gaji Pokok</th><th class="num">Gaji/Hari</th><th class="num">HK</th><th class="num">Gaji Sesuai HK</th><th class="num">Makan/Hari</th><th class="num">Hari Telat</th><th class="num">Hari Makan</th><th class="num">Tunj. Makan</th><th class="num">HK Lembur</th><th class="num">Tunj. Lembur</th><th class="num">Pot. Abs Sakit</th><th class="num">Pot. Hutang</th><th class="num">Pot. Telat</th><th class="num">Pot. BPJS Ket</th><th class="num">Penyesuaian</th><th class="num">Total Diterima</th><th class="num">BPJS Perusahaan</th><th>Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="row in (payrollDoc?.rows || [])" :key="row.employeeId">
+                  <tr>
+                    <td class="frozen-col frozen-nip font-semibold" x-text="row.nip"></td>
+                    <td class="frozen-col frozen-nama" style="box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.name"></div><span class="sub" x-text="row.group"></span></td>
+                    <td><div x-text="row.group"></div><span class="sub" x-text="row.position"></span></td>
+                    <td class="num" x-text="rp(row.basicSalary)"></td>
+                    <td class="num" x-text="rp2(payrollRowCalc(row).gajiPerHari)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hk" @change="onPayrollHkChange(row)" :disabled="!payrollEditable(payrollDoc)"><span x-show="Number(row.hk) !== Number(row.hkAbsensi)" class="badge badge-yellow ml-1" title="HK diubah dari absensi">*</span></td>
+                    <td class="num" x-text="rp(payrollRowCalc(row).gajiSesuaiHK)"></td>
+                    <td class="num" x-text="rp(row.mealPerDay)"></td>
+                    <td class="num" x-text="row.hariTelat"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hariMakan" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num" x-text="rp(payrollRowCalc(row).tunjMakan)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hkLembur" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num" x-text="rp(payrollRowCalc(row).tunjLembur)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potAbsSakit" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potHutang" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potTelat" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potBpjsKet" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num"><input type="number" class="input input-sm w-24 text-right" x-model.number="row.penyesuaian" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num font-bold" x-text="rp(payrollRowCalc(row).totalDiterima)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-28 text-right" x-model.number="row.bpjsPerusahaan" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td><input class="input input-sm w-48" x-model="row.note" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)" placeholder="Opsional"></td>
+                  </tr>
+                </template>
+                <tr class="bg-slate-100 font-bold sticky bottom-0 z-20">
+                  <td class="sticky left-0 z-30 bg-slate-100" colspan="2">TOTAL</td>
+                  <td x-text="payrollTotals.employees + ' pegawai'"></td>
+                  <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td class="num" x-text="rp(payrollTotals.bpjsPerusahaan)"></td><td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card mt-4">
+            <div class="card-header"><div class="section-title">Ringkasan per Kelompok</div></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Kelompok</th><th class="num">Pegawai</th><th class="num">Gaji Pokok</th><th class="num">Tunj. Makan</th><th class="num">Total Diterima</th><th class="num">BPJS Perusahaan</th></tr></thead><tbody><template x-for="group in payrollByGroup" :key="group.group"><tr><td class="font-semibold" x-text="group.group"></td><td class="num" x-text="group.employees"></td><td class="num" x-text="rp(group.basicSalary)"></td><td class="num" x-text="rp(group.tunjMakan)"></td><td class="num font-semibold" x-text="rp(group.totalDiterima)"></td><td class="num" x-text="rp(group.bpjsPerusahaan)"></td></tr></template></tbody></table></div>
+          </div>
+        </div>
+        <div x-show="payrollView === 'detail' && !payrollDoc" class="card p-8 text-center text-xs text-slate-400">Payroll tidak ditemukan. <button class="text-blue-600 hover:underline" @click="backToPayrollList()">Kembali ke daftar</button></div>
       </section>
 
       <!-- PAYROLL SETTINGS MODAL -->
@@ -3291,15 +3375,15 @@
         </div>
       </div>
 
-      <!-- PAYROLL HPP MODAL -->
-      <div x-show="payrollHppOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="payrollHppOpen = false">
+      <!-- PAYROLL REJECT MODAL -->
+      <div x-show="payrollRejectOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="payrollRejectOpen = false">
         <div class="modal-panel modal-md">
-          <div class="modal-head"><div><div class="modal-title">Kirim Payroll ke HPP</div><div class="modal-desc">Nilai kelompok yang dipilih masuk ke Biaya Bulanan.</div></div><button class="icon-btn" @click="payrollHppOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
-          <div class="modal-body space-y-4">
-            <div class="grid grid-cols-2 gap-3"><div><label class="label">Periode Biaya HPP</label><input type="month" class="input" x-model="payrollHppForm.period"></div><div><label class="label">Dasar Gaji</label><select class="select" x-model="payrollHppForm.basis"><option value="before">Sebelum potongan</option><option value="after">Setelah potongan</option></select></div></div>
-            <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Gaji termasuk lembur, hanya kelompok yang diatur masuk HPP. Nilai manual yang sudah ada akan dikonfirmasi sebelum ditimpa.</div>
+          <div class="modal-head"><div><div class="modal-title">Tolak Payroll</div><div class="modal-desc">Alasan penolakan akan tampil pada detail dan riwayat payroll.</div></div><button class="icon-btn" @click="payrollRejectOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+          <div class="modal-body">
+            <label class="label">Alasan Penolakan <span class="req">*</span></label>
+            <textarea class="textarea" x-model="payrollRejectReason" placeholder="Contoh: nilai HK atau potongan perlu dikoreksi"></textarea>
           </div>
-          <div class="modal-foot"><button class="btn btn-outline" @click="payrollHppOpen = false">Batal</button><button class="btn btn-primary" @click="sendPayrollToHpp()">Kirim ke HPP</button></div>
+          <div class="modal-foot"><button class="btn btn-outline" @click="payrollRejectOpen = false">Batal</button><button class="btn btn-danger" @click="submitPayrollReject()">Tolak Payroll</button></div>
         </div>
       </div>
 
@@ -5318,7 +5402,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261123i"></script>
+<script src="assets/app.js?v=20261123j"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
