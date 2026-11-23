@@ -454,6 +454,8 @@ Urutan grup:
 
 Item aktif ditandai background biru `sidebar-accent` dan teks putih. Menu dengan wildcard (`/dashboard/order*`) tetap aktif untuk semua subhalaman.
 
+Setiap label grup dapat diklik untuk **expand/collapse**. Chevron berputar saat tertutup, status disimpan di localStorage (`abi-nav-collapsed`), dan grup yang memuat halaman aktif otomatis terbuka. Saat sidebar berada dalam mode icon-only, label grup disembunyikan dan seluruh item tetap tampil sebagai ikon.
+
 ### 5.2 Header
 
 - Tombol collapse sidebar.
@@ -640,9 +642,12 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 ### 7.5a HR
 
 1. **Data Pegawai**: NIP, PIN mesin, nama, kelompok, posisi, gaji pokok, uang makan per hari, status, dan rekening.
+   - Tombol **Export** membuka modal pilihan format CSV/Excel.
 2. **Rekap Absensi**:
    - Matriks harian dengan kode H/I/S/C/A/L/·.
-   - Kolom NIP dan Nama dibekukan saat scroll.
+   - Kolom NIP dan Nama dibekukan saat scroll horizontal; header tetap sticky.
+   - Header tanggal, sel tanggal, hari libur, dan kolom ringkasan memakai warna berbeda agar mudah dibedakan.
+   - Titik telat dan penanda perlu cek menempel pada sel tanggal sehingga ikut bergeser saat scroll.
    - Import file mesin `.xls/.xlsx/.csv` dengan pencocokan PIN/NIP/nama.
    - Keterangan manual izin, sakit, cuti, alfa, lembur, resign, dan dispensasi telat.
    - Pengaturan jam masuk, toleransi, libur mingguan, libur nasional, dan aturan potong HK per jenis keterangan.
@@ -654,8 +659,8 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
    - Finalisasi mengunci dokumen; revisi membuat versi baru.
    - Kirim ke HPP menulis gaji, uang makan, dan BPJS perusahaan kelompok Produksi ke Biaya Bulanan periode absensi.
-4. **Export**: CSV dan Excel untuk pegawai, rekap absensi, dan payroll.
-5. **Self-test HR**: T1, T2, T3, T4, T5, T7.
+4. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
+5. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.
 
 ### 7.6 Keuangan & Laporan
 

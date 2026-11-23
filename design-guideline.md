@@ -85,7 +85,8 @@ Token warna didefinisikan di `assets/app.css`:
 - Logo area 56px.
 - Grup menu: Penjualan, Logistik, Pembelian, Keuangan, Pengguna.
 - Item menu: ikon 17px, font 13px, tinggi 34px, jarak antar item 2px.
-- Label grup: 9px uppercase.
+- Label grup: 9px uppercase, dapat diklik untuk expand/collapse dengan chevron.
+- State collapse grup disimpan di localStorage; grup halaman aktif otomatis terbuka.
 
 ### Top bar
 - Tinggi 56px.
@@ -413,6 +414,7 @@ Aturan:
 - Kode dan nama penting memakai `font-semibold`.
 - Baris kosong wajib punya empty state dan `colspan` sesuai jumlah kolom.
 - Header tabel sticky (`data-table th` sudah sticky).
+- Tabel matriks (mis. rekap absensi) membekukan kolom identitas di kiri: header tanggal memakai latar lebih gelap, sel tanggal lebih terang, hari libur lebih gelap, dan kolom ringkasan memakai latar berbeda dengan garis pemisah vertikal. Indikator status harus berada di dalam sel agar ikut bergeser saat scroll horizontal.
 - Filter bar di atas tabel.
 - Jangan memakai warna sebagai satu-satunya penanda status.
 

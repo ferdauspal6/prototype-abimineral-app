@@ -16,7 +16,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="assets/app.css?v=20261121a">
+  <link rel="stylesheet" href="assets/app.css?v=20261123a">
 </head>
 <body x-data="app()" x-init="initCanvas()" @keydown.escape.window="closeModals()" class="bg-slate-50 text-slate-900 antialiased">
 
@@ -177,8 +177,11 @@
     <div class="flex-1 overflow-y-auto px-2 py-3 space-y-4">
       <template x-for="group in navGroups" :key="group.title">
         <div>
-          <div class="sidebar-label" x-show="group.title && !collapsed" x-text="group.title"></div>
-          <div class="space-y-0.5">
+          <button type="button" class="sidebar-label w-full flex items-center justify-between bg-transparent border-0 cursor-pointer hover:text-white" x-show="group.title && !collapsed" @click="toggleNavGroup(group.title)">
+            <span x-text="group.title"></span>
+            <svg class="icon icon-xs transition-transform" :class="isNavGroupCollapsed(group.title) ? '-rotate-90' : ''"><use href="#i-chevron-down"></use></svg>
+          </button>
+          <div class="space-y-0.5" x-show="collapsed || !group.title || !isNavGroupCollapsed(group.title)">
             <template x-for="item in group.items" :key="item.page">
               <a href="#" class="nav-link" :class="{ 'active': isNavActive(item) }" @click.prevent="go(item.page)" :title="collapsed ? item.label : ''">
                 <svg class="icon"><use :href="'#' + item.icon"></use></svg>
@@ -3002,15 +3005,9 @@
             <select class="select w-36" x-model="employeeStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button class="btn btn-outline" @click="exportEmployees('csv')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> CSV</button>
-            <button class="btn btn-outline" @click="exportEmployees('xlsx')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Excel</button>
-            <button class="btn btn-outline" @click="runHrSelfTest()">Uji Perhitungan</button>
+            <button class="btn btn-outline" @click="openExportModal('employees')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
             <button class="btn btn-primary" @click="openEmployee()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Pegawai</button>
           </div>
-        </div>
-        <div x-show="hrSelfTestResult" class="mb-3 rounded-xl border p-3 text-xs" :class="hrSelfTestResult && hrSelfTestResult.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'">
-          <div class="font-semibold" x-text="hrSelfTestResult && hrSelfTestResult.ok ? 'Self-test HR berhasil' : 'Self-test HR gagal'"></div>
-          <div x-show="hrSelfTestResult" x-text="hrSelfTestResult ? 'T1 ' + (hrSelfTestResult.checks.t1 ? 'OK' : 'Gagal') + ' • T2 ' + (hrSelfTestResult.checks.t2 ? 'OK' : 'Gagal') + ' • T3 ' + (hrSelfTestResult.checks.t3 ? 'OK' : 'Gagal') + ' • T4 ' + (hrSelfTestResult.checks.t4 ? 'OK' : 'Gagal') + ' • T5 ' + (hrSelfTestResult.checks.t5 ? 'OK' : 'Gagal') + ' • T7 ' + (hrSelfTestResult.checks.t7 ? 'OK' : 'Gagal') + ' • T8 ' + (hrSelfTestResult.checks.t8 ? 'OK' : 'Gagal') : ''"></div>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -3076,8 +3073,7 @@
             <button class="btn btn-outline" @click="openAttendanceImport()"><svg class="icon icon-sm"><use href="#i-upload"></use></svg> Import Data Mesin</button>
             <button class="btn btn-outline" @click="openAttendanceNote()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Keterangan</button>
             <button class="btn btn-outline" @click="openAttendanceSettings()" title="Pengaturan Absensi"><svg class="icon icon-sm"><use href="#i-settings"></use></svg></button>
-            <button class="btn btn-outline" @click="exportAttendance('csv')">CSV</button>
-            <button class="btn btn-outline" @click="exportAttendance('xlsx')">Excel</button>
+            <button class="btn btn-outline" @click="openExportModal('attendance')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
           </div>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -3091,29 +3087,31 @@
 
         <div x-show="attendanceTab === 'recap'" class="table-wrap overflow-auto max-h-[68vh]">
           <table class="data-table" style="min-width:1700px">
-            <thead class="sticky top-0 z-30">
+            <thead>
               <tr>
-                <th class="sticky left-0 z-40 bg-white" style="min-width:92px">NIP</th>
-                <th class="sticky z-40 bg-white" style="left:92px;min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
+                <th class="att-frozen att-nip" style="min-width:92px">NIP</th>
+                <th class="att-frozen att-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
                 <template x-for="date in hrPeriodDays(attendancePeriod)" :key="date">
-                  <th class="text-center" style="min-width:32px" :class="isWeeklyOffDate(date) || isHolidayDate(date) ? 'bg-slate-100 text-slate-400' : ''" x-text="date.slice(-2)"></th>
+                  <th class="att-day text-center" style="min-width:34px" :class="isWeeklyOffDate(date) || isHolidayDate(date) ? 'off' : ''" x-text="date.slice(-2)"></th>
                 </template>
-                <th class="num">Hadir</th><th class="num">Izin</th><th class="num">Sakit</th><th class="num">Cuti</th><th class="num">Alfa</th><th class="num">Lembur</th><th class="num">Telat</th><th class="num">HK</th>
+                <th class="att-sum att-start num">Hadir</th><th class="att-sum num">Izin</th><th class="att-sum num">Sakit</th><th class="att-sum num">Cuti</th><th class="att-sum num">Alfa</th><th class="att-sum num">Lembur</th><th class="att-sum num">Telat</th><th class="att-sum num">HK</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="row in attendanceRecapRows" :key="row.employee.id">
                 <tr>
-                  <td class="sticky left-0 z-20 bg-white font-semibold" x-text="row.employee.nip"></td>
-                  <td class="sticky z-20 bg-white" style="left:92px;box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.employee.name"></div><span class="sub" x-text="row.employee.group + ' • ' + row.employee.position"></span></td>
+                  <td class="att-frozen att-nip font-semibold" x-text="row.employee.nip"></td>
+                  <td class="att-frozen att-nama" style="box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.employee.name"></div><span class="sub" x-text="row.employee.group + ' • ' + row.employee.position"></span></td>
                   <template x-for="day in row.days" :key="day.date">
-                    <td class="text-center cursor-pointer p-1" :class="isWeeklyOffDate(day.date) || isHolidayDate(day.date) ? 'bg-slate-50' : ''" @click="openAttendanceNote(row.employee.id, day.date)" :title="day.scan ? ('Scan ' + day.scan.scan1 + (day.scan.scan2 ? ' / ' + day.scan.scan2 : '')) : (day.notes.map(n => attendanceTypeLabel(n.type)).join(', ') || attendanceStatusLabel(day.status))">
-                      <div class="relative inline-flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold" :class="attendanceStatusClass(day.status)" x-text="day.status"></div>
-                      <span x-show="day.late" class="absolute mt-4 h-1.5 w-1.5 rounded-full bg-orange-500"></span>
-                      <span x-show="day.perluCek" class="absolute -mt-4 ml-4 text-[9px] text-red-500">!</span>
+                    <td class="att-day text-center cursor-pointer p-1" :class="isWeeklyOffDate(day.date) || isHolidayDate(day.date) ? 'off' : ''" @click="openAttendanceNote(row.employee.id, day.date)" :title="day.scan ? ('Scan ' + day.scan.scan1 + (day.scan.scan2 ? ' / ' + day.scan.scan2 : '')) : (day.notes.map(n => attendanceTypeLabel(n.type)).join(', ') || attendanceStatusLabel(day.status))">
+                      <div class="relative inline-flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold" :class="attendanceStatusClass(day.status)">
+                        <span x-text="day.status"></span>
+                        <span x-show="day.late" class="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                        <span x-show="day.perluCek" class="absolute -right-2 -top-2 text-[9px] font-bold text-red-500">!</span>
+                      </div>
                     </td>
                   </template>
-                  <td class="num" x-text="row.summary.hadir"></td><td class="num" x-text="row.summary.izin"></td><td class="num" x-text="row.summary.sakit"></td><td class="num" x-text="row.summary.cuti"></td><td class="num text-yellow-700" x-text="row.summary.alfa"></td><td class="num" x-text="row.summary.lembur"></td><td class="num" x-text="row.summary.telat"></td><td class="num font-semibold" x-text="row.summary.hkDibayar"></td>
+                  <td class="att-sum att-start num" x-text="row.summary.hadir"></td><td class="att-sum num" x-text="row.summary.izin"></td><td class="att-sum num" x-text="row.summary.sakit"></td><td class="att-sum num" x-text="row.summary.cuti"></td><td class="att-sum num text-yellow-700" x-text="row.summary.alfa"></td><td class="att-sum num" x-text="row.summary.lembur"></td><td class="att-sum num" x-text="row.summary.telat"></td><td class="att-sum num font-semibold" x-text="row.summary.hkDibayar"></td>
                 </tr>
               </template>
             </tbody>
@@ -3213,8 +3211,7 @@
             <button x-show="payrollDoc && payrollDoc.status === 'final'" class="btn btn-outline" @click="openPayrollRevision()">Revisi</button>
             <button x-show="payrollDoc && payrollDoc.status === 'final'" class="btn btn-primary" @click="askPayrollSendHpp()">Kirim ke HPP</button>
             <button class="btn btn-outline" @click="openPayrollSettings()" title="Pengaturan Payroll"><svg class="icon icon-sm"><use href="#i-settings"></use></svg></button>
-            <button class="btn btn-outline" @click="exportPayroll('csv')">CSV</button>
-            <button class="btn btn-outline" @click="exportPayroll('xlsx')">Excel</button>
+            <button class="btn btn-outline" @click="openExportModal('payroll')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
           </div>
         </div>
         <div x-show="payrollDoc && payrollDoc.status === 'draft' && payrollWarnings().length" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
@@ -5279,6 +5276,20 @@
         <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Jurnal otomatis: <b>Dr Rekening Tujuan / Cr Rekening Asal</b>. Saldo kedua rekening langsung berubah.</div>
       </div>
       <div class="modal-foot"><button class="btn btn-outline" @click="bankTransferModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveBankTransfer()">Mutasi</button></div>
+    </div>
+  </div>
+
+  <!-- EXPORT FORMAT MODAL -->
+  <div x-show="exportModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="exportModalOpen = false">
+    <div class="modal-panel modal-sm">
+      <div class="modal-head"><div><div class="modal-title" x-text="exportModalTitle"></div><div class="modal-desc">Pilih format file yang akan diunduh.</div></div><button class="icon-btn" @click="exportModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div><label class="label">Format</label><div class="flex gap-4 text-sm pt-1"><label class="flex items-center gap-2"><input type="radio" class="radio" value="csv" x-model="exportFormat"> CSV</label><label class="flex items-center gap-2"><input type="radio" class="radio" value="xlsx" x-model="exportFormat"> Excel (.xlsx)</label></div></div>
+        <div x-show="exportKind === 'attendance'" class="grid grid-cols-2 gap-3"><div><label class="label">Dari Tanggal</label><input type="date" class="input" x-model="exportFrom"></div><div><label class="label">Sampai Tanggal</label><input type="date" class="input" x-model="exportTo"></div></div>
+        <div x-show="exportKind === 'attendance'" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Export mengikuti rentang tanggal, termasuk lintas bulan. Sheet kedua berisi Data Scan pada rentang yang sama.</div>
+        <div x-show="exportKind !== 'attendance'" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600" x-text="exportKind === 'payroll' ? 'Periode payroll mengikuti periode yang sedang dipilih.' : 'Export mengikuti filter yang sedang aktif.'"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="exportModalOpen = false">Batal</button><button class="btn btn-primary" @click="confirmExport()"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Download</button></div>
     </div>
   </div>
 

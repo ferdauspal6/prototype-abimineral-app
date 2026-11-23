@@ -1420,6 +1420,22 @@ function app() {
         .map(group => ({ ...group, items: group.items.filter(item => this.canAccessPage(item.page)) }))
         .filter(group => group.items.length);
     },
+    isNavGroupCollapsed(title) {
+      return (this.navCollapsedGroups || []).includes(title);
+    },
+    toggleNavGroup(title) {
+      if (!title) return;
+      const list = new Set(this.navCollapsedGroups || []);
+      if (list.has(title)) list.delete(title); else list.add(title);
+      this.navCollapsedGroups = [...list];
+      try { localStorage.setItem('abi-nav-collapsed', JSON.stringify(this.navCollapsedGroups)); } catch (e) {}
+    },
+    ensureNavGroupOpen(page) {
+      const group = (this.navGroups || []).find(item => (item.items || []).some(nav => (nav.match || [nav.page]).includes(page) || nav.page === page));
+      if (!group || !group.title || !this.isNavGroupCollapsed(group.title)) return;
+      this.navCollapsedGroups = (this.navCollapsedGroups || []).filter(title => title !== group.title);
+      try { localStorage.setItem('abi-nav-collapsed', JSON.stringify(this.navCollapsedGroups)); } catch (e) {}
+    },
     get pageMeta() {
       const map = {
         login: { title: 'Login', crumb: 'Login' },
@@ -1525,6 +1541,7 @@ function app() {
       }
       this.page = page;
       this.sessionPage = page;
+      this.ensureNavGroupOpen(page);
       if (page === 'finance-income') this.financeTab = 'income';
       if (page === 'finance-expense') this.financeTab = 'expense';
       this.mobileMenu = false;
@@ -1888,6 +1905,10 @@ function app() {
       this.canvasMode = params.has('canvas');
       this.canvasScreenId = params.get('canvas');
       this.loadStore();
+      try {
+        const savedGroups = JSON.parse(localStorage.getItem('abi-nav-collapsed') || '[]');
+        this.navCollapsedGroups = Array.isArray(savedGroups) ? savedGroups : [];
+      } catch (e) { this.navCollapsedGroups = []; }
       this.ensureOpeningBalanceAccount();
       if (this.ensureCashBankAccounts()) this.saveStore();
       this.syncOrderAudit();
@@ -1922,6 +1943,7 @@ function app() {
         try { history.replaceState(null, '', '#' + next); } catch (e) {}
       }
       if (['hpp-bulanan-create','hpp-bulanan-detail'].includes(this.page)) this.hppTab = 'bulanan';
+      this.ensureNavGroupOpen(this.page);
       if (this.page === 'finance-income') this.financeTab = 'income';
       if (this.page === 'finance-expense') this.financeTab = 'expense';
       if (['delivery-check','delivery-detail'].includes(this.page) && this.deliveries.length) {
@@ -2111,6 +2133,7 @@ function app() {
       this.payrollRevisionOpen = false;
       this.payrollHppOpen = false;
       this.payrollSettingsOpen = false;
+      this.exportModalOpen = false;
       this.userModalOpen = false;
       this.roleModalOpen = false;
       this.stockModalOpen = false;
@@ -5735,6 +5758,8 @@ function app() {
     hppBulananSelfTestResult: null,
     employeeSearch: '', employeeGroup: '', employeeStatus: '',
     employeeModalOpen: false, employeeEditId: null,
+    exportModalOpen: false, exportKind: 'employees', exportFormat: 'csv', exportFrom: '', exportTo: '',
+    navCollapsedGroups: [],
     employeeForm: { nip:'', pin:'', name:'', group:'Produksi', position:'Operator Mesin', joinDate:todayISO(), status:true, resignDate:'', basicSalary:0, mealPerDay:20000, bank:'', accountNumber:'', note:'' },
     attendancePeriod: previousMonthKey(todayISO().slice(0, 7)),
     attendanceTab: 'recap',
@@ -7272,10 +7297,10 @@ function app() {
     attendanceStatusClass(code) {
       return { H:'bg-emerald-50 text-emerald-700', I:'bg-blue-50 text-blue-700', S:'bg-amber-50 text-amber-700', C:'bg-purple-50 text-purple-700', A:'bg-yellow-100 text-yellow-800', L:'bg-indigo-50 text-indigo-700', '·':'bg-slate-100 text-slate-400' }[code] || 'bg-slate-50 text-slate-500';
     },
-    attendanceSummary(employee, period) {
+    attendanceSummaryDates(employee, dates) {
       const summary = { hadir:0, izin:0, sakit:0, cuti:0, alfa:0, lembur:0, telat:0, telatTanpaMakan:0, hkPotong:0, hkDibayar:Number(this.hrSettings.hkStandar) || 26 };
       const group = this.attendanceGroupSettings(employee);
-      this.hrPeriodDays(period).forEach(date => {
+      (dates || []).forEach(date => {
         const code = this.attendanceStatus(employee, date);
         if (this.attendanceNoteFor(employee.id, date, ['lembur'])) summary.lembur += 1;
         if (code === 'H') {
@@ -7293,6 +7318,31 @@ function app() {
       summary.hkPotong = (rules.alfa ? summary.alfa : 0) + (rules.izin ? summary.izin : 0) + (rules.sakit ? summary.sakit : 0) + (rules.cuti ? summary.cuti : 0);
       summary.hkDibayar = Math.max(0, (Number(this.hrSettings.hkStandar) || 26) - summary.hkPotong);
       return summary;
+    },
+    attendanceSummary(employee, period) {
+      return this.attendanceSummaryDates(employee, this.hrPeriodDays(period));
+    },
+    attendanceDateRange(from, to) {
+      const dates = [];
+      let cursor = from;
+      let guard = 0;
+      while (cursor && to && cursor <= to && guard < 370) {
+        dates.push(cursor);
+        cursor = shiftISO(cursor, 1);
+        guard += 1;
+      }
+      return dates;
+    },
+    attendanceScanRowsRange(from, to) {
+      return (this.attendanceScans || [])
+        .filter(scan => (!from || scan.date >= from) && (!to || scan.date <= to))
+        .filter(scan => !this.attendanceEmployeeFilter || scan.employeeId === this.attendanceEmployeeFilter)
+        .filter(scan => {
+          const q = String(this.attendanceSearch || '').toLowerCase();
+          const employee = this.employee(scan.employeeId);
+          return !q || ((scan.pin || '') + ' ' + (scan.nip || '') + ' ' + (employee.name || scan.name || '') + ' ' + scan.date).toLowerCase().includes(q);
+        })
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.name || '').localeCompare(String(b.name || '')));
     },
     attendanceCell(employee, date) {
       const scan = this.attendanceScanFor(employee.id, date);
@@ -7743,6 +7793,34 @@ function app() {
       this.persist();
       this.notify('Revisi payroll dibuat');
     },
+    get exportModalTitle() {
+      return { employees:'Export Data Pegawai', attendance:'Export Rekap Absensi', payroll:'Export Payroll' }[this.exportKind] || 'Export';
+    },
+    openExportModal(kind) {
+      this.exportKind = kind;
+      this.exportFormat = 'csv';
+      if (kind === 'attendance') {
+        this.exportFrom = this.attendancePeriod + '-01';
+        this.exportTo = periodEndDate(this.attendancePeriod);
+      } else {
+        this.exportFrom = '';
+        this.exportTo = '';
+      }
+      this.exportModalOpen = true;
+    },
+    confirmExport() {
+      if (this.exportKind === 'attendance') {
+        if (!this.exportFrom || !this.exportTo) { this.notify('Tanggal export wajib diisi', 'error'); return; }
+        if (this.exportFrom > this.exportTo) { this.notify('Tanggal awal melebihi tanggal akhir', 'error'); return; }
+        if (this.attendanceDateRange(this.exportFrom, this.exportTo).length > 370) { this.notify('Rentang export maksimal 370 hari', 'error'); return; }
+        this.exportAttendance(this.exportFormat, this.exportFrom, this.exportTo);
+      } else if (this.exportKind === 'payroll') {
+        this.exportPayroll(this.exportFormat);
+      } else {
+        this.exportEmployees(this.exportFormat);
+      }
+      this.exportModalOpen = false;
+    },
     getPayrollSummary(period, group = 'Produksi', basisOverride = '') {
       const doc = (this.payrolls || [])
         .filter(item => item.period === period && item.status === 'final')
@@ -7884,12 +7962,17 @@ function app() {
       const rows = this.filteredEmployees.map(employee => [employee.nip, employee.name, employee.group, employee.position, Number(employee.basicSalary) || 0, Number(employee.mealPerDay) || 0, employee.status ? 'Aktif' : 'Nonaktif', employee.joinDate || '', employee.bank || '', employee.accountNumber || '']);
       this.exportRows('pegawai-' + todayISO(), headers, rows, format);
     },
-    exportAttendance(format = 'csv') {
-      const days = this.hrPeriodDays(this.attendancePeriod);
-      const headers = ['NIP','Nama', ...days.map(date => date.slice(-2)), 'Hadir','Izin','Sakit','Cuti','Alfa','Lembur','Telat','HK Dibayar'];
-      const rows = this.attendanceRecapRows.map(row => [row.employee.nip, row.employee.name, ...row.days.map(day => day.status), row.summary.hadir, row.summary.izin, row.summary.sakit, row.summary.cuti, row.summary.alfa, row.summary.lembur, row.summary.telat, row.summary.hkDibayar]);
-      const scanRows = this.attendanceScanRows.map(scan => [scan.pin, scan.nip, this.employeeName(scan.employeeId) || scan.name, scan.date, scan.scan1, scan.scan2]);
-      this.exportRows('rekap-absensi-' + this.attendancePeriod, headers, rows, format, [{ name:'Data Scan', headers:['PIN','NIP','Nama','Tanggal','Scan 1','Scan 2'], rows:scanRows }]);
+    exportAttendance(format = 'csv', from = '', to = '') {
+      const useRange = !!(from && to && from <= to);
+      const days = useRange ? this.attendanceDateRange(from, to) : this.hrPeriodDays(this.attendancePeriod);
+      const headers = ['NIP','Nama', ...days.map(date => date.slice(-2) + '/' + date.slice(5, 7)), 'Hadir','Izin','Sakit','Cuti','Alfa','Lembur','Telat','HK Dibayar'];
+      const rows = this.attendanceEmployees.map(employee => {
+        const summary = this.attendanceSummaryDates(employee, days);
+        return [employee.nip, employee.name, ...days.map(date => this.attendanceStatus(employee, date)), summary.hadir, summary.izin, summary.sakit, summary.cuti, summary.alfa, summary.lembur, summary.telat, summary.hkDibayar];
+      });
+      const scanRows = (useRange ? this.attendanceScanRowsRange(from, to) : this.attendanceScanRows).map(scan => [scan.pin, scan.nip, this.employeeName(scan.employeeId) || scan.name, scan.date, scan.scan1, scan.scan2]);
+      const filename = useRange ? 'rekap-absensi-' + from + '_' + to : 'rekap-absensi-' + this.attendancePeriod;
+      this.exportRows(filename, headers, rows, format, [{ name:'Data Scan', headers:['PIN','NIP','Nama','Tanggal','Scan 1','Scan 2'], rows:scanRows }]);
     },
     exportPayroll(format = 'csv') {
       const doc = this.payrollDoc;
