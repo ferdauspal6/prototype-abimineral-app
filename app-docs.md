@@ -637,6 +637,26 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
     - Filter checklist produk, filter bahan, gudang, pencarian, serta opsi menampilkan hanya selisih.
     - Produksi skenario demo dikecualikan secara default.
 
+### 7.5a HR
+
+1. **Data Pegawai**: NIP, PIN mesin, nama, kelompok, posisi, gaji pokok, uang makan per hari, status, dan rekening.
+2. **Rekap Absensi**:
+   - Matriks harian dengan kode H/I/S/C/A/L/·.
+   - Kolom NIP dan Nama dibekukan saat scroll.
+   - Import file mesin `.xls/.xlsx/.csv` dengan pencocokan PIN/NIP/nama.
+   - Keterangan manual izin, sakit, cuti, alfa, lembur, resign, dan dispensasi telat.
+   - Pengaturan jam masuk, toleransi, libur mingguan, libur nasional, dan aturan potong HK per jenis keterangan.
+   - Alfa otomatis untuk hari kerja tanpa scan dan tanpa keterangan.
+3. **Payroll**:
+   - Periode payroll dan periode absensi terpisah (default absensi bulan sebelumnya).
+   - HK, hari telat, hari makan, dan HK lembur terisi dari rekap absensi.
+   - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan; lembur = HK lembur × (gaji/hari + uang makan/hari).
+   - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
+   - Finalisasi mengunci dokumen; revisi membuat versi baru.
+   - Kirim ke HPP menulis gaji, uang makan, dan BPJS perusahaan kelompok Produksi ke Biaya Bulanan periode absensi.
+4. **Export**: CSV dan Excel untuk pegawai, rekap absensi, dan payroll.
+5. **Self-test HR**: T1, T2, T3, T4, T5, T7.
+
 ### 7.6 Keuangan & Laporan
 
 1. **Daftar Rekening**: daftar rekening kas dan bank dengan kode akun, nama bank, nomor rekening, atas nama, cabang, saldo real-time, status, dan transaksi terakhir.

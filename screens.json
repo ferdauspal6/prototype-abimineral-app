@@ -45,7 +45,8 @@
     "assets/fonts/instrument-sans-700.ttf",
     "assets/logo.png",
     "assets/vendor/alpine.min.js",
-    "assets/vendor/tailwind.js"
+    "assets/vendor/tailwind.js",
+    "assets/vendor/xlsx.full.min.js"
   ],
   "flow": {
     "defaultOn": false,
@@ -100,6 +101,10 @@
     {
       "id": "assets",
       "name": "Assets"
+    },
+    {
+      "id": "hr",
+      "name": "HR"
     }
   ],
   "screens": [
@@ -1083,6 +1088,30 @@
       "group": "assets",
       "type": "asset",
       "bytes": 48269
+    },
+    {
+      "id": "employees",
+      "name": "Data Pegawai",
+      "src": "index.html?canvas=employees",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "attendance",
+      "name": "Rekap Absensi",
+      "src": "index.html?canvas=attendance",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440
+    },
+    {
+      "id": "payroll",
+      "name": "Payroll",
+      "src": "index.html?canvas=payroll",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440
     }
   ],
   "links": []
