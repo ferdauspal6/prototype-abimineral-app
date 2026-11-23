@@ -7837,13 +7837,18 @@ function app() {
       const mealNoToggle = 26;
       const t4 = this.attendanceHkFromCounts({ alfa:1, izin:1, cuti:1, sakit:1 });
       const t5 = this.matchAttendanceEmployee({ pin:'1001', nip:'', name:'NAMA MESIN BERBEDA' });
+      const tempDoc = { id:'selftest-payroll', period:'2099-01', version:1, status:'final', rows:[{ employeeId:'emp1', potBpjsKet:123000, bpjsPerusahaan:456000 }] };
+      (this.payrolls = this.payrolls || []).push(tempDoc);
+      const lastRow = this.lastPayrollRowFor('emp1');
+      this.payrolls = this.payrolls.filter(doc => doc.id !== 'selftest-payroll');
       const checks = {
         t1: t1.gajiSesuaiHK === 4000000 && t1.tunjMakan === 520000 && t1.totalDiterima === 4400000,
         t2: Math.round(t2.gajiSesuaiHK) === 1384615 && t2.tunjMakan === 480000 && t2.totalDiterima === 1819615,
         t3: t3.tunjLembur === 135385 && t3.totalDiterima === 3565385,
         t7: meal3 === 23 && mealDisp === 24 && mealNoToggle === 26,
         t4: t4.hkPotong === 2 && t4.hkDibayar === 24,
-        t5: !!t5 && t5.pin === '1001'
+        t5: !!t5 && t5.pin === '1001',
+        t8: !!lastRow && lastRow.potBpjsKet === 123000 && lastRow.bpjsPerusahaan === 456000
       };
       const ok = Object.values(checks).every(Boolean);
       this.hrSelfTestResult = { ok, checks, t1, t2, t3, t4 };

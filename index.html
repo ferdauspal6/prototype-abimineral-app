@@ -3010,7 +3010,7 @@
         </div>
         <div x-show="hrSelfTestResult" class="mb-3 rounded-xl border p-3 text-xs" :class="hrSelfTestResult && hrSelfTestResult.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'">
           <div class="font-semibold" x-text="hrSelfTestResult && hrSelfTestResult.ok ? 'Self-test HR berhasil' : 'Self-test HR gagal'"></div>
-          <div x-show="hrSelfTestResult" x-text="hrSelfTestResult ? 'T1 ' + (hrSelfTestResult.checks.t1 ? 'OK' : 'Gagal') + ' • T2 ' + (hrSelfTestResult.checks.t2 ? 'OK' : 'Gagal') + ' • T3 ' + (hrSelfTestResult.checks.t3 ? 'OK' : 'Gagal') + ' • T4 ' + (hrSelfTestResult.checks.t4 ? 'OK' : 'Gagal') + ' • T5 ' + (hrSelfTestResult.checks.t5 ? 'OK' : 'Gagal') + ' • T7 ' + (hrSelfTestResult.checks.t7 ? 'OK' : 'Gagal') : ''"></div>
+          <div x-show="hrSelfTestResult" x-text="hrSelfTestResult ? 'T1 ' + (hrSelfTestResult.checks.t1 ? 'OK' : 'Gagal') + ' • T2 ' + (hrSelfTestResult.checks.t2 ? 'OK' : 'Gagal') + ' • T3 ' + (hrSelfTestResult.checks.t3 ? 'OK' : 'Gagal') + ' • T4 ' + (hrSelfTestResult.checks.t4 ? 'OK' : 'Gagal') + ' • T5 ' + (hrSelfTestResult.checks.t5 ? 'OK' : 'Gagal') + ' • T7 ' + (hrSelfTestResult.checks.t7 ? 'OK' : 'Gagal') + ' • T8 ' + (hrSelfTestResult.checks.t8 ? 'OK' : 'Gagal') : ''"></div>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -3256,8 +3256,8 @@
                       <td><input class="input input-sm w-48" x-model="row.note" @change="onPayrollRowChange()" :disabled="payrollDoc.status !== 'draft'" placeholder="Opsional"></td>
                     </tr>
                   </template>
-                  <tr class="bg-slate-100 font-bold">
-                    <td class="sticky left-0 z-20 bg-slate-100" colspan="2">TOTAL</td>
+                  <tr class="bg-slate-100 font-bold sticky bottom-0 z-20">
+                    <td class="sticky left-0 z-30 bg-slate-100" colspan="2">TOTAL</td>
                     <td x-text="payrollTotals.employees + ' pegawai'"></td>
                     <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td class="num" x-text="rp(payrollTotals.bpjsPerusahaan)"></td><td></td>
                   </tr>
@@ -5307,7 +5307,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261123g"></script>
+<script src="assets/app.js?v=20261123i"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
