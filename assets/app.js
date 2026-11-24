@@ -2171,10 +2171,10 @@ function app() {
       return { pending:'badge-yellow', processing:'badge-orange', already:'badge-blue', holding:'badge-cyan', shipping:'badge-amber', success:'badge-green', partial:'badge-green', failed:'badge-red', cancel:'badge-red', return:'badge-blue', discard:'badge-red' }[s] || 'badge-slate';
     },
     statusLabel(s) {
-      return { pending:'Belum Diproses', processing:'Sedang Diproses', already:'Siap Dikirim', holding:'Ditahan', shipping:'Dikirim', success:'Selesai', partial:'Selesai Parsial', failed:'Gagal', cancel:'Dibatalkan', return:'Stocked', discard:'Dihapus' }[s] || s;
+      return { pending:'Belum diproses', processing:'Sedang diproses', already:'Siap dikirim', holding:'Ditahan', shipping:'Dikirim', success:'Selesai', partial:'Selesai sebagian', failed:'Gagal', cancel:'Dibatalkan', return:'Masuk stok', discard:'Dihapus' }[s] || s;
     },
     paymentBadge(p) { return p === 'paid' || p === 'partial' ? 'badge-green' : 'badge-yellow'; },
-    paymentLabel(p) { return p === 'paid' ? 'Lunas' : p === 'partial' ? 'Lunas Partial' : 'Belum Lunas'; },
+    paymentLabel(p) { return p === 'paid' ? 'Lunas' : p === 'partial' ? 'Dibayar sebagian' : 'Belum dibayar'; },
     printPage() { window.print(); },
     notify(message, type = 'success') {
       this.toast = { show: true, message, type };
@@ -2357,7 +2357,7 @@ function app() {
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewJournal(row) },
           { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startJournalEdit(row) },
           { label:'Posting', icon:'i-check', show:row.status === 'draft', run:() => this.postJournal(row) },
-          { label:'Void', icon:'i-x', danger:true, show:row.status === 'posted' && this.canVoidJournal && row.source === 'manual', run:() => this.voidJournal(row) },
+          { label:'Batalkan', icon:'i-x', danger:true, show:row.status === 'posted' && this.canVoidJournal && row.source === 'manual', run:() => this.voidJournal(row) },
           { label:'Hapus', icon:'i-trash', danger:true, show:row.status === 'draft', run:() => this.deleteJournal(row) }
         ];
         case 'receipts': return [
@@ -2500,10 +2500,10 @@ function app() {
         const journal = this.journals.find(item => item.id === id && item.source === 'opening');
         if (journal && journal.status === 'posted') {
           journal.status = 'void';
-          journal.voidReason = 'Void saldo awal';
+          journal.voidReason = 'Pembatalan saldo awal';
           journal.history = journal.history || [];
           journal.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Void saldo awal' });
-          this.notify('Saldo awal berhasil di-void');
+          this.notify('Saldo awal berhasil dibatalkan');
         }
       }
       if (action === 'hpp-copy-monthly') {
@@ -3234,7 +3234,7 @@ function app() {
       const netKpi = { label:'Laba Bersih', value:money(s.net), icon:'i-file', iconClass:'text-blue-500', sub:deltaText(s.netDelta), subClass:deltaClass(s.netDelta) };
       const receivableKpi = { label:'Piutang', value:money(s.receivable), icon:'i-wallet', iconClass:'text-amber-500', sub:'belum tertagih', subClass:'text-amber-600' };
       const payableKpi = { label:'Utang', value:money(this.payableUnpaidTotal), icon:'i-coins', iconClass:'text-red-500', sub:'sisa utang supplier', subClass:'text-red-500' };
-      const prKpi = { label:'PR Menunggu', value:count(this.prStats.submitted), icon:'i-clipboard', iconClass:'text-indigo-500', sub:'menunggu approval', subClass:'text-amber-600' };
+      const prKpi = { label:'PR Menunggu', value:count(this.prStats.submitted), icon:'i-clipboard', iconClass:'text-indigo-500', sub:'belum disetujui', subClass:'text-amber-600' };
       const orderKpi = { label:'Order Bulan Ini', value:count(this.orderMonthStats.count), icon:'i-cart', iconClass:'text-blue-500', sub:'order tercatat', subClass:'text-slate-400' };
       const deliveryKpi = { label:'Surat Jalan', value:count(this.info.delivery.pending), icon:'i-truck', iconClass:'text-purple-500', sub:'belum diproses', subClass:'text-amber-600' };
       const lowStockKpi = { label:'Stock Menipis', value:count(this.stockDashboardStats.lowProducts), icon:'i-boxes', iconClass:'text-red-500', sub:'produk di bawah minimum', subClass:'text-red-500' };
@@ -3800,7 +3800,7 @@ function app() {
       return { draft:'badge-slate', submitted:'badge-yellow', approved:'badge-green', processing:'badge-blue', completed:'badge-cyan', rejected:'badge-red', cancelled:'badge-stone' }[status] || 'badge-slate';
     },
     prStatusLabel(status) {
-      return { draft:'Draft', submitted:'Diajukan', approved:'Disetujui', processing:'Proses', completed:'Selesai', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
+      return { draft:'Draft', submitted:'Belum disetujui', approved:'Disetujui', processing:'Diproses', completed:'Selesai', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
     },
     startPRCreate() {
       this.prEditId = null;
@@ -4068,7 +4068,7 @@ function app() {
       return { draft:'badge-slate', pending_approval:'badge-yellow', approved:'badge-green', sent:'badge-blue', partially_received:'badge-cyan', fully_received:'badge-green', closed:'badge-stone', rejected:'badge-red', cancelled:'badge-red' }[status] || 'badge-slate';
     },
     poStatusLabel(status) {
-      return { draft:'Draft', pending_approval:'Menunggu Approval', approved:'Disetujui', sent:'Dikirim', partially_received:'Diterima Sebagian', fully_received:'Diterima Penuh', closed:'Ditutup', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
+      return { draft:'Draft', pending_approval:'Belum disetujui', approved:'Disetujui', sent:'Dikirim', partially_received:'Diterima sebagian', fully_received:'Diterima penuh', closed:'Ditutup', rejected:'Ditolak', cancelled:'Dibatalkan' }[status] || status;
     },
     poLineSubtotal(item) { return (Number(item.qty) || 0) * (Number(item.price) || 0); },
     poAdditionalSubtotal(row) { return (Number(row.amount) || 0) * (Number(row.qty) || 0); },
@@ -4371,7 +4371,7 @@ function app() {
     approvePO(po) {
       if (!this.canApprovePO) { this.notify('Approval PO hanya dapat dilakukan oleh role Manager', 'error'); return; }
       if (po.createdById === this.currentUserId) { this.notify('Manager tidak dapat menyetujui PO miliknya sendiri', 'error'); return; }
-      if (po.status !== 'pending_approval') { this.notify('PO ini tidak menunggu approval', 'error'); return; }
+      if (po.status !== 'pending_approval') { this.notify('PO ini tidak berstatus Belum disetujui', 'error'); return; }
       const error = this.poApprovalError(po);
       if (error) { this.notify(error, 'error'); return; }
       this.askConfirm('approve-po', po.id, 'Setujui Purchase Order?', 'PO ' + po.code + ' akan disetujui dan qty PR akan dipesan.', false);
@@ -4505,7 +4505,7 @@ function app() {
       return (this.receiptForm.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
     },
     receiptStatusBadge(status) { return status === 'posted' ? 'badge-green' : 'badge-slate'; },
-    receiptStatusLabel(status) { return status === 'posted' ? 'Posted' : 'Draft'; },
+    receiptStatusLabel(status) { return status === 'posted' ? 'Diposting' : 'Draft'; },
     poRemainingQty(po) {
       return (po.items || []).reduce((sum, item) => sum + Math.max(0, Number(item.qty) - Number(item.receivedQty || 0)), 0);
     },
@@ -4869,7 +4869,7 @@ function app() {
       return { posted:'badge-green', void:'badge-red' }[status] || 'badge-slate';
     },
     purchaseReturnStatusLabel(status) {
-      return { posted:'Posted', void:'Void' }[status] || status;
+      return { posted:'Diposting', void:'Dibatalkan' }[status] || status;
     },
     purchaseReturnConditionLabel(condition) {
       return { good:'Bagus', damaged:'Rusak' }[condition] || condition;
@@ -5589,7 +5589,7 @@ function app() {
       return { draft:'badge-slate', posted:'badge-green', void:'badge-red' }[status] || 'badge-slate';
     },
     journalStatusLabel(status) {
-      return { draft:'Draft', posted:'Posted', void:'Void' }[status] || status;
+      return { draft:'Draft', posted:'Diposting', void:'Dibatalkan' }[status] || status;
     },
     journalSourceLabel(journal) {
       const source = (journal && journal.source) || 'manual';
@@ -5875,7 +5875,7 @@ function app() {
     voidOpeningBalance() {
       const journal = this.openingPostedJournal;
       if (!journal) return;
-      this.askConfirm('void-opening', journal.id, 'Void saldo awal?', 'Jurnal saldo awal ' + journal.code + ' akan di-void. Laporan akan kembali tanpa saldo awal sampai diposting ulang.', true, 'Void');
+      this.askConfirm('void-opening', journal.id, 'Batalkan saldo awal?', 'Jurnal saldo awal ' + journal.code + ' akan dibatalkan. Laporan akan kembali tanpa saldo awal sampai diposting ulang.', true, 'Batalkan');
     },
 
     /* ---------- HPP ---------- */
@@ -6223,7 +6223,7 @@ function app() {
     hppHarianStatusBadge(row) {
       return { draft:'badge-slate', pending:'badge-yellow', done:'badge-green', superseded:'badge-stone' }[this.hppDisplayStatus(row)] || 'badge-slate';
     },
-    hppStatusLabel(status) { return { draft:'Draft', final:'Final', superseded:'Digantikan' }[status] || status; },
+    hppStatusLabel(status) { return { draft:'Draft', final:'Selesai', superseded:'Digantikan' }[status] || status; },
     hppStatusBadge(status) { return { draft:'badge-slate', final:'badge-green', superseded:'badge-stone' }[status] || 'badge-slate'; },
     nextHppCode() {
       const year = todayISO().slice(0, 4);
@@ -6791,7 +6791,7 @@ function app() {
     },
 
     /* ---------- HPP BULANAN ---------- */
-    hppBulananStatusLabel(status) { return { draft:'Draft', final:'Final', revised:'Direvisi' }[status] || status; },
+    hppBulananStatusLabel(status) { return { draft:'Draft', final:'Selesai', revised:'Direvisi' }[status] || status; },
     hppBulananStatusBadge(status) { return { draft:'badge-slate', final:'badge-green', revised:'badge-stone' }[status] || 'badge-slate'; },
     get filteredHppBulanan() {
       const q = String(this.hppBulananSearch || '').toLowerCase();
@@ -7933,7 +7933,7 @@ function app() {
     payrollDocEmployees(doc) { return ((doc && doc.rows) || []).length; },
     payrollIssuedDate(doc) { return (doc && (doc.postedAt || doc.approvedAt)) || ''; },
     get canApprovePayroll() { return this.role === 'Manager'; },
-    payrollStatusLabel(status) { return { draft:'Draft', submitted:'Menunggu Persetujuan', posted:'Posted', rejected:'Ditolak', revised:'Direvisi', final:'Posted' }[status] || 'Belum dibuat'; },
+    payrollStatusLabel(status) { return { draft:'Draft', submitted:'Belum disetujui', posted:'Diposting', rejected:'Ditolak', revised:'Direvisi', final:'Diposting' }[status] || 'Belum dibuat'; },
     payrollStatusBadge(status) { return { draft:'badge-slate', submitted:'badge-yellow', posted:'badge-green', rejected:'badge-red', revised:'badge-stone', final:'badge-green' }[status] || 'badge-slate'; },
     payrollRowCalc(row) {
       const hkStandar = Number(row.hkStandar) || Number(this.hrSettings.hkStandar) || 26;
@@ -8159,7 +8159,7 @@ function app() {
     },
     askPayrollApprove(doc = this.payrollDoc) {
       if (!this.canApprovePayroll) { this.notify('Persetujuan payroll hanya dapat dilakukan oleh role Manager', 'error'); return; }
-      if (!doc || doc.status !== 'submitted') { this.notify('Payroll ini tidak menunggu persetujuan', 'error'); return; }
+      if (!doc || doc.status !== 'submitted') { this.notify('Payroll ini tidak berstatus Belum disetujui', 'error'); return; }
       if (doc.createdBy === this.currentUser) { this.notify('Manager tidak dapat menyetujui payroll miliknya sendiri', 'error'); return; }
       this.askConfirm('payroll-approve', doc.id, 'Setujui payroll?', 'Payroll ' + doc.code + ' akan diposting atas nama ' + this.currentUser + '.', false, 'Setujui');
     },
@@ -8181,7 +8181,7 @@ function app() {
     },
     openPayrollReject(doc = this.payrollDoc) {
       if (!this.canApprovePayroll) { this.notify('Penolakan payroll hanya dapat dilakukan oleh role Manager', 'error'); return; }
-      if (!doc || doc.status !== 'submitted') { this.notify('Payroll ini tidak menunggu persetujuan', 'error'); return; }
+      if (!doc || doc.status !== 'submitted') { this.notify('Payroll ini tidak berstatus Belum disetujui', 'error'); return; }
       if (doc.createdBy === this.currentUser) { this.notify('Manager tidak dapat menolak payroll miliknya sendiri', 'error'); return; }
       this.payrollRejectId = doc.id;
       this.payrollRejectReason = '';
@@ -10262,7 +10262,7 @@ function app() {
       return { unpaid:'badge-red', partial:'badge-yellow', paid:'badge-green' }[status] || 'badge-slate';
     },
     payableStatusLabel(status) {
-      return { unpaid:'Belum Dibayar', partial:'Dibayar Sebagian', paid:'Lunas' }[status] || status;
+      return { unpaid:'Belum dibayar', partial:'Dibayar sebagian', paid:'Lunas' }[status] || status;
     },
     viewPayable(payable) {
       this.payableSelectedId = payable.id;

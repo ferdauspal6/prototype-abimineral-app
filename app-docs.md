@@ -124,7 +124,7 @@ Jurnal Umum:
 - Double-entry: minimal 2 baris, total debit = total kredit.
 - Satu baris hanya debit atau kredit.
 - Akun nonaktif dan akun terkunci tidak bisa dipakai.
-- Status `draft → posted`, serta `void` dengan alasan.
+- Status `draft → posted`, serta pembatalan (`void`) dengan alasan.
 - Draft dapat diedit/dihapus; posted immutable.
 - Nomor otomatis `JU/YYYY/MM/xxxx`.
 - Riwayat aksi tersimpan pada setiap jurnal.
@@ -183,7 +183,7 @@ Permission: `Laporan Keuangan` (Admin, Manager, Developer).
 - Posting membuat satu jurnal `source=opening` dan langsung memengaruhi Neraca Saldo, Neraca, dan Buku Besar.
 - Jurnal saldo awal tidak masuk Laba Rugi dan tidak dihitung sebagai uang masuk kas.
 - Jika sudah ada jurnal posted sebelum tanggal saldo awal, sistem menampilkan peringatan.
-- Saldo awal hanya boleh satu yang posted; untuk mengubah, gunakan **Void Saldo Awal** lalu posting ulang.
+- Saldo awal hanya boleh satu yang posted; untuk mengubah, gunakan **Batalkan Saldo Awal** lalu posting ulang.
 - Jurnal saldo awal menyimpan pembuat dan waktu posting.
 
 ### 2.6.2 HPP Harian
@@ -206,7 +206,7 @@ Aturan utama:
 - Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli master barang.
 - Biaya produksi diisi langsung pada form **HPP Harian** (tab Biaya Bulanan sudah dihapus).
 - Setiap form memiliki **Periode Biaya**; nilai komponen disimpan juga ke pool biaya bulanan periode tersebut agar HPP Bulanan per produk tetap berjalan.
-- Sumber **Gaji Produksi** dapat Manual atau **Payroll** Posted (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
+- Sumber **Gaji Produksi** dapat Manual atau **Payroll** Diposting (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
 - **Listrik Produksi** hanya bersumber dari Manual atau Jurnal. Jurnal mengambil total debit jurnal posted ke akun `5-1600 Beban Listrik Produksi`; akun `5-1610 Beban Listrik Kantor` tidak masuk HPP.
 - **Overhead** dan **Air** diisi manual sebagai nilai bulanan, **Penyusutan** diisi manual sebagai total per dokumen.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
@@ -224,7 +224,7 @@ Aturan utama:
 - Daftar HPP Harian memakai satu badge status: **Draft**, **Belum disetujui** (final lama yang belum diterapkan ke harga modal), dan **Selesai**. Kolom Versi dan Status terpisah dihapus; versi lama tidak ditampilkan di daftar.
 - Revisi membuat versi baru dan menandai versi lama **Digantikan**.
 - Draft boleh dihitung ulang dari data sumber; harga override dan penyusutan dipertahankan.
-- Final mengunci snapshot. Modal finalisasi menampilkan ringkasan detail dan **langsung menerapkan HPP ke harga modal** dengan pembulatan rupiah; tidak ada langkah Terapkan ke Harga Modal terpisah.
+- Finalisasi mengunci snapshot. Modal finalisasi menampilkan ringkasan detail dan **langsung menerapkan HPP ke harga modal** dengan pembulatan rupiah; tidak ada langkah Terapkan ke Harga Modal terpisah.
 - Order baru menyimpan `costAtOrder` agar perubahan Harga Modal tidak mengubah COGS historis.
 - Self-test internal memverifikasi HPP Harian **13.852,76/Krt**.
 - Tab HPP: **Harian**, **Bulanan**, **Pengaturan**.
@@ -655,16 +655,16 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Halaman utama berupa daftar payroll: No. Payroll, Tanggal Terbit, Periode, Jumlah Pegawai, Total Diterima, Status, Input by, dan Action.
    - Tombol **Buat Payroll** membuka form periode payroll + periode absensi, lalu membuat **Draft**.
    - Status: `draft → submitted → posted` (+ `rejected` / `direvisi`).
-   - Draft dan Ditolak dapat diedit, diajukan, atau dihapus. Menunggu Persetujuan dan Posted terkunci.
-   - Submit memerlukan persetujuan **Manager**. Jika pembuat adalah Manager, Submit langsung Posted (auto approve).
+   - Draft dan Ditolak dapat diedit, diajukan, atau dihapus. Belum disetujui dan Diposting terkunci.
+   - Submit memerlukan persetujuan **Manager**. Jika pembuat adalah Manager, Submit langsung Diposting (auto approve).
    - Modal **Ajukan Payroll** menampilkan ringkasan per kelompok sebagai preview validasi; setelah submit otomatis kembali ke daftar Payroll.
    - Manager dapat menolak dengan alasan; payroll Ditolak dapat diperbaiki dan diajukan lagi.
-   - Revisi payroll Posted membuat versi Draft baru; versi lama menjadi Direvisi.
+   - Revisi payroll Diposting membuat versi Draft baru; versi lama menjadi Direvisi.
    - Periode payroll dan periode absensi terpisah (default absensi bulan sebelumnya).
    - HK, hari telat, hari makan, dan HK lembur terisi dari rekap absensi.
    - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan; lembur = HK lembur × (gaji/hari + uang makan/hari).
    - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
-   - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari form HPP Harian dengan memilih payroll Posted pada baris Gaji Produksi.
+   - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari form HPP Harian dengan memilih payroll Diposting pada baris Gaji Produksi.
 4. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
 5. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.
 
@@ -1053,7 +1053,7 @@ Route: `/dashboard/order/delivery/create`
   - **Gudang** * — select.
 - Filter order:
   - Search, multi-select pelanggan, tanggal, sales, status.
-  - Status yang tersedia: **Siap Dikirim**, **Ditahan**, **Selesai Parsial** (pending/processing/shipping/success dikecualikan).
+  - Status yang tersedia: **Siap dikirim**, **Ditahan**, **Selesai sebagian** (pending/processing/shipping/success dikecualikan).
 - Tabel order:
   - Checkbox, `Order ID`, `Pelanggan` (nama + alamat), `Tanggal`, `Nilai Transaksi`, `Sales` (avatar), `Pesanan` (tombol **Detail** buka tab baru), `Status`.
 - Preview button aktif jika minimal 1 order dipilih + driver + armada + gudang terisi.
@@ -1122,7 +1122,7 @@ Route: `/dashboard/order/retur`
   - **Ganti Barang** biru.
   - **Potong Harga** merah.
 - Status Barang:
-  - `return` → **Stocked** biru.
+  - `return` → **Masuk stok** biru.
   - `discard` → **Dihapus** merah.
   - `pending` → **Pending** kuning.
 - Action hanya untuk pending: **Proses** / **Batalkan**.
@@ -1291,8 +1291,8 @@ Route: `/dashboard/piutang/penagihan`
 - Tabel:
   - `#`, `Debt ID`, `Sales` (avatar), `Tanggal`, `Nilai Utang`, `Dibayar`, `Sisa Utang`, `Status`, `Action`.
 - Status:
-  - pending → **Belum Diproses** kuning.
-  - processing → **Sedang Diproses** oranye.
+  - pending → **Belum diproses** kuning.
+  - processing → **Sedang diproses** oranye.
   - success → **Selesai** hijau.
 - Action: **Konfirmasi** → halaman confirm, **View** → preview print.
 - Pagination.
@@ -1612,20 +1612,20 @@ Layout: heading "Pengaturan", sidebar kiri (Profil, Kata sandi, Otentikasi 2FA, 
 
 | Domain | Value | Label UI | Warna |
 |---|---|---|---|
-| Order | `pending` | Belum Diproses | Kuning |
-| Order | `processing` | Sedang Diproses | Oranye |
-| Order | `already` | Siap Dikirim | Biru |
+| Order | `pending` | Belum diproses | Kuning |
+| Order | `processing` | Sedang diproses | Oranye |
+| Order | `already` | Siap dikirim | Biru |
 | Order | `holding` | Ditahan | Cyan |
 | Order | `shipping` | Dikirim | Amber |
 | Order | `success` | Selesai | Hijau |
-| Order | `partial` | Selesai Parsial | Hijau |
+| Order | `partial` | Selesai sebagian | Hijau |
 | Order | `failed` | Gagal | Merah |
 | Order | `cancel` | Dibatalkan | Merah |
-| Payment | `unpaid` | Belum Lunas | Kuning |
-| Payment | `partial` | Lunas Partial | Hijau |
+| Payment | `unpaid` | Belum dibayar | Kuning |
+| Payment | `partial` | Dibayar sebagian | Hijau |
 | Payment | `paid` | Lunas | Hijau |
-| Delivery | `pending` | Belum Diproses | Kuning |
-| Delivery | `processing` | Sedang Diproses | Oranye |
+| Delivery | `pending` | Belum diproses | Kuning |
+| Delivery | `processing` | Sedang diproses | Oranye |
 | Delivery | `shipping` | Dikirim | Amber |
 | Delivery | `success` | Selesai | Hijau |
 | Delivery | `cancel` | Dibatalkan | Merah |
@@ -1635,16 +1635,33 @@ Layout: heading "Pengaturan", sidebar kiri (Profil, Kata sandi, Otentikasi 2FA, 
 | Radius | `offsite` | Offsite | Merah |
 | Return type | `change` | Ganti Barang | Biru |
 | Return type | `cut` | Potong Harga | Merah |
-| Return status | `pending` | Pending | Kuning |
-| Return status | `return` | Stocked | Biru |
+| Return status | `pending` | Belum diproses | Kuning |
+| Return status | `return` | Masuk stok | Biru |
 | Return status | `discard` | Dihapus | Merah |
-| Debt order | `pending` | Belum Diproses | Kuning |
-| Debt order | `processing` | Sedang Diproses | Oranye |
+| Debt order | `pending` | Belum diproses | Kuning |
+| Debt order | `processing` | Sedang diproses | Oranye |
 | Debt order | `success` | Selesai | Hijau |
 | Pekan | `Genap` | Genap | Biru |
 | Pekan | `Ganjil` | Ganjil | Kuning |
 | Produk | `status=true` | Aktif | Hijau |
 | Produk | `status=false` | Nonaktif | Abu |
+| PR | `submitted` | Belum disetujui | Kuning |
+| PR | `approved` | Disetujui | Hijau |
+| PR | `processing` | Diproses | Biru |
+| PO | `pending_approval` | Belum disetujui | Kuning |
+| PO | `partially_received` | Diterima sebagian | Cyan |
+| PO | `fully_received` | Diterima penuh | Hijau |
+| Payroll | `submitted` | Belum disetujui | Kuning |
+| Payroll | `posted` | Diposting | Hijau |
+| Payroll | `rejected` | Ditolak | Merah |
+| HPP Harian | `final` + `appliedAt` | Selesai | Hijau |
+| HPP Harian | `final` tanpa `appliedAt` | Belum disetujui | Kuning |
+| HPP Bulanan | `final` | Selesai | Hijau |
+| Jurnal | `posted` | Diposting | Hijau |
+| Jurnal | `void` | Dibatalkan | Merah |
+| Penerimaan | `posted` | Diposting | Hijau |
+| Return pembelian | `posted` | Diposting | Hijau |
+| Return pembelian | `void` | Dibatalkan | Merah |
 
 ---
 
