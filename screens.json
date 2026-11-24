@@ -1052,17 +1052,6 @@
       "previewH": 900
     },
     {
-      "id": "hpp-monthly",
-      "name": "HPP — Biaya Bulanan",
-      "src": "index.html?canvas=hpp-monthly",
-      "group": "keuangan",
-      "virtual": true,
-      "w": 1440,
-      "preview": "canvas/previews/hpp-monthly.jpg",
-      "previewW": 1440,
-      "previewH": 900
-    },
-    {
       "id": "hpp-settings",
       "name": "HPP — Pengaturan",
       "src": "index.html?canvas=hpp-settings",

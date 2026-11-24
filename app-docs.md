@@ -194,7 +194,7 @@ Permission: `Laporan Keuangan` (Admin, Manager, Developer).
 Tab:
 
 1. **HPP Harian**
-2. **Biaya Bulanan**
+2. **HPP Bulanan per Produk**
 3. **Pengaturan**
 
 Aturan utama:
@@ -202,36 +202,31 @@ Aturan utama:
 - Satuan memakai **Krt**.
 - Hasil produksi diambil dari dokumen Produksi posted, bukan diketik.
 - HPP per Krt = bahan baku per Krt + biaya produksi per Krt.
-- Bahan memakai qty aktual dari PRD atau standar dari resep.
+- Bahan selalu memakai qty aktual dari PRD (tanpa mode Standar).
 - Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli master barang.
-- Biaya bulanan: gaji, uang makan, BPJS, listrik produksi, overhead.
+- Biaya produksi diisi langsung pada form **HPP Harian** (tab Biaya Bulanan sudah dihapus).
+- Setiap form memiliki **Periode Biaya**; nilai komponen disimpan juga ke pool biaya bulanan periode tersebut agar HPP Bulanan per produk tetap berjalan.
 - Sumber **Gaji Produksi** dapat Manual atau **Payroll** Posted (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
 - **Listrik Produksi** hanya bersumber dari Manual atau Jurnal. Jurnal mengambil total debit jurnal posted ke akun `5-1600 Beban Listrik Produksi`; akun `5-1610 Beban Listrik Kantor` tidak masuk HPP.
+- **Overhead** dan **Air** diisi manual sebagai nilai bulanan, **Penyusutan** diisi manual sebagai total per dokumen.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
-- Listrik Produksi per Krt memakai rumus yang sama: `biaya listrik produksi bulanan ÷ hari kerja ÷ hasil produksi`.
-- Air = `(liter per Krt ÷ 1.000) × harga per m³`.
-- Penyusutan = `nilai penyusutan ÷ hasil produksi × alokasi%`.
+- Penyusutan per Krt = `nilai penyusutan ÷ hasil produksi × alokasi%`.
 - **Pembulatan** dapat dipilih di Pengaturan:
   - **Tidak dibulatkan** (default, presisi penuh),
   - **Bulatkan tiap komponen**,
   - **Bulatkan HPP akhir**.
   - Nilai asli komponen yang dibulatkan tetap ditampilkan sebagai keterangan.
-- **Ambil dari periode** (dropdown) menggantikan tombol salin:
-  - pilihan September, Oktober, November 2026, dan periode lain yang punya data;
-  - periode aktif dinonaktifkan;
-  - periode kosong menampilkan label `(belum ada data)` dan otomatis memuat data dummy sebagai **Estimasi**.
-- **Isi Data Dummy** membuat biaya September (95%), Oktober (angka sheet client, **Aktual**), dan November (103%) 2026.
+- **Isi Data Dummy** membuat pool biaya September (95%), Oktober (angka sheet client, **Aktual**), dan November (103%) 2026.
 - **Isi Data Dummy** juga menyiapkan stok bahan baku Abi Mineral 220ml (CUP) minimal untuk **2.000 Krt**: Cup 96.400, LID 96.350, Straw 96.400, Karton Box 2.300, dan Lakban 4.600. Qty pembelian dummy untuk Cup, LID, dan Straw menjadi 130.000 pcs.
 - **Harga master bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga tersebut dan memakai harga yang sama pada PO dummy.
 - **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, bonus 32 dus, periode biaya Oktober, dan harga bahan dari master (tanpa override). Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
 - Satu HPP final per tanggal + produk.
 - Revisi membuat versi baru dan menandai versi lama **Digantikan**.
 - Draft boleh dihitung ulang dari data sumber; harga override dan penyusutan dipertahankan.
-- Final mengunci snapshot.
-- Terapkan ke Harga Modal memakai pembulatan rupiah dan dicatat di riwayat.
+- Final mengunci snapshot. Modal finalisasi menampilkan ringkasan detail dan **langsung menerapkan HPP ke harga modal** dengan pembulatan rupiah; tidak ada langkah Terapkan ke Harga Modal terpisah.
 - Order baru menyimpan `costAtOrder` agar perubahan Harga Modal tidak mengubah COGS historis.
 - Self-test internal memverifikasi HPP Harian **13.852,76/Krt**.
-- Tab HPP: **Harian**, **Bulanan**, **Biaya Bulanan**, **Pengaturan**.
+- Tab HPP: **Harian**, **Bulanan**, **Pengaturan**.
 - **HPP Bulanan per Produk**:
   - Pool = gaji + uang makan + BPJS + bonusan + reject + air + listrik + overhead.
   - Tarif per dus = pool ÷ total dus seluruh produk.
@@ -661,13 +656,14 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Status: `draft → submitted → posted` (+ `rejected` / `direvisi`).
    - Draft dan Ditolak dapat diedit, diajukan, atau dihapus. Menunggu Persetujuan dan Posted terkunci.
    - Submit memerlukan persetujuan **Manager**. Jika pembuat adalah Manager, Submit langsung Posted (auto approve).
+   - Modal **Ajukan Payroll** menampilkan ringkasan per kelompok sebagai preview validasi; setelah submit otomatis kembali ke daftar Payroll.
    - Manager dapat menolak dengan alasan; payroll Ditolak dapat diperbaiki dan diajukan lagi.
    - Revisi payroll Posted membuat versi Draft baru; versi lama menjadi Direvisi.
    - Periode payroll dan periode absensi terpisah (default absensi bulan sebelumnya).
    - HK, hari telat, hari makan, dan HK lembur terisi dari rekap absensi.
    - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan; lembur = HK lembur × (gaji/hari + uang makan/hari).
    - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
-   - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari Biaya Bulanan dengan memilih payroll Posted.
+   - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari form HPP Harian dengan memilih payroll Posted pada baris Gaji Produksi.
 4. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
 5. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.
 

@@ -2217,11 +2217,13 @@ function app() {
       this.bankAccountModalOpen = false;
       this.bankTransferModalOpen = false;
       this.hppBulananRevisionOpen = false;
+      this.hppFinalizeOpen = false;
       this.employeeModalOpen = false;
       this.attendanceImportOpen = false;
       this.attendanceNoteOpen = false;
       this.attendanceSettingsOpen = false;
       this.payrollRevisionOpen = false;
+      this.payrollSubmitOpen = false;
       this.payrollRejectOpen = false;
       this.payrollSettingsOpen = false;
       this.exportModalOpen = false;
@@ -2266,7 +2268,6 @@ function app() {
           }
           if (row.status === 'final') {
             items.push({ label:'Revisi', icon:'i-refresh', run:() => this.openHppRevision(row) });
-            items.push({ label:'Terapkan ke Harga Modal', icon:'i-check', run:() => this.askHppApply(row) });
           }
           return items;
         }
@@ -2508,12 +2509,6 @@ function app() {
       if (action === 'hpp-copy-monthly') {
         this.applyHppMonthlyCopy(id);
       }
-      if (action === 'hpp-finalize') {
-        this.persistHppFinal();
-      }
-      if (action === 'hpp-apply') {
-        this.applyHppCost(id);
-      }
       if (action === 'hpp-delete') {
         const row = this.hppHarian.find(item => item.id === id);
         if (row && row.status === 'draft') {
@@ -2745,9 +2740,6 @@ function app() {
         this.attendanceNotes = (this.attendanceNotes || []).filter(note => note.id !== id);
         this.persist();
         this.notify('Keterangan absensi dihapus');
-      }
-      if (action === 'payroll-submit') {
-        this.commitPayrollSubmit();
       }
       if (action === 'payroll-approve') {
         this.commitPayrollApprove();
@@ -5919,6 +5911,7 @@ function app() {
     payrollListSearch: '', payrollListStatus: '', payrollListPeriod: '',
     payrollSearch: '',
     payrollRevisionOpen: false, payrollRevisionReason: '',
+    payrollSubmitOpen: false,
     payrollRejectOpen: false, payrollRejectId: null, payrollRejectReason: '',
     payrollSettingsOpen: false,
     payrollSettingsForm: { hkStandar:26, mealDefault:20000, hppGroups:['Produksi'], hppSalaryBasis:'before' },
@@ -5928,7 +5921,8 @@ function app() {
     hppMonthlyForm: {},
     hppSourcePeriod: '',
     hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000, roundingMode:'none' },
-    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialMode:'actual', materialOverrides:{}, depreciationTotal:0, costPeriods:{} },
+    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0, costPeriod:previousMonthKey(todayISO().slice(0, 7)), monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 }, payrollPeriod:'', listrikSource:'manual' },
+    hppFinalizeOpen: false,
     hppEditId: null,
     hppDetailId: null,
     hppRevisionOpen: false,
@@ -6074,6 +6068,12 @@ function app() {
       this.seedDummyMonthlyPeriod(period);
       this.persist();
       this.notify('Data dummy ' + monthLongLabel(period) + ' dimuat. Angka ini hanya untuk demo.');
+    },
+    hppCostSourceLabel(row) {
+      if (!row) return 'Manual';
+      if (row.sourceType === 'payroll') return row.sourcePeriod ? 'Payroll ' + monthLongLabel(row.sourcePeriod) : 'Payroll';
+      if (row.sourceType === 'jurnal') return 'Jurnal';
+      return 'Manual';
     },
     hppComponentLabel(key) {
       if (key === 'penyusutan') return 'Penyusutan';
@@ -6221,11 +6221,68 @@ function app() {
       }, 0);
       return prefix + String(max + 1).padStart(4, '0');
     },
-    hppDefaultCostPeriods(date) {
-      const key = previousMonthKey(String(date || todayISO()).slice(0, 7));
-      const periods = {};
-      ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => { periods[component] = key; });
-      return periods;
+    hppDefaultCostPeriod(date) {
+      return previousMonthKey(String(date || todayISO()).slice(0, 7));
+    },
+    hppMonthlyKeys() { return ['gaji','uang_makan','bpjs','listrik','overhead','air']; },
+    hppLoadMonthlyCosts(period, options = {}) {
+      const form = this.hppForm;
+      if (!form || !period) return;
+      form.costPeriod = period;
+      this.hppMonthlyKeys().forEach(key => {
+        const row = this.getBiayaBulanan(period, key);
+        form.monthlyCosts[key] = row ? Number(row.value) || 0 : 0;
+      });
+      const gaji = this.getBiayaBulanan(period, 'gaji');
+      form.payrollPeriod = gaji && gaji.sourceType === 'payroll' ? (gaji.sourcePayrollPeriod || period) : '';
+      const listrik = this.getBiayaBulanan(period, 'listrik');
+      form.listrikSource = listrik && listrik.sourceType === 'jurnal' ? 'jurnal' : 'manual';
+      if (form.payrollPeriod) this.applyHppPayrollSource(form.payrollPeriod, { notify:false });
+      if (form.listrikSource === 'jurnal') form.monthlyCosts.listrik = this.listrikJournalValue(period);
+      if (options.notify) this.notify('Biaya produksi ' + monthLongLabel(period) + ' dimuat');
+    },
+    onHppCostPeriodChange() {
+      if (!this.hppForm) return;
+      this.hppLoadMonthlyCosts(this.hppForm.costPeriod, { notify:true });
+    },
+    applyHppPayrollSource(period, options = {}) {
+      const form = this.hppForm;
+      if (!form || !period) return;
+      const doc = this.postedPayrollForPeriod(period);
+      if (!doc) {
+        form.payrollPeriod = '';
+        if (options.notify) this.notify('Payroll ' + monthLongLabel(period) + ' belum Posted', 'error');
+        return;
+      }
+      const summary = this.hppPayrollSummary(period);
+      form.monthlyCosts.gaji = summary.gaji;
+      form.monthlyCosts.uang_makan = summary.uangMakan;
+      form.monthlyCosts.bpjs = summary.bpjs;
+      form.payrollEmployeeCount = summary.headcount;
+    },
+    setHppPayroll(period) {
+      if (!this.hppForm) return;
+      this.hppForm.payrollPeriod = period || '';
+      if (period) this.applyHppPayrollSource(period, { notify:true });
+    },
+    setHppListrikSource(source) {
+      if (!this.hppForm) return;
+      this.hppForm.listrikSource = source === 'jurnal' ? 'jurnal' : 'manual';
+      if (this.hppForm.listrikSource === 'jurnal') this.hppForm.monthlyCosts.listrik = this.listrikJournalValue(this.hppForm.costPeriod);
+    },
+    get hppCostFollowsPayroll() { return !!(this.hppForm && this.hppForm.payrollPeriod); },
+    get hppFormPayrollPeriods() {
+      const limit = this.hppForm ? this.hppForm.costPeriod : '';
+      return this.payrollPostedPeriods.filter(period => !limit || period <= limit).slice(0, 3);
+    },
+    hppCostValueReadonly(component) {
+      if (!this.hppForm) return false;
+      if (['gaji','uang_makan','bpjs'].includes(component) && this.hppForm.payrollPeriod) return true;
+      return component === 'listrik' && this.hppForm.listrikSource === 'jurnal';
+    },
+    get hppCostPayrollLabel() {
+      const period = this.hppForm ? this.hppForm.payrollPeriod : '';
+      return period ? 'Payroll ' + monthLongLabel(period) : 'Payroll';
     },
     get hppDemoAvailable() { return (this.productions || []).some(row => row.date === '2026-10-30' && row.productId === 'p1'); },
     startHppDemo() {
@@ -6241,10 +6298,12 @@ function app() {
       this.hppEditId = null;
       this.hppForm = {
         date:todayISO(), productId:'', allocationPercent:100,
-        bonusQty:0, bonusNote:'', materialMode:'actual',
-        materialOverrides:{}, depreciationTotal:0,
-        costPeriods:this.hppDefaultCostPeriods(todayISO())
+        bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0,
+        costPeriod:this.hppDefaultCostPeriod(todayISO()),
+        monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 },
+        payrollPeriod:'', listrikSource:'manual'
       };
+      this.hppLoadMonthlyCosts(this.hppForm.costPeriod);
       this.applyHppDemoScenario();
       this.go('hpp-create');
     },
@@ -6258,14 +6317,14 @@ function app() {
         if (this.hppForm.demoScenario) {
           this.hppForm.demoScenario = false;
           this.hppForm.materialOverrides = {};
-          this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
+          this.hppLoadMonthlyCosts(this.hppDefaultCostPeriod(this.hppForm.date));
           this.hppForm.bonusQty = 0;
           this.hppForm.bonusNote = '';
         }
         return false;
       }
       this.hppForm.materialOverrides = {};
-      this.hppForm.costPeriods = { gaji:'2026-10', uang_makan:'2026-10', bpjs:'2026-10', listrik:'2026-10', overhead:'2026-10' };
+      this.hppLoadMonthlyCosts('2026-10');
       this.hppForm.bonusQty = demo.bonusQty;
       this.hppForm.bonusNote = demo.bonusNote;
       this.hppForm.demoScenario = true;
@@ -6273,7 +6332,7 @@ function app() {
     },
     onHppDateChange() {
       if (!this.hppForm) return;
-      this.hppForm.costPeriods = this.hppDefaultCostPeriods(this.hppForm.date);
+      this.hppLoadMonthlyCosts(this.hppDefaultCostPeriod(this.hppForm.date));
       if (this.applyHppDemoScenario()) this.notify('Skenario demo 30 Oktober aktif: periode biaya dan bonus diisi otomatis.');
     },
     onHppProductChange() {
@@ -6286,19 +6345,23 @@ function app() {
       (row.materials || []).forEach(material => {
         if (material.priceOverridden) overrides[material.materialId] = { price:material.price, reason:material.overrideReason || '' };
       });
-      const periods = {};
-      ['gaji','uang_makan','bpjs','listrik','overhead'].forEach(component => {
-        const cost = (row.costs || []).find(item => item.component === component);
-        periods[component] = cost ? cost.sourcePeriod : previousMonthKey(String(row.date).slice(0, 7));
+      const monthlyCosts = { gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 };
+      (row.costs || []).forEach(cost => {
+        if (monthlyCosts[cost.component] !== undefined) monthlyCosts[cost.component] = Number(cost.monthlyValue) || 0;
       });
+      const gajiCost = (row.costs || []).find(cost => cost.component === 'gaji');
+      const listrikCost = (row.costs || []).find(cost => cost.component === 'listrik');
+      const costPeriod = (gajiCost && gajiCost.sourcePeriod) || row.costPeriod || this.hppDefaultCostPeriod(row.date);
       this.hppForm = {
         date:row.date, productId:row.productId,
         allocationPercent:Number(row.allocationPercent) || 100,
         bonusQty:Number(row.bonusQty) || 0, bonusNote:row.bonusNote || '',
-        materialMode:row.materialMode || 'actual',
         materialOverrides:overrides,
         depreciationTotal:Number(row.depreciationTotal) || 0,
-        costPeriods:periods
+        costPeriod,
+        monthlyCosts,
+        payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : '',
+        listrikSource:listrikCost && listrikCost.sourceType === 'jurnal' ? 'jurnal' : 'manual'
       };
       this.go('hpp-create');
     },
@@ -6365,16 +6428,10 @@ function app() {
       if (!this.hppForm || !this.hppForm.productId || !this.hppForm.date || this.hppOutputQty <= 0) return [];
       const output = this.hppOutputQty;
       const totals = {};
-      if (this.hppForm.materialMode === 'standard') {
-        (this.recipes || []).filter(recipe => recipe.productId === this.hppForm.productId).forEach(recipe => {
-          totals[recipe.materialId] = (totals[recipe.materialId] || 0) + (Number(recipe.qtyPerUnit) || 0) * output;
-        });
-      } else {
-        this.hppProductionDocs.forEach(doc => (doc.materials || []).forEach(row => {
-          if (!row.materialId) return;
-          totals[row.materialId] = (totals[row.materialId] || 0) + (Number(row.qty) || 0);
-        }));
-      }
+      this.hppProductionDocs.forEach(doc => (doc.materials || []).forEach(row => {
+        if (!row.materialId) return;
+        totals[row.materialId] = (totals[row.materialId] || 0) + (Number(row.qty) || 0);
+      }));
       return Object.keys(totals).map(materialId => {
         const material = this.material(materialId);
         const qtyTotal = totals[materialId];
@@ -6391,13 +6448,6 @@ function app() {
       }).sort((a, b) => String(a.code).localeCompare(String(b.code)));
     },
     get hppMaterialTotal() { return this.hppMaterialRows.reduce((sum, row) => sum + row.subtotalPerDus, 0); },
-    hppCostPeriod(component) {
-      return (this.hppForm && this.hppForm.costPeriods && this.hppForm.costPeriods[component]) || previousMonthKey(String(this.hppForm ? this.hppForm.date : todayISO()).slice(0, 7));
-    },
-    setHppCostPeriod(component, value) {
-      if (!this.hppForm) return;
-      this.hppForm.costPeriods = { ...this.hppForm.costPeriods, [component]:value };
-    },
     get hppCostRows() {
       if (!this.hppForm) return [];
       const output = this.hppOutputQty;
@@ -6405,41 +6455,42 @@ function app() {
       const allocation = Number(this.hppForm.allocationPercent) || 0;
       const rounding = this.hppRoundingMode;
       const rows = [];
-      this.hppDailyComponents.forEach(component => {
-        const period = this.hppCostPeriod(component.key);
-        const source = this.getBiayaBulanan(period, component.key);
-        const value = source ? Number(source.value) || 0 : 0;
+      const monthlyKeys = this.hppMonthlyKeys();
+      monthlyKeys.forEach(key => {
+        const component = this.hppMonthlyComponents.find(row => row.key === key) || { key, label:key };
+        const value = Number(this.hppForm.monthlyCosts[key]) || 0;
         const rawPerDus = output > 0 && workingDays > 0 ? (value / workingDays / output) * (allocation / 100) : 0;
         const perDus = rounding === 'component' ? Math.round(rawPerDus) : rawPerDus;
+        let sourceType = 'manual';
+        let note = '';
+        if (['gaji','uang_makan','bpjs'].includes(key) && this.hppForm.payrollPeriod) {
+          sourceType = 'payroll';
+          note = 'Payroll ' + monthLongLabel(this.hppForm.payrollPeriod);
+        } else if (key === 'listrik' && this.hppForm.listrikSource === 'jurnal') {
+          sourceType = 'jurnal';
+          note = 'Jurnal Beban Listrik Produksi ' + monthLongLabel(this.hppForm.costPeriod);
+        }
         rows.push({
-          component:component.key,
+          component:key,
           label:component.label,
-          period,
-          source,
+          period:this.hppForm.costPeriod,
+          source:{ sourceType, sourcePayrollPeriod:sourceType === 'payroll' ? this.hppForm.payrollPeriod : '' },
+          sourceType,
           value,
-          type:source ? source.type : '',
+          type:sourceType === 'manual' ? 'manual' : 'aktual',
           perDus,
           rawPerDus,
-          note:Math.abs(perDus - rawPerDus) >= 0.005 ? 'Nilai asli ' + this.fmt2(rawPerDus) : '',
-          missing:!source,
+          note:Math.abs(perDus - rawPerDus) >= 0.005 ? 'Nilai asli ' + this.fmt2(rawPerDus) : note,
+          missing:false,
           formula:'(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus)
         });
-      });
-      const waterLiters = Number(this.hppSettings.waterLitersPerKrt) || 0;
-      const waterPrice = Number(this.hppSettings.waterPricePerM3) || 0;
-      const waterRaw = (waterLiters / 1000) * waterPrice;
-      const waterPerDus = rounding === 'component' ? Math.round(waterRaw) : waterRaw;
-      rows.push({
-        component:'air', label:'Air', period:'', source:null, value:null, type:'', perDus:waterPerDus, rawPerDus:waterRaw,
-        note:Math.abs(waterPerDus - waterRaw) >= 0.005 ? 'Nilai asli ' + this.fmt2(waterRaw) : '',
-        missing:false,
-        formula:'(' + this.fmt(waterLiters) + ' ÷ 1.000) × ' + this.fmt(waterPrice) + ' = ' + this.fmt2(waterRaw)
       });
       const depreciation = Number(this.hppForm.depreciationTotal) || 0;
       const depreciationRaw = output > 0 ? (depreciation / output) * (allocation / 100) : 0;
       const depreciationPerDus = rounding === 'component' ? Math.round(depreciationRaw) : depreciationRaw;
       rows.push({
-        component:'penyusutan', label:'Penyusutan', period:'', source:null, value:depreciation, type:'', perDus:depreciationPerDus, rawPerDus:depreciationRaw,
+        component:'penyusutan', label:'Penyusutan', period:'', source:{ sourceType:'manual' }, sourceType:'manual',
+        value:depreciation, type:'manual', perDus:depreciationPerDus, rawPerDus:depreciationRaw,
         note:Math.abs(depreciationPerDus - depreciationRaw) >= 0.005 ? 'Nilai asli ' + this.fmt2(depreciationRaw) : '',
         missing:false,
         formula:'(' + this.fmt(depreciation) + ' ÷ ' + this.fmt(output) + ') × ' + this.fmt(allocation) + '% = ' + this.fmt2(depreciationRaw)
@@ -6452,6 +6503,7 @@ function app() {
       return this.hppRoundingMode === 'final' ? Math.round(raw) : raw;
     },
     get hppTotal() { return this.hppPerDus * this.hppOutputQty; },
+    get hppFinalCost() { return Math.round(this.hppPerDus); },
     get hppProductCost() { return Number(this.product(this.hppForm ? this.hppForm.productId : '').cost) || 0; },
     get hppCostDifference() { return this.hppPerDus - this.hppProductCost; },
     get hppCostDifferencePct() { return this.hppProductCost ? (this.hppCostDifference / this.hppProductCost) * 100 : 0; },
@@ -6470,10 +6522,11 @@ function app() {
       return !!this.hppForm
         && !!this.hppForm.date
         && !!this.hppForm.productId
+        && !!this.hppForm.costPeriod
         && this.hppOutputQty > 0
         && this.hppMaterialRows.length > 0
         && this.hppMaterialRows.every(row => row.price > 0 && (!row.priceOverridden || String(row.overrideReason || '').trim()))
-        && this.hppMissingCosts.length === 0
+        && this.hppMonthlyKeys().every(key => Number(this.hppForm.monthlyCosts[key]) >= 0)
         && Number(this.hppForm.depreciationTotal) >= 0
         && Number(this.hppForm.allocationPercent) >= 0
         && Number(this.hppForm.allocationPercent) <= 100;
@@ -6493,7 +6546,8 @@ function app() {
         outputQty:this.hppOutputQty,
         bonusQty:Number(form.bonusQty) || 0,
         bonusNote:form.bonusNote || '',
-        materialMode:form.materialMode,
+        costPeriod:form.costPeriod,
+        materialMode:'actual',
         materialPerDus:this.hppMaterialTotal,
         productionCostPerDus:this.hppCostTotal,
         hppPerDus:this.hppPerDus,
@@ -6505,7 +6559,7 @@ function app() {
           overrideReason:row.overrideReason
         })),
         costs:costs.map(row => ({
-          component:row.component, sourcePeriod:row.period, sourceType:row.source ? row.source.sourceType : 'manual',
+          component:row.component, sourcePeriod:row.period, sourceType:row.sourceType || 'manual',
           type:row.type || '', monthlyValue:row.value, divisor:Number(this.hppSettings.workingDays) || 0,
           perDus:row.perDus, rawPerDus:row.rawPerDus, note:row.note || '', formula:row.formula
         })),
@@ -6519,7 +6573,11 @@ function app() {
           allocationPercent:Number(form.allocationPercent) || 0,
           bonusQty:Number(form.bonusQty) || 0,
           bonusNote:form.bonusNote || '',
-          materialMode:form.materialMode,
+          costPeriod:form.costPeriod,
+          monthlyCosts:{ ...form.monthlyCosts },
+          payrollPeriod:form.payrollPeriod,
+          listrikSource:form.listrikSource,
+          materialMode:'actual',
           depreciationTotal:Number(form.depreciationTotal) || 0
         })),
         createdBy:this.currentUser,
@@ -6535,6 +6593,7 @@ function app() {
       if (!this.hppForm.date || !this.hppForm.productId) { this.notify('Tanggal dan produk wajib diisi', 'error'); return; }
       if (this.hppOutputQty <= 0) { this.notify('Belum ada produksi untuk produk ini pada tanggal tersebut', 'error'); return; }
       if (this.hppMaterialRows.length === 0) { this.notify('Bahan baku belum tersedia', 'error'); return; }
+      this.syncHppMonthlyPoolFromForm();
       const payload = this.hppPayload('draft');
       if (this.hppEditId) {
         const row = this.hppHarian.find(item => item.id === this.hppEditId);
@@ -6552,15 +6611,71 @@ function app() {
       this.notify('Draft HPP disimpan');
       this.go('hpp-detail');
     },
+    syncHppMonthlyPoolFromForm() {
+      const form = this.hppForm;
+      if (!form || !form.costPeriod) return;
+      const period = form.costPeriod;
+      const payrollDoc = form.payrollPeriod ? this.postedPayrollForPeriod(form.payrollPeriod) : null;
+      const payrollSummary = form.payrollPeriod ? this.hppPayrollSummary(form.payrollPeriod) : null;
+      this.biayaProduksiBulanan = this.biayaProduksiBulanan || [];
+      this.hppMonthlyKeys().forEach(key => {
+        let sourceType = 'manual';
+        let sourcePayrollId = '';
+        let sourcePayrollPeriod = '';
+        let note = '';
+        let employeeCount = null;
+        if (['gaji','uang_makan','bpjs'].includes(key) && form.payrollPeriod) {
+          sourceType = 'payroll';
+          sourcePayrollId = payrollDoc ? payrollDoc.id : '';
+          sourcePayrollPeriod = form.payrollPeriod;
+          note = 'Payroll ' + monthLongLabel(form.payrollPeriod);
+          employeeCount = payrollSummary ? payrollSummary.headcount : null;
+        } else if (key === 'listrik' && form.listrikSource === 'jurnal') {
+          sourceType = 'jurnal';
+          note = 'Jurnal Beban Listrik Produksi ' + monthLongLabel(period);
+        }
+        const payload = {
+          value:Number(form.monthlyCosts[key]) || 0,
+          employeeCount,
+          sourceType,
+          sourcePayrollId,
+          sourcePayrollPeriod,
+          sourceJournalId:'',
+          type:sourceType === 'manual' ? 'manual' : 'aktual',
+          note
+        };
+        let row = this.getBiayaBulanan(period, key);
+        if (!row) {
+          row = {
+            id:'bpb' + Date.now() + Math.random().toString(16).slice(2),
+            period,
+            component:key,
+            ...payload,
+            createdBy:this.currentUser,
+            updatedBy:this.currentUser,
+            updatedAt:todayISO(),
+            history:[]
+          };
+          this.biayaProduksiBulanan.push(row);
+          return;
+        }
+        row.history = row.history || [];
+        const before = { value:row.value, sourceType:row.sourceType, sourcePayrollPeriod:row.sourcePayrollPeriod || '' };
+        const after = { value:payload.value, sourceType:payload.sourceType, sourcePayrollPeriod:payload.sourcePayrollPeriod };
+        if (JSON.stringify(before) !== JSON.stringify(after)) row.history.unshift({ at:todayISO(), by:this.currentUser, byRole:this.role, before, after });
+        Object.assign(row, payload, { updatedBy:this.currentUser, updatedAt:todayISO() });
+      });
+    },
     askHppFinalize() {
-      if (!this.hppCanFinalize) { this.notify('Lengkapi bahan, harga, dan biaya bulanan sebelum finalisasi', 'error'); return; }
+      if (!this.hppCanFinalize) { this.notify('Lengkapi bahan, harga, dan biaya produksi sebelum finalisasi', 'error'); return; }
       const duplicate = this.hppHarian.find(row => row.date === this.hppForm.date && row.productId === this.hppForm.productId && row.status === 'final' && row.id !== this.hppEditId);
       if (duplicate) { this.notify('Sudah ada HPP final untuk tanggal dan produk ini. Gunakan Revisi.', 'error'); return; }
-      this.askConfirm('hpp-finalize', null, 'Finalisasi HPP?', 'Dokumen akan dikunci dan tidak bisa diedit langsung. HPP per Krt: ' + this.rp2(this.hppPerDus) + '.', false, 'Finalisasi');
+      this.hppFinalizeOpen = true;
     },
     persistHppFinal() {
       if (!this.hppForm) return;
       if (!this.hppCanFinalize) { this.notify('Data HPP belum lengkap', 'error'); return; }
+      this.syncHppMonthlyPoolFromForm();
       const payload = this.hppPayload('final');
       payload.finalizedBy = this.currentUser;
       payload.finalizedAt = todayISO();
@@ -6572,13 +6687,23 @@ function app() {
         row = payload;
         this.hppHarian.unshift(row);
       }
-      if (row) {
-        this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:row.id, action:'final', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Finalisasi HPP' });
-        this.hppDetailId = row.id;
-        this.persist();
-        this.notify('HPP berhasil difinalisasi');
-        this.go('hpp-detail');
+      if (!row) { this.hppFinalizeOpen = false; return; }
+      const product = this.product(row.productId);
+      const oldCost = Number(product.cost) || 0;
+      const newCost = Math.round(row.hppPerDus);
+      if (product.id) {
+        product.cost = newCost;
+        product.costHistory = product.costHistory || [];
+        product.costHistory.unshift({ at:todayISO(), by:this.currentUser, old:oldCost, new:newCost, hppId:row.id, hppCode:row.code });
       }
+      row.appliedBy = this.currentUser;
+      row.appliedAt = todayISO();
+      this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:row.id, action:'final', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Finalisasi dan terapkan harga modal ' + oldCost + ' → ' + newCost });
+      this.hppFinalizeOpen = false;
+      this.hppDetailId = row.id;
+      this.persist();
+      this.notify('HPP difinalisasi dan harga modal produk diperbarui');
+      this.go('hpp-detail');
     },
     viewHpp(row) { if (!row) return; this.hppDetailId = row.id; this.go('hpp-detail'); },
     get selectedHpp() { return (this.hppHarian || []).find(row => row.id === this.hppDetailId) || {}; },
@@ -6625,39 +6750,26 @@ function app() {
       (next.materials || []).forEach(material => {
         if (material.priceOverridden) overrides[material.materialId] = { price:material.price, reason:material.overrideReason || '' };
       });
+      const monthlyCosts = { gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 };
+      (next.costs || []).forEach(cost => {
+        if (monthlyCosts[cost.component] !== undefined) monthlyCosts[cost.component] = Number(cost.monthlyValue) || 0;
+      });
+      const gajiCost = (next.costs || []).find(cost => cost.component === 'gaji');
+      const listrikCost = (next.costs || []).find(cost => cost.component === 'listrik');
       this.hppForm = {
         date:next.date, productId:next.productId,
         allocationPercent:next.allocationPercent,
         bonusQty:next.bonusQty, bonusNote:next.bonusNote,
-        materialMode:next.materialMode,
         materialOverrides:overrides,
         depreciationTotal:next.depreciationTotal,
-        costPeriods:(next.costs || []).reduce((periods, cost) => { periods[cost.component] = cost.sourcePeriod; return periods; }, {})
+        costPeriod:(gajiCost && gajiCost.sourcePeriod) || next.costPeriod || this.hppDefaultCostPeriod(next.date),
+        monthlyCosts,
+        payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : '',
+        listrikSource:listrikCost && listrikCost.sourceType === 'jurnal' ? 'jurnal' : 'manual'
       };
       this.persist();
       this.notify('Revisi dibuat. Versi lama ditandai Digantikan.');
       this.go('hpp-create');
-    },
-    askHppApply(row) {
-      if (!row || row.status !== 'final') { this.notify('Hanya HPP final yang dapat diterapkan', 'error'); return; }
-      const product = this.product(row.productId);
-      this.askConfirm('hpp-apply', row.id, 'Terapkan ke Harga Modal?', 'Produk ' + product.name + '. Harga modal lama ' + this.rp2(product.cost) + ' menjadi ' + this.rp2(Math.round(row.hppPerDus)) + '.', false, 'Terapkan');
-    },
-    applyHppCost(id) {
-      const row = this.hppHarian.find(item => item.id === id);
-      if (!row || row.status !== 'final') return;
-      const product = this.product(row.productId);
-      if (!product.id) return;
-      const oldCost = Number(product.cost) || 0;
-      const newCost = Math.round(row.hppPerDus);
-      product.cost = newCost;
-      product.costHistory = product.costHistory || [];
-      product.costHistory.unshift({ at:todayISO(), by:this.currentUser, old:oldCost, new:newCost, hppId:row.id, hppCode:row.code });
-      row.appliedBy = this.currentUser;
-      row.appliedAt = todayISO();
-      this.hppLog.unshift({ id:'hlog' + Date.now(), hppId:row.id, action:'apply-cost', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Harga modal ' + oldCost + ' → ' + newCost });
-      this.persist();
-      this.notify('Harga modal produk diperbarui');
     },
     deleteHpp(row) {
       if (!row || row.status !== 'draft') return;
@@ -8002,11 +8114,7 @@ function app() {
     askPayrollSubmit() {
       const doc = this.payrollDoc;
       if (!this.payrollEditable(doc)) { this.notify('Payroll ini tidak dapat diajukan', 'error'); return; }
-      const warnings = this.payrollWarnings();
-      const auto = this.role === 'Manager';
-      const message = (warnings.length ? 'Peringatan: ' + warnings.join('; ') + '. ' : '')
-        + (auto ? 'Payroll akan langsung disetujui dan diposting karena Anda Manager.' : 'Payroll akan dikunci dan menunggu persetujuan Manager.');
-      this.askConfirm('payroll-submit', doc.id, auto ? 'Ajukan dan setujui payroll?' : 'Ajukan payroll?', message, false, auto ? 'Ajukan & Setujui' : 'Ajukan');
+      this.payrollSubmitOpen = true;
     },
     commitPayrollSubmit() {
       const doc = this.payrollDoc;
@@ -8023,12 +8131,16 @@ function app() {
         doc.postedBy = this.currentUser;
         doc.postedAt = todayISO();
         doc.history.unshift({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Auto approve Manager' });
+        this.payrollSubmitOpen = false;
         this.persist();
         this.notify('Payroll diajukan dan langsung diposting');
+        this.backToPayrollList();
       } else {
         doc.status = 'submitted';
+        this.payrollSubmitOpen = false;
         this.persist();
         this.notify('Payroll diajukan untuk persetujuan Manager');
+        this.backToPayrollList();
       }
     },
     askPayrollApprove(doc = this.payrollDoc) {
