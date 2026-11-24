@@ -2465,29 +2465,27 @@
             <input type="date" class="input w-40" x-model="hppDateFrom" title="Dari tanggal">
             <input type="date" class="input w-40" x-model="hppDateTo" title="Sampai tanggal">
             <select class="select w-48" x-model="hppProduct"><option value="">Semua Produk</option><template x-for="product in products" :key="product.id"><option :value="product.id" x-text="product.name"></option></template></select>
-            <select class="select w-36" x-model="hppStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="final">Final</option><option value="superseded">Digantikan</option></select>
+            <select class="select w-44" x-model="hppStatus"><option value="">Semua Status</option><option value="draft">Draft</option><option value="pending">Belum disetujui</option><option value="done">Selesai</option></select>
             <button class="btn btn-outline ml-auto" x-show="hppDemoAvailable" @click="startHppDemo()"><svg class="icon icon-sm"><use href="#i-calculator"></use></svg> Demo 30 Oktober</button>
             <button class="btn btn-primary" @click="startHppCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat HPP</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>No</th><th>Tanggal</th><th>Produk</th><th class="num">Hasil</th><th class="num">HPP / Krt</th><th class="num">Total HPP</th><th>Status</th><th>Versi</th><th>Dibuat Oleh</th><th class="actions">Action</th></tr></thead>
+              <thead><tr><th>No</th><th>Tanggal</th><th>Produk</th><th class="num">Hasil</th><th class="num">HPP / Krt</th><th class="num">Total HPP</th><th>Dibuat Oleh</th><th class="actions">Action</th></tr></thead>
               <tbody>
                 <template x-for="row in hppFilteredList" :key="row.id">
                   <tr>
-                    <td><button class="font-semibold text-blue-600 hover:underline" @click="viewHpp(row)" x-text="row.code"></button></td>
+                    <td><div class="flex flex-wrap items-center gap-2"><button class="font-semibold text-blue-600 hover:underline" @click="viewHpp(row)" x-text="row.code"></button><span class="badge" :class="hppHarianStatusBadge(row)" x-text="hppHarianStatusLabel(row)"></span></div></td>
                     <td x-text="dateShort(row.date)"></td>
                     <td><div class="font-semibold" x-text="productName(row.productId)"></div><span class="sub" x-text="fmt(row.outputQty) + ' Krt'"></span></td>
                     <td class="num" x-text="fmt(row.outputQty) + ' Krt'"></td>
                     <td class="num font-semibold" x-text="rp2(row.hppPerDus)"></td>
                     <td class="num" x-text="rp(row.totalHpp)"></td>
-                    <td><span class="badge" :class="hppStatusBadge(row.status)" x-text="hppStatusLabel(row.status)"></span><span x-show="row.appliedAt" class="badge badge-green ml-1">Harga modal</span></td>
-                    <td><span class="badge badge-slate" x-text="'v' + row.version"></span></td>
                     <td x-text="row.createdBy"></td>
                     <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'hpp', row)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
                   </tr>
                 </template>
-                <tr x-show="hppFilteredList.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calculator"></use></svg><div class="font-semibold mt-2">Belum ada HPP</div><div class="text-xs text-slate-400">Buat HPP dari dokumen produksi yang sudah posted.</div></div></td></tr>
+                <tr x-show="hppFilteredList.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calculator"></use></svg><div class="font-semibold mt-2">Belum ada HPP</div><div class="text-xs text-slate-400">Buat HPP dari dokumen produksi yang sudah posted.</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -5410,7 +5408,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261124a"></script>
+<script src="assets/app.js?v=20261124b"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

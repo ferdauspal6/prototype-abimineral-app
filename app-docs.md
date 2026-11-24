@@ -221,6 +221,7 @@ Aturan utama:
 - **Harga master bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga tersebut dan memakai harga yang sama pada PO dummy.
 - **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, bonus 32 dus, periode biaya Oktober, dan harga bahan dari master (tanpa override). Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
 - Satu HPP final per tanggal + produk.
+- Daftar HPP Harian memakai satu badge status: **Draft**, **Belum disetujui** (final lama yang belum diterapkan ke harga modal), dan **Selesai**. Kolom Versi dan Status terpisah dihapus; versi lama tidak ditampilkan di daftar.
 - Revisi membuat versi baru dan menandai versi lama **Digantikan**.
 - Draft boleh dihitung ulang dari data sumber; harga override dan penyusutan dipertahankan.
 - Final mengunci snapshot. Modal finalisasi menampilkan ringkasan detail dan **langsung menerapkan HPP ke harga modal** dengan pembulatan rupiah; tidak ada langkah Terapkan ke Harga Modal terpisah.

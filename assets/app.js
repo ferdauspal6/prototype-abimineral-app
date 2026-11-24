@@ -6201,13 +6201,27 @@ function app() {
     get hppFilteredList() {
       const q = String(this.hppSearch || '').toLowerCase();
       return (this.hppHarian || []).filter(row => {
+        if (row.status === 'superseded') return false;
         if (q && !(row.code + ' ' + this.productName(row.productId)).toLowerCase().includes(q)) return false;
-        if (this.hppStatus && row.status !== this.hppStatus) return false;
+        if (this.hppStatus && this.hppDisplayStatus(row) !== this.hppStatus) return false;
         if (this.hppProduct && row.productId !== this.hppProduct) return false;
         if (this.hppDateFrom && row.date < this.hppDateFrom) return false;
         if (this.hppDateTo && row.date > this.hppDateTo) return false;
         return true;
       }).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.code).localeCompare(String(a.code)));
+    },
+    hppDisplayStatus(row) {
+      if (!row) return 'draft';
+      if (row.status === 'draft') return 'draft';
+      if (row.status === 'final') return row.appliedAt ? 'done' : 'pending';
+      if (row.status === 'superseded') return 'superseded';
+      return row.status;
+    },
+    hppHarianStatusLabel(row) {
+      return { draft:'Draft', pending:'Belum disetujui', done:'Selesai', superseded:'Digantikan' }[this.hppDisplayStatus(row)] || 'Draft';
+    },
+    hppHarianStatusBadge(row) {
+      return { draft:'badge-slate', pending:'badge-yellow', done:'badge-green', superseded:'badge-stone' }[this.hppDisplayStatus(row)] || 'badge-slate';
     },
     hppStatusLabel(status) { return { draft:'Draft', final:'Final', superseded:'Digantikan' }[status] || status; },
     hppStatusBadge(status) { return { draft:'badge-slate', final:'badge-green', superseded:'badge-stone' }[status] || 'badge-slate'; },
