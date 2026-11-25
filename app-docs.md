@@ -162,7 +162,7 @@ Laporan:
 - **Pendapatan**: rentang tanggal; ringkasan sumber (Penjualan Order dan Pendapatan Lain), rincian pendapatan lain per akun, penjualan per channel/user, dan rincian order.
 - Channel penjualan: **Sales** untuk order dari role Sales, **Sales Kantor** untuk order dari role lain.
 - Setiap order menyimpan `createdById`, `createdBy`, `createdByRole`, `salesChannel`, dan `salesPerson`.
-- Nilai penjualan memakai netto sebelum PPN; order batal tidak dihitung.
+- Nilai penjualan memakai total order tanpa PPN; order batal tidak dihitung.
 - Neraca Saldo memastikan total debit = total kredit. Neraca memastikan aset = kewajiban + ekuitas.
 - Kode/nama akun bisa diklik untuk drill-down ke Buku Besar.
 - Cetak memakai A4 portrait dan hanya mencetak tab aktif.
@@ -587,7 +587,7 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 4. Diskon aktif dihitung otomatis (satu promo terbaik per produk per tipe).
 5. Jika promo bonus produk, baris bonus ditambahkan dengan harga 0 dan diskon 100%.
 6. Diskon khusus (jika berizin) mengurangi total.
-7. PPN dihitung dari konfigurasi (`PPN`, default 0%).
+7. Tidak ada PPN pada prototype ini; total order = total harga − diskon.
 8. Order disimpan dengan status awal `pending`.
 9. Admin mengonfirmasi order → status `already`, `due_date` diisi +2 minggu.
 10. Invoice dapat dicetak (single atau multiple).
@@ -601,15 +601,18 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 5. Halaman invoice delivery dapat dicetak.
 6. Saat pengiriman selesai, admin membuka halaman konfirmasi:
    - Input tunai, transfer, dan sisa piutang per order.
-   - Submit → delivery `success`, order `success`/`partial`, piutang dibuat bila ada sisa.
+   - Tunai otomatis masuk akun **Kas**.
+   - Transfer memilih **akun bank tujuan per order**.
+   - Submit → delivery `success`, order `success`/`paid` atau `partial`, piutang dibuat bila ada sisa.
+   - Jurnal penjualan dan HPP dibuat otomatis: Dr Kas/Bank/Piutang, Cr Pendapatan; Dr HPP, Cr Persediaan.
 7. Jika dihapus, stok dikembalikan dan order kembali `already`.
 
 ### 7.3 Piutang → Penagihan → Pembayaran
 
 1. Piutang aktif berasal dari delivery yang memiliki sisa bayar.
 2. Admin membuat **surat jalan penagihan** dari piutang aktif milik satu sales.
-3. Pada halaman konfirmasi, isi tunai/transfer per order lalu submit.
-4. Sistem membuat `DebtPayment`, menambah total bayar, mengurangi sisa piutang.
+3. Pada halaman konfirmasi, isi tunai/transfer per baris. Tunai otomatis ke **Kas**; transfer memilih **akun bank**.
+4. Sistem membuat `DebtPayment`, menambah total bayar, mengurangi sisa piutang, dan membuat jurnal Dr Kas/Bank, Cr Piutang.
 5. Piutang yang lunas pindah ke tab **Lunas**.
 6. Riwayat pembayaran menampilkan bukti pembayaran; jika belum ada bukti, tombol **Upload** tersedia.
 
@@ -905,7 +908,6 @@ Kolom kanan — **Ringkasan**
   - Total Harga
   - Disc (merah, minus)
   - Disc Khusus (merah, minus) — jika ada
-  - PPN (%) — jika > 0
   - **Grand Total** tebal
 - Tombol **Preview** (jika desktop, di header).
 
@@ -941,7 +943,7 @@ Kolom kanan — **Ringkasan**
   - Header perusahaan.
   - Info pelanggan, order ID, tanggal, metode pembayaran, jatuh tempo, sales, no surat jalan.
   - Tabel produk lengkap: Kode, Nama, Harga, Qty, Total, Disc %, Total + Disc.
-- Total: Total Harga, Discount, Diskon Khusus, PPN, **Grand Total**, terbilang.
+- Total: Total Harga, Discount, Diskon Khusus, **Grand Total**, terbilang.
 - Footer: **Batal**, **Submit** (Sales) atau **Submit & Cetak** (Admin).
 - Disabled jika metode pembayaran belum dipilih.
 - Setelah submit:
@@ -996,7 +998,7 @@ Route: `/dashboard/order/detail/{order}`
   - Info pelanggan dan info invoice.
   - Tabel produk (Kode, Nama Barang, Harga, Quantity, Total, Disc %, Total + Disc).
   - Produk dengan kode sama digabung dengan `rowSpan`.
-  - Ringkasan: Total Harga, Discount, Diskon Khusus (jika ada), PPN (jika > 0), Grand Total, terbilang.
+  - Ringkasan: Total Harga, Discount, Diskon Khusus (jika ada), Grand Total, terbilang.
   - Kolom tanda tangan: **Admin**, **Gudang**, **Driver/Helper**, **Customer**.
 - Dialog konfirmasi order.
 - Dialog Edit Pengiriman (qty dikirim/ditahan).
@@ -1685,7 +1687,7 @@ Semua template memakai:
   - Kiri 3 kolom: Kode Pelanggan, Nama Pelanggan, Alamat, No. Telepon, Order ID.
   - Kanan 2 kolom: Tanggal Invoice, Metode Pembayaran, Tanggal Jatuh Tempo (jika bukan Tunai), Sales, No. Surat Jalan.
 - Tabel: Kode, Nama Barang, Harga, Quantity, Total, Disc (%), Total + Disc.
-- Ringkasan: Total Harga, Discount, Diskon Khusus, PPN, Grand Total, terbilang.
+- Ringkasan: Total Harga, Discount, Diskon Khusus, Grand Total, terbilang.
 - Tanda tangan: Admin, Gudang, Driver/Helper, Customer (4 kolom).
 - Multi invoice: satu halaman per order dengan page break.
 
@@ -1754,10 +1756,9 @@ Semua template memakai:
 
 Bagian ini penting agar prototype tidak "memperbaiki" hal yang justru menjadi ciri aplikasi, atau agar tim sadar jika ingin merapikannya.
 
-1. **Custom discount: urutan perhitungan berbeda**
-   - Preview frontend menghitung diskon khusus sebelum PPN.
-   - Backend menerapkan diskon khusus setelah grand total (termasuk PPN).
-   - Untuk prototype, tampilkan sesuai UI saat ini (diskon khusus sebelum PPN) dan beri catatan ke tim produk.
+1. **Custom discount**
+   - Diskon khusus dihitung sebelum grand total.
+   - Tidak ada PPN pada prototype ini.
 
 2. **Beberapa label copy-paste di modul keuangan**
    - Dialog edit pengeluaran memakai label "Jenis Pendapatan" dan "ID Transaksi".
@@ -1800,7 +1801,7 @@ Bagian ini penting agar prototype tidak "memperbaiki" hal yang justru menjadi ci
     - Promo bonus dengan `multiple=true` dikalikan `floor(qty / min_amount)`.
 
 13. **PPN**
-    - Default 0% (`config('ppn')`), jadi sering tidak muncul. Prototype sebaiknya sediakan contoh PPN 11% untuk memperlihatkan state.
+    - Tidak digunakan pada prototype ini. Akun dan perhitungan PPN dihapus; data lama dikonversi tanpa PPN.
 
 14. **Foto order**
     - Disimpan sebagai base64 di sessionStorage lalu diunggah; preview foto ada di detail order.
@@ -1937,10 +1938,10 @@ Bagian ini penting agar prototype tidak "memperbaiki" hal yang justru menjadi ci
 - [ ] Dashboard menampilkan 5 kartu untuk Admin dan 2 kartu untuk Sales.
 - [ ] Chart, rekap harian, informasi lainnya, dan informasi stok tampil.
 - [ ] Alur order desktop dan mobile Sales dapat didemokan end-to-end.
-- [ ] Preview order menghitung total, diskon, PPN, dan grand total.
+- [ ] Preview order menghitung total, diskon, dan grand total tanpa PPN.
 - [ ] Invoice, surat jalan, dan surat jalan penagihan dapat dipreview dan dicetak.
-- [ ] Halaman konfirmasi surat jalan memiliki input tunai/transfer dan perhitungan piutang.
-- [ ] Halaman konfirmasi penagihan memiliki input tunai/transfer dan perhitungan sisa.
+- [ ] Halaman konfirmasi surat jalan memiliki input tunai/transfer, akun bank per order, perhitungan piutang, dan jurnal otomatis.
+- [ ] Halaman konfirmasi penagihan memiliki input tunai/transfer, akun bank per baris, perhitungan sisa, dan jurnal otomatis.
 - [ ] Return memiliki jenis, kondisi, status, dan aksi proses/batal.
 - [ ] Stock aktif, riwayat, dan opname saling terhubung secara navigasi.
 - [ ] Modul keuangan dan master tipe konsisten.

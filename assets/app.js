@@ -4,7 +4,7 @@ const rupiah2Fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency:
 const number2Fmt = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 19;
+const STORE_VERSION = 20;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
@@ -252,7 +252,6 @@ function seedData() {
     { id:'acc5', code:'1-1500', name:'Piutang Supplier', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Kelebihan bayar / retur supplier' },
     { id:'acc6', code:'1-1600', name:'Peralatan', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Peralatan operasional' },
     { id:'acc7', code:'2-1100', name:'Utang Usaha', type:'liability', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun kontrol utang supplier' },
-    { id:'acc23', code:'2-1200', name:'Utang PPN', type:'liability', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun kontrol PPN keluaran' },
     { id:'acc8', code:'3-1000', name:'Modal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Modal pemilik' },
     { id:'acc10', code:'3-3000', name:'Laba Ditahan', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Akumulasi laba' },
     { id:'acc11', code:'4-1000', name:'Pendapatan Penjualan', type:'revenue', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Pendapatan penjualan' },
@@ -599,22 +598,27 @@ function app() {
         return;
       }
       if (parsed && (parsed.version === 14 || parsed.version === 15) && parsed.data) {
-        this.migrateFromV18(parsed);
+        this.migrateFromV19(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 16 && parsed.data) {
-        this.migrateFromV18(parsed);
+        this.migrateFromV19(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 17 && parsed.data) {
-        this.migrateFromV18(parsed);
+        this.migrateFromV19(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 18 && parsed.data) {
-        this.migrateFromV18(parsed);
+        this.migrateFromV19(parsed);
+        this.saveStore();
+        return;
+      }
+      if (parsed && parsed.version === 19 && parsed.data) {
+        this.migrateFromV19(parsed);
         this.saveStore();
         return;
       }
@@ -651,6 +655,84 @@ function app() {
     },
     migrateFromV16(parsed) {
       this.migrateFromV14(parsed);
+    },
+    migrateFromV19(parsed) {
+      this.migrateFromV18(parsed);
+      const removedTax = new Map();
+      (this.orders || []).forEach(order => {
+        const tax = Number(order.tax) || 0;
+        if (tax > 0) {
+          order.total = Math.max(0, (Number(order.total) || 0) - tax);
+          removedTax.set(order.id, tax);
+        }
+        order.tax = 0;
+      });
+      (this.receivables || []).forEach(rec => {
+        const tax = removedTax.get(rec.orderId) || 0;
+        if (tax > 0) rec.total = Math.max(0, (Number(rec.total) || 0) - tax);
+        let excess = (Number(rec.cash) || 0) + (Number(rec.transfer) || 0) - (Number(rec.total) || 0);
+        if (excess > 0) {
+          const cutTransfer = Math.min(Number(rec.transfer) || 0, excess);
+          rec.transfer = Math.max(0, (Number(rec.transfer) || 0) - cutTransfer);
+          excess -= cutTransfer;
+          const cutCash = Math.min(Number(rec.cash) || 0, excess);
+          rec.cash = Math.max(0, (Number(rec.cash) || 0) - cutCash);
+        }
+        rec.unpaid = Math.max(0, (Number(rec.total) || 0) - (Number(rec.cash) || 0) - (Number(rec.transfer) || 0));
+      });
+      (this.orders || []).forEach(order => {
+        if (!removedTax.has(order.id)) return;
+        const rec = (this.receivables || []).find(item => item.orderId === order.id);
+        if (!rec) return;
+        const target = (Number(rec.cash) || 0) + (Number(rec.transfer) || 0);
+        const payments = (this.payments || []).filter(p => p.orderId === order.id)
+          .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
+        let excess = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - target;
+        payments.forEach(p => {
+          if (excess <= 0) return;
+          const amount = Number(p.amount) || 0;
+          const cut = Math.min(amount, excess);
+          let cash = Number(p.cash) || 0;
+          let transfer = Number(p.transfer) || 0;
+          const cutCash = Math.min(cash, cut);
+          cash -= cutCash;
+          const cutTransfer = Math.min(transfer, cut - cutCash);
+          transfer -= cutTransfer;
+          p.cash = cash;
+          p.transfer = transfer;
+          p.amount = Math.max(0, amount - cut);
+          excess -= cut;
+        });
+      });
+      (this.deliveries || []).forEach(del => {
+        del.total = (del.orderIds || []).reduce((sum, id) => {
+          const order = (this.orders || []).find(item => item.id === id);
+          return sum + (Number(order && order.total) || 0);
+        }, 0);
+      });
+      (this.collections || []).forEach(col => {
+        const rows = (col.itemIds || []).map(id => (this.receivables || []).find(rec => rec.id === id)).filter(Boolean);
+        col.total = rows.reduce((sum, rec) => sum + (Number(rec.total) || 0), 0);
+        col.paid = rows.reduce((sum, rec) => sum + (Number(rec.cash) || 0) + (Number(rec.transfer) || 0), 0);
+        col.unpaid = rows.reduce((sum, rec) => sum + (Number(rec.unpaid) || 0), 0);
+      });
+      const ppnAccount = (this.accounts || []).find(account => account.code === '2-1200');
+      if (ppnAccount) {
+        (this.journals || []).forEach(journal => {
+          if (!(journal.lines || []).some(line => line.accountId === ppnAccount.id)) return;
+          if (journal.source !== 'order') return;
+          const tax = removedTax.get(journal.sourceId) || (journal.lines || []).filter(line => line.accountId === ppnAccount.id).reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
+          journal.lines = journal.lines.filter(line => line.accountId !== ppnAccount.id);
+          const debitLine = journal.lines.find(line => (Number(line.debit) || 0) > 0);
+          if (debitLine) debitLine.debit = Math.max(0, (Number(debitLine.debit) || 0) - tax);
+        });
+        const stillUsed = (this.journals || []).some(journal => (journal.lines || []).some(line => line.accountId === ppnAccount.id));
+        if (stillUsed) {
+          ppnAccount.status = false;
+        } else {
+          this.accounts = this.accounts.filter(account => account.id !== ppnAccount.id);
+        }
+      }
     },
     migrateFromV18(parsed) {
       this.migrateFromV17(parsed);
@@ -5281,14 +5363,6 @@ function app() {
         });
         changed = true;
       }
-      if (!this.accounts.some(account => account.code === '2-1200')) {
-        this.accounts.push({
-          id:'acc23', code:'2-1200', name:'Utang PPN', type:'liability', normalBalance:'credit',
-          parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true,
-          description:'Akun kontrol PPN keluaran'
-        });
-        changed = true;
-      }
       if (changed) this.accounts.sort((a, b) => String(a.code).localeCompare(String(b.code)));
       return changed;
     },
@@ -5420,6 +5494,16 @@ function app() {
         .filter(account => account.type === 'asset' && account.isCashBank)
         .sort((a, b) => String(a.code).localeCompare(String(b.code)));
     },
+    get activeCashAccounts() { return this.cashBankAccounts.filter(account => account.status && account.cashType === 'cash'); },
+    get activeBankAccounts() { return this.cashBankAccounts.filter(account => account.status && account.cashType === 'bank'); },
+    get defaultCashAccountId() {
+      const primary = this.activeCashAccounts.find(account => account.code === '1-1100');
+      return primary ? primary.id : (this.activeCashAccounts[0] ? this.activeCashAccounts[0].id : '');
+    },
+    get defaultBankAccountId() {
+      return this.activeBankAccounts[0] ? this.activeBankAccounts[0].id : '';
+    },
+    accountByCode(code) { return (this.accounts || []).find(account => account.code === code) || {}; },
     bankAccountKind(account) { return account && account.cashType === 'cash' ? 'Kas' : 'Bank'; },
     get filteredBankAccounts() {
       const q = String(this.bankAccountSearch || '').toLowerCase();
@@ -8788,7 +8872,7 @@ function app() {
       if (this.reportTab === 'revenue') {
         const data = this.revenueReport;
         lines.push(['Sumber','Keterangan','Nilai'].map(cell).join(';'));
-        lines.push(['Penjualan Order','Penjualan netto tanpa PPN', data.salesValue].map(cell).join(';'));
+        lines.push(['Penjualan Order','Penjualan', data.salesValue].map(cell).join(';'));
         data.otherRows.forEach(row => lines.push(['Pendapatan Lain', row.account.code + ' — ' + row.account.name, row.value].map(cell).join(';')));
         lines.push(['TOTAL','', data.total].map(cell).join(';'));
         lines.push('');
@@ -8921,7 +9005,7 @@ function app() {
       this.orderDate = shiftISO(this.orderDate, days);
     },
     get selectedCustomer() { return this.customer(this.selectedCustomerId); },
-    cart: {}, orderSearch: '', paymentMethod: '', customDiscount: 0, ppnPercent: 11, orderTab: 'order',
+    cart: {}, orderSearch: '', paymentMethod: '', customDiscount: 0, orderTab: 'order',
     orderStockOverride: false,
     get filteredOrderProducts() {
       const q = this.orderSearch.toLowerCase();
@@ -8981,8 +9065,8 @@ function app() {
     get cartSubtotal() { return this.cartRows.reduce((sum, r) => sum + r.total, 0); },
     get cartDiscount() { return this.cartRows.reduce((sum, r) => sum + r.discValue, 0); },
     get customDiscountValue() { return (this.cartSubtotal - this.cartDiscount) * (Number(this.customDiscount) || 0) / 100; },
-    get cartTax() { return (this.cartSubtotal - this.cartDiscount - this.customDiscountValue) * this.ppnPercent / 100; },
-    get cartTotal() { return this.cartSubtotal - this.cartDiscount - this.customDiscountValue + this.cartTax; },
+    get cartTax() { return 0; },
+    get cartTotal() { return this.cartSubtotal - this.cartDiscount - this.customDiscountValue; },
     orderPreviewOpen: false,
     closeOrderPreview() {
       this.orderPreviewOpen = false;
@@ -9044,7 +9128,7 @@ function app() {
         dueDate:this.paymentMethod === 'Tunai' ? todayISO() : shiftISO(todayISO(), 14),
         subtotal:this.cartSubtotal,
         discount:this.cartDiscount,
-        tax:this.cartTax,
+        tax:0,
         total:this.cartTotal,
         customDiscount:Number(this.customDiscount) || 0,
         paymentMethod:this.paymentMethod,
@@ -9300,7 +9384,8 @@ function app() {
       this.deliveryReadOnly = readonly;
       this.checkRows = this.deliveryOrders(d).map(o => ({
         orderId:o.id, code:o.code, customerId:o.customerId, date:o.schedule, amount:o.total,
-        cash:0, transfer:0
+        cash:0, transfer:0,
+        transferAccountId:o.transferAccountId || (d.transferAccounts && d.transferAccounts[o.id]) || this.defaultBankAccountId
       }));
       this.page = readonly ? 'delivery-detail' : 'delivery-check';
       this.sessionPage = this.page;
@@ -9312,6 +9397,25 @@ function app() {
     submitDeliveryCheck() {
       const del = this.selectedDelivery;
       if (!del.id) return;
+      if (del.status === 'success') { this.notify('Surat jalan ini sudah diselesaikan', 'error'); return; }
+      const cashAccount = this.accountById(this.defaultCashAccountId);
+      const receivableAccount = this.accountByCode('1-1300');
+      const revenueAccount = this.accountByCode('4-1000');
+      const cogsAccount = this.accountByCode('5-1000');
+      const inventoryAccount = this.accountByCode('1-1400');
+      const journalIds = [];
+      const transferAccounts = {};
+      for (const row of this.checkRows) {
+        const order = this.order(row.orderId);
+        if (!order.id) continue;
+        const amount = Number(order.total) || 0;
+        const cash = Math.max(0, Math.min(Number(row.cash) || 0, amount));
+        const transfer = Math.max(0, Math.min(Number(row.transfer) || 0, amount - cash));
+        const bankAccount = this.accountById(row.transferAccountId);
+        if (cash > 0 && !cashAccount.id) { this.notify('Akun Kas belum tersedia', 'error'); return; }
+        if (transfer > 0 && (!bankAccount.id || bankAccount.cashType !== 'bank' || !bankAccount.status)) { this.notify('Pilih akun bank tujuan transfer untuk ' + order.code, 'error'); return; }
+      }
+      let error = '';
       this.checkRows.forEach(row => {
         const order = this.order(row.orderId);
         if (!order.id) return;
@@ -9320,8 +9424,14 @@ function app() {
         let transfer = Math.max(0, Math.min(Number(row.transfer) || 0, amount - cash));
         const paid = cash + transfer;
         const unpaid = Math.max(0, amount - paid);
+        const bankAccount = this.accountById(row.transferAccountId);
+        if (cash > 0 && !cashAccount.id) error = 'Akun Kas belum tersedia';
+        if (transfer > 0 && (!bankAccount.id || bankAccount.cashType !== 'bank' || !bankAccount.status)) error = 'Pilih akun bank tujuan transfer untuk ' + order.code;
+        if (error) return;
         order.status = 'success';
-        order.payment = unpaid > 0 ? 'partial' : 'paid';
+        order.payment = paid <= 0 ? 'unpaid' : (unpaid > 0 ? 'partial' : 'paid');
+        order.transferAccountId = transfer > 0 ? bankAccount.id : (order.transferAccountId || '');
+        if (transfer > 0) transferAccounts[order.id] = bankAccount.id;
         let rec = this.receivables.find(r => r.orderId === order.id);
         if (!rec) {
           rec = {
@@ -9343,6 +9453,58 @@ function app() {
         rec.transfer = (Number(rec.transfer) || 0) + transfer;
         rec.total = Math.max(Number(rec.total) || 0, amount);
         rec.unpaid = Math.max(0, Number(rec.total) - rec.cash - rec.transfer);
+        if (transfer > 0) rec.transferAccountId = bankAccount.id;
+        let saleJournal = null;
+        if (!order.saleJournalId && revenueAccount.id) {
+          const lines = [];
+          if (cash > 0) lines.push({ accountId:cashAccount.id, debit:cash, credit:0, memo:'Kas penjualan ' + order.code });
+          if (transfer > 0) lines.push({ accountId:bankAccount.id, debit:transfer, credit:0, memo:'Transfer penjualan ' + order.code });
+          if (unpaid > 0) lines.push({ accountId:receivableAccount.id, debit:unpaid, credit:0, memo:'Piutang penjualan ' + order.code });
+          lines.push({ accountId:revenueAccount.id, debit:0, credit:amount, memo:'Pendapatan penjualan ' + order.code });
+          saleJournal = this.createSystemJournal({
+            date:todayISO(),
+            description:'Penjualan ' + order.code,
+            source:'delivery-sale',
+            sourceId:order.id,
+            lines,
+            by:this.currentUser,
+            byRole:this.role
+          });
+          if (saleJournal) { order.saleJournalId = saleJournal.id; journalIds.push(saleJournal.id); }
+        } else if (order.saleJournalId && paid > 0 && receivableAccount.id && !order.deliverySettlementJournalId) {
+          const lines = [];
+          if (cash > 0) lines.push({ accountId:cashAccount.id, debit:cash, credit:0, memo:'Kas pembayaran ' + order.code });
+          if (transfer > 0) lines.push({ accountId:bankAccount.id, debit:transfer, credit:0, memo:'Transfer pembayaran ' + order.code });
+          lines.push({ accountId:receivableAccount.id, debit:0, credit:paid, memo:'Pelunasan piutang ' + order.code });
+          saleJournal = this.createSystemJournal({
+            date:todayISO(),
+            description:'Penerimaan pembayaran ' + order.code,
+            source:'delivery-settlement',
+            sourceId:order.id,
+            lines,
+            by:this.currentUser,
+            byRole:this.role
+          });
+          if (saleJournal) { order.deliverySettlementJournalId = saleJournal.id; journalIds.push(saleJournal.id); }
+        }
+        if (!order.cogsJournalId && cogsAccount.id && inventoryAccount.id) {
+          const cogs = Number(order.costAtOrder) || this.orderCogs(order);
+          if (cogs > 0) {
+            const cogsJournal = this.createSystemJournal({
+              date:todayISO(),
+              description:'HPP ' + order.code,
+              source:'delivery-cogs',
+              sourceId:order.id,
+              lines:[
+                { accountId:cogsAccount.id, debit:cogs, credit:0, memo:'HPP penjualan ' + order.code },
+                { accountId:inventoryAccount.id, debit:0, credit:cogs, memo:'Persediaan keluar ' + order.code }
+              ],
+              by:this.currentUser,
+              byRole:this.role
+            });
+            if (cogsJournal) { order.cogsJournalId = cogsJournal.id; journalIds.push(cogsJournal.id); }
+          }
+        }
         if (paid > 0) {
           this.payments.unshift({
             id:'pm' + Date.now() + Math.random().toString(16).slice(2),
@@ -9352,15 +9514,21 @@ function app() {
             amount:paid,
             cash,
             transfer,
+            cashAccountId:cash > 0 ? cashAccount.id : '',
+            bankAccountId:transfer > 0 ? bankAccount.id : '',
+            journalId:saleJournal ? saleJournal.id : (order.saleJournalId || ''),
             date:todayISO(),
             proof:'',
             by:this.currentUser
           });
         }
       });
+      if (error) { this.notify(error, 'error'); return; }
       del.status = 'success';
+      if (journalIds.length) del.journalIds = [...new Set([...(del.journalIds || []), ...journalIds])];
+      if (Object.keys(transferAccounts).length) del.transferAccounts = { ...(del.transferAccounts || {}), ...transferAccounts };
       this.persist();
-      this.notify('Surat jalan berhasil diselesaikan');
+      this.notify('Surat jalan berhasil diselesaikan dan jurnal penjualan dibuat');
       this.go('deliveries');
     },
     removeOrderFromDelivery(o) {
@@ -10495,10 +10663,16 @@ function app() {
     startCollection(c) {
       this.selectedCollectionId = c.id;
       this.collectionPayments = {};
-      this.collectionRows(c).forEach(r => { this.collectionPayments[r.id] = { cash:0, transfer:0 }; });
+      this.collectionRows(c).forEach(r => {
+        this.collectionPayments[r.id] = { cash:0, transfer:0, bankAccountId:r.transferAccountId || this.defaultBankAccountId };
+      });
       this.go('collection-confirm');
     },
-    collectionPayment(r) { return this.collectionPayments[r.id] || { cash:0, transfer:0 }; },
+    collectionPayment(r) { return this.collectionPayments[r.id] || { cash:0, transfer:0, bankAccountId:r.transferAccountId || this.defaultBankAccountId }; },
+    setCollectionPaymentAccount(r, value) {
+      const current = this.collectionPayment(r);
+      this.collectionPayments = { ...this.collectionPayments, [r.id]: { ...current, bankAccountId:value } };
+    },
     setCollectionPayment(r, field, value) {
       const max = Number(r.unpaid) || 0;
       const current = this.collectionPayment(r);
@@ -10510,14 +10684,27 @@ function app() {
         if (field === 'cash') cash = max - transfer;
         else transfer = max - cash;
       }
-      this.collectionPayments = { ...this.collectionPayments, [r.id]: { cash, transfer } };
+      this.collectionPayments = { ...this.collectionPayments, [r.id]: { cash, transfer, bankAccountId:current.bankAccountId || r.transferAccountId || this.defaultBankAccountId } };
     },
     collectionReceivable(r) { const p = this.collectionPayment(r); return Math.max(0, Number(r.unpaid) - p.cash - p.transfer); },
     get collectionPayTotal() { return this.collectionRows().reduce((sum, r) => sum + (this.collectionPayment(r).cash || 0) + (this.collectionPayment(r).transfer || 0), 0); },
     submitCollectionPayment() {
       const col = this.selectedCollection;
       if (!col.id) return;
+      const cashAccount = this.accountById(this.defaultCashAccountId);
+      const receivableAccount = this.accountByCode('1-1300');
+      for (const r of this.collectionRows(col)) {
+        const p = this.collectionPayment(r);
+        const remaining = Number(r.unpaid) || 0;
+        const cash = Math.max(0, Math.min(Number(p.cash) || 0, remaining));
+        const transfer = Math.max(0, Math.min(Number(p.transfer) || 0, remaining - cash));
+        const bankAccount = this.accountById(p.bankAccountId);
+        if (cash > 0 && !cashAccount.id) { this.notify('Akun Kas belum tersedia', 'error'); return; }
+        if (transfer > 0 && (!bankAccount.id || bankAccount.cashType !== 'bank' || !bankAccount.status)) { this.notify('Pilih akun bank tujuan transfer untuk ' + r.orderCode, 'error'); return; }
+      }
       let paidNow = 0;
+      const journalIds = [];
+      const transferAccounts = {};
       this.collectionRows(col).forEach(r => {
         const p = this.collectionPayment(r);
         const remaining = Number(r.unpaid) || 0;
@@ -10525,9 +10712,28 @@ function app() {
         const transfer = Math.max(0, Math.min(Number(p.transfer) || 0, remaining - cash));
         const paid = cash + transfer;
         if (paid <= 0) return;
+        const bankAccount = this.accountById(p.bankAccountId);
         r.cash = (Number(r.cash) || 0) + cash;
         r.transfer = (Number(r.transfer) || 0) + transfer;
         r.unpaid = Math.max(0, (Number(r.total) || 0) - r.cash - r.transfer);
+        if (transfer > 0) {
+          r.transferAccountId = bankAccount.id;
+          transferAccounts[r.id] = bankAccount.id;
+        }
+        const lines = [];
+        if (cash > 0) lines.push({ accountId:cashAccount.id, debit:cash, credit:0, memo:'Kas penagihan ' + r.orderCode });
+        if (transfer > 0) lines.push({ accountId:bankAccount.id, debit:transfer, credit:0, memo:'Transfer penagihan ' + r.orderCode });
+        lines.push({ accountId:receivableAccount.id, debit:0, credit:paid, memo:'Pelunasan piutang ' + r.orderCode });
+        const journal = this.createSystemJournal({
+          date:this.collectionDate || todayISO(),
+          description:'Penagihan ' + col.code + ' - ' + r.orderCode,
+          source:'collection-payment',
+          sourceId:r.id,
+          lines,
+          by:this.currentUser,
+          byRole:this.role
+        });
+        if (journal) journalIds.push(journal.id);
         this.payments.unshift({
           id:'pm' + Date.now() + Math.random().toString(16).slice(2),
           orderId:r.orderId,
@@ -10536,6 +10742,9 @@ function app() {
           amount:paid,
           cash,
           transfer,
+          cashAccountId:cash > 0 ? cashAccount.id : '',
+          bankAccountId:transfer > 0 ? bankAccount.id : '',
+          journalId:journal ? journal.id : '',
           date:this.collectionDate,
           proof:'',
           by:this.currentUser
@@ -10546,8 +10755,10 @@ function app() {
       col.paid = (Number(col.paid) || 0) + paidNow;
       col.unpaid = Math.max(0, (Number(col.unpaid) || 0) - paidNow);
       col.status = col.unpaid > 0 ? 'processing' : 'success';
+      if (journalIds.length) col.journalIds = [...new Set([...(col.journalIds || []), ...journalIds])];
+      if (Object.keys(transferAccounts).length) col.transferAccounts = { ...(col.transferAccounts || {}), ...transferAccounts };
       this.persist();
-      this.notify(col.status === 'success' ? 'Penagihan selesai dan lunas' : 'Pembayaran penagihan disimpan');
+      this.notify(col.status === 'success' ? 'Penagihan selesai, lunas, dan jurnal dibuat' : 'Pembayaran penagihan disimpan dan jurnal dibuat');
       this.receivableTab = 'collections';
       this.go('receivables');
     },
@@ -10958,8 +11169,8 @@ function app() {
           return { productId, qty, price, discPercent:0 };
         });
         const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-        const tax = Math.round(subtotal * 0.11);
-        const total = subtotal + tax;
+        const tax = 0;
+        const total = subtotal;
         const creator = extra.orderBy || 'Admin';
         const creatorUser = this.users.find(user => user.name === creator || user.username === creator);
         const creatorRole = extra.createdByRole || (creatorUser ? (creatorUser.roles || [])[0] : 'Admin');
@@ -11002,8 +11213,8 @@ function app() {
       const makeExcelOrder = (customerId, productId, qty, subtotal, date, salesName) => {
         const customer = this.customer(customerId);
         const product = this.product(productId);
-        const tax = Math.round(Number(subtotal) * 0.11);
-        const total = Number(subtotal) + tax;
+        const tax = 0;
+        const total = Number(subtotal);
         const price = qty > 0 ? Number(subtotal) / qty : 0;
         const creatorUser = this.users.find(user => user.name === salesName || user.username === salesName);
         const order = {
@@ -11599,17 +11810,18 @@ function app() {
       this.orders.filter(order => !['cancel','failed'].includes(order.status)).forEach(order => {
         const tax = Number(order.tax) || 0;
         const net = Math.max(0, (Number(order.total) || 0) - tax);
-        post(order.date, 'Penjualan ' + order.code, 'order', order.id, [
+        const saleJournalId = post(order.date, 'Penjualan ' + order.code, 'order', order.id, [
           { accountId:accId('1-1300'), debit:Number(order.total) || 0, credit:0, memo:'Piutang penjualan' },
-          { accountId:accId('4-1000'), debit:0, credit:net, memo:'Pendapatan penjualan' },
-          { accountId:accId('2-1200'), debit:0, credit:tax, memo:'PPN keluaran' }
+          { accountId:accId('4-1000'), debit:0, credit:net, memo:'Pendapatan penjualan' }
         ]);
-        const cogs = (order.items || []).reduce((sum, item) => sum + (Number(this.product(item.productId).cost) || 0) * (Number(item.qty) || 0), 0);
+        if (saleJournalId) order.saleJournalId = saleJournalId;
+        const cogs = Number(order.costAtOrder) || (order.items || []).reduce((sum, item) => sum + (Number(this.product(item.productId).cost) || 0) * (Number(item.qty) || 0), 0);
         if (cogs > 0) {
-          post(order.date, 'HPP ' + order.code, 'order-cogs', order.id, [
+          const cogsJournalId = post(order.date, 'HPP ' + order.code, 'order-cogs', order.id, [
             { accountId:accId('5-1000'), debit:cogs, credit:0, memo:'HPP penjualan' },
             { accountId:accId('1-1400'), debit:0, credit:cogs, memo:'Persediaan keluar' }
           ]);
+          if (cogsJournalId) order.cogsJournalId = cogsJournalId;
         }
       });
       if (accId('5-1100') && accId('5-1700')) {

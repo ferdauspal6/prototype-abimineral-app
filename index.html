@@ -824,7 +824,6 @@
                   <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(cartSubtotal)"></span></div>
                   <div class="flex justify-between"><span class="text-slate-500">Diskon</span><span class="text-red-600" x-text="'- ' + rp(cartDiscount)"></span></div>
                   <div class="flex justify-between" x-show="customDiscountValue > 0"><span class="text-slate-500">Diskon Khusus</span><span class="text-red-600" x-text="'- ' + rp(customDiscountValue)"></span></div>
-                  <div class="flex justify-between" x-show="cartTax > 0"><span class="text-slate-500">PPN (<span x-text="ppnPercent"></span>%)</span><span x-text="rp(cartTax)"></span></div>
                   <div class="flex justify-between border-t border-slate-200 pt-2 mt-2 text-base font-bold"><span>Grand Total</span><span x-text="rp(cartTotal)"></span></div>
                 </div>
                 <button class="btn btn-primary w-full" @click="openOrderPreview()" :disabled="cartCount === 0">Preview Order <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
@@ -1008,7 +1007,6 @@
                 <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(selectedOrder.subtotal)"></span></div>
                 <div class="flex justify-between"><span class="text-slate-500">Discount</span><span class="text-red-600" x-text="'- ' + rp(selectedOrder.discount)"></span></div>
                 <div class="flex justify-between" x-show="selectedOrder.customDiscount > 0"><span class="text-slate-500">Discount Khusus</span><span class="text-red-600" x-text="'- ' + rp((selectedOrder.subtotal - selectedOrder.discount) * selectedOrder.customDiscount / 100)"></span></div>
-                <div class="flex justify-between" x-show="selectedOrder.tax > 0"><span class="text-slate-500">PPN</span><span x-text="rp(selectedOrder.tax)"></span></div>
                 <div class="flex justify-between border-t border-slate-300 pt-2 mt-2 font-bold text-base"><span>Grand Total</span><span x-text="rp(selectedOrder.total)"></span></div>
                 <div class="text-[10px] text-slate-500 italic text-right">*** nilai sesuai grand total</div>
               </div>
@@ -1072,7 +1070,6 @@
                   <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(order.subtotal)"></span></div>
                   <div class="flex justify-between"><span class="text-slate-500">Discount</span><span class="text-red-600" x-text="'- ' + rp(order.discount)"></span></div>
                   <div class="flex justify-between" x-show="order.customDiscount > 0"><span class="text-slate-500">Discount Khusus</span><span class="text-red-600" x-text="'- ' + rp((order.subtotal - order.discount) * order.customDiscount / 100)"></span></div>
-                  <div class="flex justify-between" x-show="order.tax > 0"><span class="text-slate-500">PPN</span><span x-text="rp(order.tax)"></span></div>
                   <div class="flex justify-between border-t border-slate-300 pt-2 mt-2 font-bold text-base"><span>Grand Total</span><span x-text="rp(order.total)"></span></div>
                 </div>
               </div>
@@ -1194,7 +1191,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th class="num">Tunai</th><th class="num">Transfer</th><th class="num">Piutang</th><th>Status</th><th class="actions">Action</th></tr></thead>
+            <thead><tr><th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th class="num">Tunai (Kas)</th><th class="num">Transfer</th><th>Akun Transfer</th><th class="num">Piutang</th><th>Status</th><th class="actions">Action</th></tr></thead>
             <tbody>
               <template x-for="row in checkRows" :key="row.orderId">
                 <tr>
@@ -1205,6 +1202,11 @@
                   <td x-text="order(row.orderId).sales"></td>
                   <td class="num"><span x-show="deliveryReadOnly" x-text="rp(row.cash)"></span><input x-show="!deliveryReadOnly" type="number" class="input input-sm w-28 text-right" x-model.number="row.cash" min="0"></td>
                   <td class="num"><span x-show="deliveryReadOnly" x-text="rp(row.transfer)"></span><input x-show="!deliveryReadOnly" type="number" class="input input-sm w-28 text-right" x-model.number="row.transfer" min="0"></td>
+                  <td>
+                    <span x-show="deliveryReadOnly" class="text-xs" x-text="row.transfer > 0 ? accountName(row.transferAccountId) : '-'"></span>
+                    <select x-show="!deliveryReadOnly && row.transfer > 0" class="select input-sm w-44" x-model="row.transferAccountId" x-init="$nextTick(() => { $el.value = row.transferAccountId || defaultBankAccountId; })"><option value="">Pilih bank</option><template x-for="bank in activeBankAccounts" :key="bank.id"><option :value="bank.id" x-text="bank.name"></option></template></select>
+                    <span x-show="!deliveryReadOnly && !(row.transfer > 0)" class="text-xs text-slate-400">-</span>
+                  </td>
                   <td class="num font-semibold" :class="receivableFor(row) > 0 ? 'text-amber-600' : 'text-emerald-600'" x-text="rp(receivableFor(row))"></td>
                   <td><span class="badge" :class="statusBadge(order(row.orderId).status)" x-text="statusLabel(order(row.orderId).status)"></span></td>
                   <td class="actions">
@@ -1213,7 +1215,7 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="checkRows.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada order</div><div class="text-xs text-slate-400">Buka halaman ini dari daftar surat jalan.</div></div></td></tr>
+              <tr x-show="checkRows.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada order</div><div class="text-xs text-slate-400">Buka halaman ini dari daftar surat jalan.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -3708,7 +3710,7 @@
           </div>
 
           <div class="border-t border-slate-200"></div>
-          <div class="px-4 py-3"><div class="section-title">Rincian Order</div><div class="text-[11px] text-slate-400">Nilai penjualan netto sebelum PPN.</div></div>
+          <div class="px-4 py-3"><div class="section-title">Rincian Order</div><div class="text-[11px] text-slate-400">Nilai penjualan.</div></div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Channel</th><th>Dibuat Oleh</th><th>Sales Pelanggan</th><th class="num">Nilai</th></tr></thead>
@@ -4197,7 +4199,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai</th><th class="num">Tunai</th><th class="num">Transfer</th><th class="num">Sisa Piutang</th><th>Status</th></tr></thead>
+            <thead><tr><th>#</th><th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai</th><th class="num">Tunai (Kas)</th><th class="num">Transfer</th><th>Akun Transfer</th><th class="num">Sisa Piutang</th><th>Status</th></tr></thead>
             <tbody>
               <template x-for="(r, i) in collectionRows()" :key="r.id">
                 <tr>
@@ -4207,6 +4209,10 @@
                   <td class="num" x-text="rp(r.total)"></td>
                   <td class="num"><input type="number" class="input input-sm w-28 text-right" min="0" :value="collectionPayment(r).cash" @input="setCollectionPayment(r, 'cash', $event.target.value)"></td>
                   <td class="num"><input type="number" class="input input-sm w-28 text-right" min="0" :value="collectionPayment(r).transfer" @input="setCollectionPayment(r, 'transfer', $event.target.value)"></td>
+                  <td>
+                    <select x-show="collectionPayment(r).transfer > 0" class="select input-sm w-44" :value="collectionPayment(r).bankAccountId" @change="setCollectionPaymentAccount(r, $event.target.value)" x-init="$nextTick(() => { $el.value = collectionPayment(r).bankAccountId || defaultBankAccountId; })"><option value="">Pilih bank</option><template x-for="bank in activeBankAccounts" :key="bank.id"><option :value="bank.id" x-text="bank.name"></option></template></select>
+                    <span x-show="!(collectionPayment(r).transfer > 0)" class="text-xs text-slate-400">-</span>
+                  </td>
                   <td class="num font-semibold text-amber-600" x-text="rp(collectionReceivable(r))"></td>
                   <td><span class="badge badge-yellow">Belum diproses</span></td>
                 </tr>
@@ -4719,7 +4725,6 @@
           <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(cartSubtotal)"></span></div>
           <div class="flex justify-between"><span class="text-slate-500">Diskon</span><span class="text-red-600" x-text="'- ' + rp(cartDiscount)"></span></div>
           <div class="flex justify-between" x-show="customDiscountValue > 0"><span class="text-slate-500">Diskon Khusus</span><span class="text-red-600" x-text="'- ' + rp(customDiscountValue)"></span></div>
-          <div class="flex justify-between" x-show="cartTax > 0"><span class="text-slate-500">PPN (<span x-text="ppnPercent"></span>%)</span><span x-text="rp(cartTax)"></span></div>
           <div class="flex justify-between border-t pt-2 mt-2 font-bold text-base"><span>Grand Total</span><span x-text="rp(cartTotal)"></span></div>
         </div></div>
       </div>
@@ -5414,7 +5419,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261125b"></script>
+<script src="assets/app.js?v=20261125e"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
