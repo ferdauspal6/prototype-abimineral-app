@@ -91,7 +91,7 @@ Purchase Request (L2):
 - Hanya memilih Master Barang, tidak bisa memilih produk jadi.
 - Tidak membuat jurnal, utang, atau perubahan stok.
 - Approve/reject hanya oleh role **Manager**.
-- Jika pembuat PR adalah Manager, Submit langsung menjadi `approved` (auto approve) karena hanya ada satu Manager.
+- Jika pembuat PR adalah Manager, Submit—termasuk langsung dari halaman Buat PR—langsung menjadi `approved` (auto approve) karena hanya ada satu Manager.
 - Admin dan Developer tidak dapat approve PR.
 - PR ikut terhapus saat **Hapus Transaksi**; master tetap.
 
@@ -99,7 +99,7 @@ Purchase Order (L3):
 - Dibuat dari PR `approved`/`processing` atau manual.
 - Qty PO dibatasi sisa qty PR; satu PR bisa dipecah ke beberapa PO.
 - Semua PO memerlukan approval Manager; Admin/Developer tidak approve.
-- Jika pembuat PO adalah Manager, Submit langsung `approved` dan menjalankan reservasi qty PR serta update harga master (auto approve).
+- Jika pembuat PO adalah Manager, Submit—termasuk langsung dari halaman Buat PO—langsung `approved` dan menjalankan reservasi qty PR serta update harga master (auto approve).
 - Harga awal dari Master Barang dan dapat diubah. Harga master diperbarui saat PO disetujui.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
 - Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.

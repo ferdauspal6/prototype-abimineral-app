@@ -1879,7 +1879,7 @@
           <button class="icon-btn" @click="go('purchase-requests')"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
           <div class="flex flex-wrap items-center gap-2">
             <button class="btn btn-outline btn-sm" @click="savePR(false)">Simpan Draft</button>
-            <button class="btn btn-primary btn-sm" @click="savePR(true)">Submit <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
+            <button class="btn btn-primary btn-sm" @click="savePR(true)"><span x-text="role === 'Manager' ? 'Submit & Setujui' : 'Submit'"></span> <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
           </div>
         </div>
 
@@ -2121,7 +2121,7 @@
           <button class="icon-btn" @click="go('purchase-orders')"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
           <div class="flex flex-wrap items-center gap-2">
             <button class="btn btn-outline btn-sm" @click="savePO(false)">Simpan Draft</button>
-            <button class="btn btn-primary btn-sm" @click="savePO(true)">Submit <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
+            <button class="btn btn-primary btn-sm" @click="savePO(true)"><span x-text="role === 'Manager' ? 'Submit & Setujui' : 'Submit'"></span> <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
           </div>
         </div>
 
@@ -5414,7 +5414,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261125a"></script>
+<script src="assets/app.js?v=20261125b"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

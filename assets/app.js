@@ -3896,13 +3896,17 @@ function app() {
       if (duplicates.length) { this.notify('Barang yang sama tidak boleh dipilih dua kali', 'error'); return; }
       const invalid = items.find(item => !this.materials.some(m => m.id === item.materialId && m.status));
       if (invalid) { this.notify('Barang tidak aktif atau tidak ditemukan', 'error'); return; }
+      const autoApprove = submit && this.role === 'Manager';
       if (!confirmed) {
         const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+        const message = submit
+          ? (autoApprove ? 'PR akan langsung disetujui karena Anda Manager.' : 'PR akan diajukan untuk approval Manager.')
+          : 'Draft PR akan disimpan.';
         this.askSave(
           'save-pr-form',
           submit ? 'submit' : 'draft',
-          (submit ? 'PR akan diajukan untuk approval Manager.' : 'Draft PR akan disimpan.') + ' ' + items.length + ' barang • total qty ' + this.fmt(totalQty) + '.',
-          submit ? 'Submit' : 'Simpan'
+          message + ' ' + items.length + ' barang • total qty ' + this.fmt(totalQty) + '.',
+          submit ? (autoApprove ? 'Submit & Setujui' : 'Submit') : 'Simpan'
         );
         return;
       }
@@ -3914,10 +3918,17 @@ function app() {
         pr.purpose = this.prForm.purpose.trim();
         pr.items = items;
         if (submit) {
-          pr.status = 'submitted';
           pr.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:now, note:'' });
+          if (autoApprove) {
+            pr.status = 'approved';
+            pr.approvedBy = this.currentUser;
+            pr.approvedAt = now;
+            pr.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:now, note:'Auto approve Manager' });
+          } else {
+            pr.status = 'submitted';
+          }
         }
-        this.notify(submit ? 'PR berhasil disubmit' : 'Draft PR berhasil diperbarui');
+        this.notify(submit ? (autoApprove ? 'PR berhasil disubmit dan langsung disetujui' : 'PR berhasil disubmit') : 'Draft PR berhasil diperbarui');
       } else {
         const pr = {
           id:'pr' + Date.now(),
@@ -3926,14 +3937,18 @@ function app() {
           requesterId:this.currentUserId,
           requester:this.currentUser,
           purpose:this.prForm.purpose.trim(),
-          status:submit ? 'submitted' : 'draft',
+          status:submit ? (autoApprove ? 'approved' : 'submitted') : 'draft',
           items,
-          history:[{ action:submit ? 'submitted' : 'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }],
+          approvedBy:autoApprove ? this.currentUser : '',
+          approvedAt:autoApprove ? now : '',
+          history:submit
+            ? [{ action:'submitted', by:this.currentUser, byRole:this.role, at:now, note:'' }, ...(autoApprove ? [{ action:'approved', by:this.currentUser, byRole:this.role, at:now, note:'Auto approve Manager' }] : [])]
+            : [{ action:'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }],
           rejectReason:''
         };
         this.purchaseRequests.unshift(pr);
         this.prSelectedId = pr.id;
-        this.notify(submit ? 'PR berhasil disubmit' : 'Draft PR berhasil dibuat');
+        this.notify(submit ? (autoApprove ? 'PR berhasil disubmit dan langsung disetujui' : 'PR berhasil disubmit') : 'Draft PR berhasil dibuat');
       }
       this.persist();
       this.go('purchase-requests');
@@ -4260,12 +4275,20 @@ function app() {
         }));
       const additionalTotal = additionalCosts.reduce((sum, row) => sum + row.subtotal, 0);
       const total = materialTotal + additionalTotal;
+      const autoApprove = submit && this.role === 'Manager';
+      if (autoApprove) {
+        const approvalError = this.poApprovalError({ items, prId:this.poForm.prId || '' });
+        if (approvalError) { this.notify(approvalError, 'error'); return; }
+      }
       if (!confirmed) {
+        const message = submit
+          ? (autoApprove ? 'PO akan langsung disetujui karena Anda Manager.' : 'PO akan disubmit untuk approval Manager.')
+          : 'Draft PO akan disimpan.';
         this.askSave(
           'save-po-form',
           submit ? 'submit' : 'draft',
-          (submit ? 'PO akan disubmit untuk approval Manager.' : 'Draft PO akan disimpan.') + ' ' + this.supplierName(this.poForm.supplierId) + ' • ' + items.length + ' barang • total ' + this.rp(total) + '.',
-          submit ? 'Submit' : 'Simpan'
+          message + ' ' + this.supplierName(this.poForm.supplierId) + ' • ' + items.length + ' barang • total ' + this.rp(total) + '.',
+          submit ? (autoApprove ? 'Submit & Setujui' : 'Submit') : 'Simpan'
         );
         return;
       }
@@ -4285,10 +4308,19 @@ function app() {
         po.subtotal = materialTotal;
         po.total = total;
         if (submit) {
-          po.status = 'pending_approval';
           po.history.push({ action:'submitted', by:this.currentUser, byRole:this.role, at:now, note:'' });
+          if (autoApprove) {
+            po.status = 'approved';
+            po.approvedBy = this.currentUser;
+            po.approvedAt = now;
+            po.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:now, note:'Auto approve Manager' });
+            this.reservePRQuantities(po);
+            this.updateMaterialPrices(po);
+          } else {
+            po.status = 'pending_approval';
+          }
         }
-        this.notify(submit ? 'PO berhasil disubmit' : 'Draft PO berhasil diperbarui');
+        this.notify(submit ? (autoApprove ? 'PO berhasil disubmit dan langsung disetujui' : 'PO berhasil disubmit') : 'Draft PO berhasil diperbarui');
       } else {
         const po = {
           id:'po' + Date.now(),
@@ -4299,7 +4331,7 @@ function app() {
           prCode:this.poForm.prId ? (this.purchaseRequests.find(pr => pr.id === this.poForm.prId) || {}).code || '' : '',
           paymentTerms:this.poForm.paymentTerms || '',
           notes:this.poForm.notes || '',
-          status:submit ? 'pending_approval' : 'draft',
+          status:submit ? (autoApprove ? 'approved' : 'pending_approval') : 'draft',
           items,
           additionalCosts,
           additionalTotal,
@@ -4307,12 +4339,20 @@ function app() {
           total,
           createdBy:this.currentUser,
           createdById:this.currentUserId,
-          history:[{ action:submit ? 'submitted' : 'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }],
+          approvedBy:autoApprove ? this.currentUser : '',
+          approvedAt:autoApprove ? now : '',
+          history:submit
+            ? [{ action:'submitted', by:this.currentUser, byRole:this.role, at:now, note:'' }, ...(autoApprove ? [{ action:'approved', by:this.currentUser, byRole:this.role, at:now, note:'Auto approve Manager' }] : [])]
+            : [{ action:'draft', by:this.currentUser, byRole:this.role, at:now, note:'' }],
           rejectReason:''
         };
         this.purchaseOrders.unshift(po);
         this.poSelectedId = po.id;
-        this.notify(submit ? 'PO berhasil dibuat dan disubmit' : 'Draft PO berhasil dibuat');
+        if (autoApprove) {
+          this.reservePRQuantities(po);
+          this.updateMaterialPrices(po);
+        }
+        this.notify(submit ? (autoApprove ? 'PO berhasil dibuat dan langsung disetujui' : 'PO berhasil dibuat dan disubmit') : 'Draft PO berhasil dibuat');
       }
       const relatedPR = this.purchaseRequests.find(pr => pr.id === this.poForm.prId);
       if (relatedPR) this.updatePRStatus(relatedPR);
