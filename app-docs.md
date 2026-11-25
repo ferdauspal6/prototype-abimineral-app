@@ -217,6 +217,7 @@ Aturan utama:
   - **Bulatkan HPP akhir**.
   - Nilai asli komponen yang dibulatkan tetap ditampilkan sebagai keterangan.
 - **Isi Data Dummy** memakai pool biaya produksi September 2026 persis dari `LAPORAN DANA SEPTEMBER 2026.xlsx` (gaji, uang makan, BPJS, bonusan, reject, air, listrik, overhead), lalu Oktober 100% dan November 103%.
+- **Isi Data Dummy** menambahkan pelanggan **Toko Bintang Jaya** dengan satu order belum lunas sebagai contoh alert tagihan.
 - **Isi Data Dummy** juga menyiapkan stok bahan baku Abi Mineral 220ml (CUP) minimal untuk **2.000 Krt**: Cup 96.400, LID 96.350, Straw 96.400, Karton Box 2.300, dan Lakban 4.600. Qty pembelian dummy untuk Cup, LID, dan Straw menjadi 130.000 pcs.
 - **Harga master bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga tersebut dan memakai harga yang sama pada PO dummy.
 - **Data dummy HPP** juga membuat:
@@ -287,6 +288,7 @@ Aturan utama:
 ### 2.9 Utang Supplier
 
 - Menu **Keuangan → Utang** menampilkan payable yang terbentuk otomatis dari penerimaan barang posted.
+- Filter **Dari Tanggal** dan **Sampai Tanggal** memfilter berdasarkan tanggal utang.
 - Kolom: nilai utang, dibayar, sisa, jatuh tempo, status, PO/penerimaan.
 - Aksi **Bayar** membuka form pembayaran:
   - tanggal,
@@ -588,9 +590,11 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 5. Jika promo bonus produk, baris bonus ditambahkan dengan harga 0 dan diskon 100%.
 6. Diskon khusus (jika berizin) mengurangi total.
 7. Tidak ada PPN pada prototype ini; total order = total harga − diskon.
-8. Order disimpan dengan status awal `pending`.
-9. Admin mengonfirmasi order → status `already`, `due_date` diisi +2 minggu.
-10. Invoice dapat dicetak (single atau multiple).
+8. Kredit hanya tersedia mulai order ke-3 pelanggan (order ke-1 dan ke-2 wajib Tunai/Transfer).
+9. Order dari role Admin masuk status **Belum disetujui** dan menunggu Manager; role lain langsung **Belum diproses**.
+10. Pelanggan dengan piutang aktif mendapat peringatan sebelum kamera. Jika tetap order, status menjadi **Belum disetujui**.
+11. Admin mengonfirmasi order yang sudah disetujui → status `already`, `due_date` diisi +2 minggu.
+12. Invoice dapat dicetak (single atau multiple).
 
 ### 7.2 Surat Jalan / Delivery
 
@@ -1234,7 +1238,7 @@ Route: `/dashboard/product`
 - Nama Barang *.
 - Satuan * — select dengan `+ Tambah Satuan`.
 - Harga Modal * (Rp).
-- Harga Jual per **Tipe Harga aktif** (Rp). Harga tipe default wajib diisi; tipe lain yang kosong memakai harga default.
+- Harga Jual ditampilkan sebagai tabel per **Tipe Harga aktif** (Tipe Harga, Harga Jual, Default, Status). Harga tipe default wajib diisi; tipe lain yang kosong memakai harga default.
 - Tipe harga baru otomatis menyalin harga tipe default ke seluruh produk.
 - Keterangan.
 - Batal/Simpan.
@@ -1630,7 +1634,9 @@ Layout: heading "Pengaturan", sidebar kiri (Profil, Kata sandi, Otentikasi 2FA, 
 
 | Domain | Value | Label UI | Warna |
 |---|---|---|---|
+| Order | `pending_approval` | Belum disetujui | Kuning |
 | Order | `pending` | Belum diproses | Kuning |
+| Order | `rejected` | Ditolak | Merah |
 | Order | `processing` | Sedang diproses | Oranye |
 | Order | `already` | Siap dikirim | Biru |
 | Order | `holding` | Ditahan | Cyan |

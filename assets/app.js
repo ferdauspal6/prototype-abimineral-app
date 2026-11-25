@@ -176,10 +176,11 @@ function seedData() {
     { id:'c5', code:'C-0005', name:'Mitra Bangunan', address:'Jl. Ahmad Yani No. 21', channel:'Grosir', week:'Genap', day:'Kamis', priceType:'in', phone:'081255667799', sales:'Fahri', lastOrder:null, orderedToday:false, description:'' },
     { id:'c6', code:'C-0006', name:'Cahaya Putih', address:'Jl. Sudirman No. 9', channel:'Apotik', week:'Ganjil', day:'Jumat', priceType:'in', phone:'081399887766', sales:'Zainudin', lastOrder:null, orderedToday:false, description:'' },
     { id:'c7', code:'C-0007', name:'Toko Sejahtera', address:'Jl. Gatot Subroto No. 3', channel:'Retail', week:'Genap', day:'Sabtu', priceType:'out', phone:'081211223344', sales:'Fahri', lastOrder:null, orderedToday:false, description:'' },
-    { id:'c8', code:'C-0008', name:'Grosir Makmur', address:'Jl. Mulawarman No. 17', channel:'Star Outlet', week:'Ganjil', day:'Senin', priceType:'in', phone:'081322334455', sales:'Zainudin', lastOrder:null, orderedToday:false, description:'' }
+    { id:'c8', code:'C-0008', name:'Grosir Makmur', address:'Jl. Mulawarman No. 17', channel:'Star Outlet', week:'Ganjil', day:'Senin', priceType:'in', phone:'081322334455', sales:'Zainudin', lastOrder:null, orderedToday:false, description:'' },
+    { id:'c9', code:'C-0009', name:'Toko Bintang Jaya', address:'Jl. Wiluyan No. 8, Balikpapan', channel:'Retail', week:'Ganjil', day:'Rabu', priceType:'in', phone:'081344556677', sales:'Zainudin', lastOrder:null, orderedToday:false, description:'Demo pelanggan dengan tagihan belum lunas' }
   ];
 
-  const customerPriceTypeMap = { c1:'pt1', c2:'pt2', c3:'pt1', c4:'pt3', c5:'pt1', c6:'pt4', c7:'pt2', c8:'pt1' };
+  const customerPriceTypeMap = { c1:'pt1', c2:'pt2', c3:'pt1', c4:'pt3', c5:'pt1', c6:'pt4', c7:'pt2', c8:'pt1', c9:'pt1' };
   customers.forEach(customer => { customer.priceTypeId = customerPriceTypeMap[customer.id] || 'pt1'; });
 
   const units = ['Pcs', 'Krt', 'Box', 'Sak', 'Kg', 'Roll', 'Liter', 'Set'];
@@ -2317,10 +2318,10 @@ function app() {
     receivable(id) { return this.receivables.find(r => r.id === id) || {}; },
     warehouseName(id) { return (this.warehouses.find(w => w.id === id) || {}).name || '-'; },
     statusBadge(s) {
-      return { pending:'badge-yellow', processing:'badge-orange', already:'badge-blue', holding:'badge-cyan', shipping:'badge-amber', success:'badge-green', partial:'badge-green', failed:'badge-red', cancel:'badge-red', return:'badge-blue', discard:'badge-red' }[s] || 'badge-slate';
+      return { pending:'badge-yellow', pending_approval:'badge-yellow', rejected:'badge-red', processing:'badge-orange', already:'badge-blue', holding:'badge-cyan', shipping:'badge-amber', success:'badge-green', partial:'badge-green', failed:'badge-red', cancel:'badge-red', return:'badge-blue', discard:'badge-red' }[s] || 'badge-slate';
     },
     statusLabel(s) {
-      return { pending:'Belum diproses', processing:'Sedang diproses', already:'Siap dikirim', holding:'Ditahan', shipping:'Dikirim', success:'Selesai', partial:'Selesai sebagian', failed:'Gagal', cancel:'Dibatalkan', return:'Masuk stok', discard:'Dihapus' }[s] || s;
+      return { pending:'Belum diproses', pending_approval:'Belum disetujui', rejected:'Ditolak', processing:'Sedang diproses', already:'Siap dikirim', holding:'Ditahan', shipping:'Dikirim', success:'Selesai', partial:'Selesai sebagian', failed:'Gagal', cancel:'Dibatalkan', return:'Masuk stok', discard:'Dihapus' }[s] || s;
     },
     paymentBadge(p) { return p === 'paid' || p === 'partial' ? 'badge-green' : 'badge-yellow'; },
     paymentLabel(p) { return p === 'paid' ? 'Lunas' : p === 'partial' ? 'Dibayar sebagian' : 'Belum dibayar'; },
@@ -2332,6 +2333,8 @@ function app() {
     },
     closeModals() {
       this.cameraOpen = false;
+      this.orderDebtOpen = false;
+      this.orderRejectOpen = false;
       this.orderPreviewOpen = false;
       this.orderStockOverride = false;
       this.orderCustomerOpen = false;
@@ -2422,6 +2425,8 @@ function app() {
           return items;
         }
         case 'orders': return [
+          { label:'Setujui', icon:'i-check', show:this.canApproveOrder && row.status === 'pending_approval', run:() => this.askApproveOrder(row) },
+          { label:'Tolak', icon:'i-x', danger:true, show:this.canApproveOrder && row.status === 'pending_approval', run:() => this.askRejectOrder(row) },
           { label:'Konfirmasi', icon:'i-check', show:row.status === 'pending', run:() => this.confirmOrder(row) },
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewOrder(row.id) },
           { label:'Lihat Invoice', icon:'i-printer', run:() => this.viewInvoice(row.id) },
@@ -2709,6 +2714,21 @@ function app() {
         this.orderPreviewOpen = true;
       }
 
+      if (action === 'approve-order') {
+        const order = this.orders.find(item => item.id === id);
+        if (!order || order.status !== 'pending_approval' || !this.canApproveOrder) {
+          this.notify('Order tidak dapat disetujui', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        order.status = 'pending';
+        order.approvedBy = this.currentUser;
+        order.approvedAt = todayISO();
+        order.history = order.history || [];
+        order.history.unshift({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+        this.persist();
+        this.notify('Order ' + order.code + ' disetujui');
+      }
       if (action === 'delete-order') {
         const order = this.order(id);
         const rec = this.receivables.find(r => r.orderId === id);
@@ -9145,6 +9165,8 @@ function app() {
 
     /* ---------- ORDER CUSTOMER / CREATE ---------- */
     orderViewTab: 'schedule', orderCustomerSearch: '', orderDate: todayISO(), selectedCustomerId: 'c1',
+    orderForceApproval: false, orderDebtOpen: false, orderDebtCustomerId: null,
+    orderRejectOpen: false, orderRejectId: null, orderRejectReason: '',
     get filteredOrderCustomers() {
       const q = this.orderCustomerSearch.toLowerCase();
       return this.customers.filter(c => {
@@ -9155,12 +9177,23 @@ function app() {
       });
     },
     isOrderedToday(c) {
-      return this.orders.some(o => o.customerId === c.id && o.schedule === this.orderDate);
+      return this.orders.some(o => o.customerId === c.id && o.schedule === this.orderDate && !['cancel','failed','rejected'].includes(o.status));
     },
-    startOrder(c, tab = 'order') {
+    customerOrderCount(customerId) {
+      return this.orders.filter(o => o.customerId === customerId && !['cancel','failed','rejected'].includes(o.status)).length;
+    },
+    get creditAvailable() { return this.customerOrderCount(this.selectedCustomerId) >= 2; },
+    customerUnpaidOrders(customerId) {
+      return this.receivables.filter(rec => rec.customerId === customerId && Number(rec.unpaid) > 0);
+    },
+    customerOutstandingTotal(customerId) {
+      return this.customerUnpaidOrders(customerId).reduce((sum, rec) => sum + (Number(rec.unpaid) || 0), 0);
+    },
+    startOrder(c, tab = 'order', forceApproval = false) {
       if (!c || !c.id) { this.notify('Pelanggan tidak ditemukan', 'error'); return; }
       this.selectedCustomerId = c.id;
       this.orderTab = tab;
+      this.orderForceApproval = !!forceApproval;
       this.cart = {};
       this.paymentMethod = '';
       this.customDiscount = 0;
@@ -9168,16 +9201,43 @@ function app() {
       this.orderStockOverride = false;
       this.go('order-create');
     },
+    proceedOrderWithDebt() {
+      const c = this.customer(this.orderDebtCustomerId);
+      if (!c || !c.id) return;
+      this.orderDebtOpen = false;
+      this.orderForceApproval = true;
+      this.cameraCustomer = c;
+      this.cameraOpen = true;
+    },
+    cancelOrderDebt() {
+      this.orderDebtOpen = false;
+      this.orderDebtCustomerId = null;
+      this.cameraCustomer = null;
+      this.orderForceApproval = false;
+    },
+    viewOrderDebtHistory() {
+      const c = this.customer(this.orderDebtCustomerId);
+      this.orderDebtOpen = false;
+      this.orderDebtCustomerId = null;
+      this.orderForceApproval = false;
+      if (c && c.id) this.startOrder(c, 'history');
+    },
     cameraOpen: false,
     cameraCustomer: null,
     openCamera(c) {
       this.cameraCustomer = c;
+      this.orderForceApproval = false;
+      if (this.customerOutstandingTotal(c.id) > 0) {
+        this.orderDebtCustomerId = c.id;
+        this.orderDebtOpen = true;
+        return;
+      }
       this.cameraOpen = true;
     },
     confirmCamera() {
       const c = this.cameraCustomer;
       this.cameraOpen = false;
-      if (c) this.startOrder(c);
+      if (c) this.startOrder(c, 'order', this.orderForceApproval);
     },
     shiftOrderDate(days) {
       this.orderDate = shiftISO(this.orderDate, days);
@@ -9252,6 +9312,7 @@ function app() {
     openOrderPreview() {
       if (!this.cartCount) { this.notify('Tambahkan minimal 1 produk terlebih dahulu', 'error'); return; }
       if (!this.paymentMethod) { this.notify('Metode pembayaran wajib dipilih', 'error'); return; }
+      if (this.paymentMethod === 'Kredit' && !this.creditAvailable) { this.notify('Kredit tersedia mulai order ke-3 untuk pelanggan ini', 'error'); return; }
       if (this.orderStockShortages.length) {
         this.askConfirm(
           'order-stock-shortage',
@@ -9269,6 +9330,7 @@ function app() {
     submitOrder() {
       if (!this.cartCount) { this.notify('Keranjang masih kosong', 'error'); return; }
       if (!this.paymentMethod) { this.notify('Metode pembayaran wajib dipilih', 'error'); return; }
+      if (this.paymentMethod === 'Kredit' && !this.creditAvailable) { this.notify('Kredit tersedia mulai order ke-3 untuk pelanggan ini', 'error'); return; }
       if (this.orderStockShortages.length && !this.orderStockOverride) {
         this.notify('Stock barang di system tidak mencukup, tetap lanjutkan order ?', 'error');
         return;
@@ -9285,6 +9347,8 @@ function app() {
         const prod = this.product(item.productId);
         if (prod.id) prod.stock = (Number(prod.stock) || 0) - (Number(item.qty) || 0);
       });
+      const outstanding = this.customerOutstandingTotal(c.id);
+      const requiresApproval = this.role === 'Admin' || this.orderForceApproval || outstanding > 0;
       const order = {
         id,
         code:this.nextCode('INV', this.orders),
@@ -9298,7 +9362,11 @@ function app() {
         createdByRole:this.role,
         salesChannel,
         salesPerson:salesChannel === 'Sales' ? this.currentUser : 'Sales Kantor',
-        status:'pending',
+        status:requiresApproval ? 'pending_approval' : 'pending',
+        approvalReason:outstanding > 0 ? 'outstanding' : (this.role === 'Admin' ? 'admin' : ''),
+        approvedBy:'',
+        approvedAt:'',
+        rejectReason:'',
         payment:'unpaid',
         delivery:'full',
         radius:'onsite',
@@ -9323,8 +9391,9 @@ function app() {
       this.cart = {};
       this.paymentMethod = '';
       this.customDiscount = 0;
+      this.orderForceApproval = false;
       this.persist();
-      this.notify('Order berhasil dibuat');
+      this.notify(requiresApproval ? 'Order dibuat dan menunggu persetujuan Manager' : 'Order berhasil dibuat');
       this.go(this.role === 'Sales' ? 'order-success' : 'invoice');
     },
     get selectedOrder() { return this.order(this.selectedOrderId) || this.orders[0] || {}; },
@@ -9377,8 +9446,36 @@ function app() {
       });
       return changed;
     },
+    get canApproveOrder() { return this.role === 'Manager'; },
+    askApproveOrder(o) {
+      if (!this.canApproveOrder) { this.notify('Approval order hanya dapat dilakukan Manager', 'error'); return; }
+      if (!o || o.status !== 'pending_approval') { this.notify('Order ini tidak menunggu persetujuan', 'error'); return; }
+      this.askConfirm('approve-order', o.id, 'Setujui order?', 'Order ' + o.code + ' akan disetujui dan masuk status Belum diproses.', false, 'Setujui');
+    },
+    askRejectOrder(o) {
+      if (!this.canApproveOrder) { this.notify('Penolakan order hanya dapat dilakukan Manager', 'error'); return; }
+      if (!o || o.status !== 'pending_approval') { this.notify('Order ini tidak menunggu persetujuan', 'error'); return; }
+      this.orderRejectId = o.id;
+      this.orderRejectReason = '';
+      this.orderRejectOpen = true;
+    },
+    submitRejectOrder() {
+      const o = this.orders.find(item => item.id === this.orderRejectId);
+      if (!o || !this.canApproveOrder) return;
+      if (!String(this.orderRejectReason || '').trim()) { this.notify('Alasan penolakan wajib diisi', 'error'); return; }
+      o.status = 'rejected';
+      o.rejectReason = String(this.orderRejectReason).trim();
+      o.rejectedBy = this.currentUser;
+      o.rejectedAt = todayISO();
+      o.history = o.history || [];
+      o.history.unshift({ action:'rejected', by:this.currentUser, byRole:this.role, at:todayISO(), note:o.rejectReason });
+      this.restoreOrderStock(o);
+      this.orderRejectOpen = false;
+      this.persist();
+      this.notify('Order ditolak dan stok dikembalikan');
+    },
     confirmOrder(o) {
-      if (!o || !o.id) return;
+      if (!o || !o.id || o.status !== 'pending') { this.notify('Order belum disetujui Manager', 'error'); return; }
       o.status = 'already';
       if (!o.dueDate) o.dueDate = shiftISO(todayISO(), 14);
       this.persist();
@@ -10668,7 +10765,7 @@ function app() {
     },
 
     /* ---------- PAYABLES / UTANG ---------- */
-    payableSearch: '', payableStatus: '', payableSupplier: '',
+    payableSearch: '', payableStatus: '', payableSupplier: '', payableDateFrom: '', payableDateTo: '',
     payableDetailOpen: false, payableSelectedId: null,
     payablePaymentOpen: false, payablePaymentId: null,
     payablePaymentForm: { date:todayISO(), cashAccountId:'acc1', amount:0, note:'', proof:'' },
@@ -10678,6 +10775,8 @@ function app() {
         if (q && !(payable.code + ' ' + (payable.poCode || '') + ' ' + (payable.receiptCode || '') + ' ' + this.supplierName(payable.supplierId)).toLowerCase().includes(q)) return false;
         if (this.payableStatus && payable.status !== this.payableStatus) return false;
         if (this.payableSupplier && payable.supplierId !== this.payableSupplier) return false;
+        if (this.payableDateFrom && payable.date < this.payableDateFrom) return false;
+        if (this.payableDateTo && payable.date > this.payableDateTo) return false;
         return true;
       });
     },
@@ -11153,6 +11252,15 @@ function app() {
         'Isi Data'
       );
     },
+    ensureDummyDebtCustomer() {
+      if ((this.customers || []).some(customer => customer.id === 'c9')) return;
+      this.customers.push({
+        id:'c9', code:nextSimpleCode(this.customers, 'C-'), name:'Toko Bintang Jaya',
+        address:'Jl. Wiluyan No. 8, Balikpapan', channel:'Retail', week:'Ganjil', day:'Rabu',
+        priceType:'in', priceTypeId:this.defaultPriceTypeId || 'pt1', phone:'081344556677',
+        sales:'Zainudin', lastOrder:null, orderedToday:false, description:'Demo pelanggan dengan tagihan belum lunas'
+      });
+    },
     ensureDummyHppMaster() {
       const fresh = seedData();
       fresh.accounts.filter(account => account.code === '5-1700').forEach(account => {
@@ -11301,6 +11409,7 @@ function app() {
       const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','productions','productionLogs','journals','hppHarian','hppBulanan','hppLog'];
       reset.forEach(key => { this[key] = []; });
       this.ensureDummyHppMaster();
+      this.ensureDummyDebtCustomer();
       const openingEquity = accId('3-1100') || accId('3-1000');
       if (openingEquity) {
         post(d(-30), 'Saldo awal demo', 'opening-demo', 'opening-demo', [
@@ -11988,6 +12097,12 @@ function app() {
       const order5 = makeOrder('c5', [['p1', 25]], 'success', 'partial', d(-2), { orderBy:'Fahri' });
       const order6 = makeOrder('c6', [['p2', 8]], 'partial', 'partial', d(-1), { orderBy:'Zainudin' });
       const order7 = makeOrder('c7', [['p1', 12]], 'cancel', 'unpaid', d(-1), { orderBy:'Fahri' });
+      const debtOrder = makeOrder('c9', [['p1', 6]], 'success', 'unpaid', d(-4), { orderBy:'Zainudin' });
+      this.receivables.unshift({
+        id:'rcdebt9', orderId:debtOrder.id, orderCode:debtOrder.code, customerId:'c9', sales:'Zainudin',
+        schedule:debtOrder.schedule, due:debtOrder.dueDate || shiftISO(debtOrder.date, 14),
+        total:debtOrder.total, cash:0, transfer:0, unpaid:debtOrder.total
+      });
       this.orders.filter(order => !['cancel','failed'].includes(order.status)).forEach(order => {
         const tax = Number(order.tax) || 0;
         const net = Math.max(0, (Number(order.total) || 0) - tax);

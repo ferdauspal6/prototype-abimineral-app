@@ -803,7 +803,7 @@
               <div class="card-header"><div class="section-title">Ringkasan Order</div><span class="badge badge-slate" x-text="cartCount + ' item'"></span></div>
               <div class="card-body pt-0 space-y-3">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div><label class="label">Metode Pembayaran <span class="req">*</span></label><select class="select" x-model="paymentMethod"><option value="">Pilih metode</option><option>Tunai</option><option>Kredit</option><option>Transfer</option></select></div>
+                  <div><label class="label">Metode Pembayaran <span class="req">*</span></label><select class="select" x-model="paymentMethod"><option value="">Pilih metode</option><option>Tunai</option><option value="Kredit" :disabled="!creditAvailable">Kredit</option><option>Transfer</option></select><div class="mt-1 text-[10px] text-amber-600" x-show="!creditAvailable">Kredit tersedia mulai order ke-3.</div></div>
                   <div x-show="role === 'Admin'"><label class="label">Diskon Khusus (%)</label><div class="input-group"><input type="number" min="0" max="100" class="input" x-model.number="customDiscount"><span class="addon"><svg class="icon icon-xs"><use href="#i-percent"></use></svg></span></div></div>
                 </div>
                 <div class="table-wrap">
@@ -903,7 +903,7 @@
               <option value="">Sales</option>
               <template x-for="s in orderSalesOptions" :key="s"><option :value="s" x-text="s"></option></template>
             </select>
-            <select class="select w-40" x-model="orderStatus"><option value="">Status</option><option value="pending">Belum diproses</option><option value="already">Siap dikirim</option><option value="holding">Ditahan</option><option value="shipping">Dikirim</option><option value="success">Selesai</option><option value="partial">Selesai sebagian</option><option value="cancel">Dibatalkan</option></select>
+            <select class="select w-44" x-model="orderStatus"><option value="">Status</option><option value="pending_approval">Belum disetujui</option><option value="pending">Belum diproses</option><option value="already">Siap dikirim</option><option value="holding">Ditahan</option><option value="shipping">Dikirim</option><option value="success">Selesai</option><option value="partial">Selesai sebagian</option><option value="rejected">Ditolak</option><option value="cancel">Dibatalkan</option></select>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-xs text-slate-500" x-show="selectedOrderIds.length > 0"><b x-text="selectedOrderIds.length"></b> dipilih</span>
@@ -953,6 +953,8 @@
             <button class="btn btn-outline btn-sm" @click="notify('Fitur edit order dapat didemokan dari halaman ini')"><svg class="icon icon-sm"><use href="#i-pencil"></use></svg> Edit Order</button>
             <button class="btn btn-outline btn-sm" @click="notify('Preview edit delivery (demo)')"><svg class="icon icon-sm"><use href="#i-truck"></use></svg> Edit Delivery</button>
             <button class="btn btn-outline btn-sm" @click="printPage()"><svg class="icon icon-sm"><use href="#i-printer"></use></svg> Print</button>
+            <button class="btn btn-primary btn-sm" x-show="canApproveOrder && selectedOrder.status === 'pending_approval'" @click="askApproveOrder(selectedOrder)">Setujui</button>
+            <button class="btn btn-outline btn-sm text-red-600" x-show="canApproveOrder && selectedOrder.status === 'pending_approval'" @click="askRejectOrder(selectedOrder)">Tolak</button>
             <button class="btn btn-primary btn-sm" x-show="selectedOrder.status === 'pending'" @click="confirmOrder(selectedOrder)">Konfirmasi <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
           </div>
         </div>
@@ -1744,10 +1746,21 @@
             <div><label class="label">Stok Minimum</label><input type="number" class="input" x-model.number="productForm.minStock"></div>
             <div><label class="label">Harga Modal <span class="req">*</span></label><div class="input-group"><input type="number" class="input" x-model.number="productForm.cost"><span class="addon">Rp</span></div></div>
             <div class="md:col-span-2 xl:col-span-4">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <template x-for="type in activePriceTypes" :key="type.id">
-                  <div><label class="label" x-text="'Harga Jual ' + type.name + (type.isDefault ? ' (Default)' : '')"></label><div class="input-group"><input type="number" class="input" x-model.number="productForm.prices[type.id]"><span class="addon">Rp</span></div></div>
-                </template>
+              <div class="section-title mb-2 text-sm">Harga Jual</div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Tipe Harga</th><th class="num">Harga Jual</th><th>Default</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <template x-for="type in activePriceTypes" :key="type.id">
+                      <tr>
+                        <td class="font-semibold" x-text="type.name"></td>
+                        <td class="num"><div class="input-group"><input type="number" min="0" class="input input-sm w-44 text-right" x-model.number="productForm.prices[type.id]"><span class="addon">Rp</span></div></td>
+                        <td><span x-show="type.isDefault" class="badge badge-green">Default</span><span x-show="!type.isDefault" class="text-slate-400">-</span></td>
+                        <td><span class="badge badge-green">Aktif</span></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -3986,6 +3999,8 @@
           <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari utang / supplier / PO..." x-model="payableSearch"></div>
           <select class="select w-44" x-model="payableStatus"><option value="">Semua Status</option><option value="unpaid">Belum dibayar</option><option value="partial">Dibayar sebagian</option><option value="paid">Lunas</option></select>
           <select class="select w-44" x-model="payableSupplier"><option value="">Semua Supplier</option><template x-for="s in suppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select>
+          <input type="date" class="input w-40" x-model="payableDateFrom" title="Dari tanggal">
+          <input type="date" class="input w-40" x-model="payableDateTo" title="Sampai tanggal">
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -4739,6 +4754,31 @@
     </div>
   </div>
 
+  <!-- ORDER DEBT ALERT MODAL -->
+  <div x-show="orderDebtOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="cancelOrderDebt()">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title">Tagihan Belum Lunas</div><div class="modal-desc">Pelanggan ini masih punya tagihan yang belum lunas.</div></div><button class="icon-btn" @click="cancelOrderDebt()"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800"><svg class="icon icon-sm mt-0.5"><use href="#i-alert"></use></svg><span>Pelanggan ini masih punya tagihan yang belum lunas.</span></div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Pelanggan</div><div class="font-semibold mt-1" x-text="customerName(orderDebtCustomerId) || '-'"></div></div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Total Tagihan</div><div class="font-semibold mt-1 text-amber-700" x-text="rp(customerOutstandingTotal(orderDebtCustomerId))"></div></div>
+        </div>
+        <div class="text-[11px] text-slate-500">Order tetap bisa dibuat, tetapi akan berstatus <b>Belum disetujui</b> sampai disetujui Manager.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="cancelOrderDebt()">Batal</button><button class="btn btn-outline" @click="viewOrderDebtHistory()">Lihat Riwayat</button><button class="btn btn-primary" @click="proceedOrderWithDebt()">Tetap Order</button></div>
+    </div>
+  </div>
+
+  <!-- ORDER REJECT MODAL -->
+  <div x-show="orderRejectOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="orderRejectOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title">Tolak Order</div><div class="modal-desc">Alasan penolakan wajib diisi.</div></div><button class="icon-btn" @click="orderRejectOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body"><label class="label">Alasan Penolakan <span class="req">*</span></label><textarea class="textarea" x-model="orderRejectReason" placeholder="Contoh: harga atau qty perlu dikoreksi"></textarea></div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="orderRejectOpen = false">Batal</button><button class="btn btn-danger" @click="submitRejectOrder()">Tolak Order</button></div>
+    </div>
+  </div>
+
   <!-- CAMERA MODAL -->
   <div x-show="cameraOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="cameraOpen = false">
     <div class="modal-panel modal-md">
@@ -5472,7 +5512,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261125g"></script>
+<script src="assets/app.js?v=20261125h"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
