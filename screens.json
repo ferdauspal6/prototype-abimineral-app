@@ -546,6 +546,17 @@
       "previewH": 900
     },
     {
+      "id": "product-price-types",
+      "name": "Tipe Harga",
+      "src": "index.html?canvas=product-price-types",
+      "group": "logistik",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/product-price-types.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
       "id": "product-form",
       "name": "Form Produk",
       "src": "index.html?canvas=product-form",

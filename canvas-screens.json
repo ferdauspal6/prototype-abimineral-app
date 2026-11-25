@@ -38,6 +38,7 @@
   { "id": "warehouse-modal", "name": "Modal Gudang", "group": "logistik", "groupName": "Logistik", "page": "warehouses", "setup": "warehouse-modal" },
   { "id": "products", "name": "Master Produk", "group": "logistik", "groupName": "Logistik", "page": "products" },
   { "id": "product-categories", "name": "Kategori Produk", "group": "logistik", "groupName": "Logistik", "page": "products", "state": { "productTab": "categories" } },
+  { "id": "product-price-types", "name": "Tipe Harga", "group": "logistik", "groupName": "Logistik", "page": "products", "state": { "productTab": "price-types" } },
   { "id": "product-form", "name": "Form Produk", "group": "logistik", "groupName": "Logistik", "page": "product-create", "setup": "product-form" },
   { "id": "recipe-preview", "name": "Preview Resep", "group": "logistik", "groupName": "Logistik", "page": "products", "setup": "recipe-preview" },
   { "id": "product-category-modal", "name": "Modal Kategori Produk", "group": "logistik", "groupName": "Logistik", "page": "products", "setup": "product-category-modal" },

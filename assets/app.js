@@ -4,11 +4,11 @@ const rupiah2Fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency:
 const number2Fmt = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STORE_KEY = 'abi-mineral-demo';
-const STORE_VERSION = 20;
+const STORE_VERSION = 21;
 const DEMO_PASSWORD = 'rahasia123';
 
 const DOMAIN_KEYS = [
-  'customers', 'products', 'promos', 'orders', 'deliveries', 'returns', 'warehouses',
+  'customers', 'products', 'promos', 'orders', 'deliveries', 'returns', 'warehouses', 'priceTypes',
   'stockHistory', 'opnames', 'incomes', 'expenses', 'receivables',
   'collections', 'payments', 'users', 'roles', 'monthlyHistory',
   'categories', 'materials', 'suppliers', 'purchaseRequests', 'units', 'purchaseOrders',
@@ -161,6 +161,13 @@ function seedData() {
   const d = (n) => shiftISO(T, n);
   const code = (prefix, date, seq) => docCode(prefix, date, seq);
 
+  const priceTypes = [
+    { id:'pt1', code:'HRG-0001', name:'Dalam Kota', description:'Harga jual dalam kota', status:true, isDefault:true, sortOrder:1 },
+    { id:'pt2', code:'HRG-0002', name:'Luar Kota 1', description:'Harga jual luar kota wilayah 1', status:true, isDefault:false, sortOrder:2 },
+    { id:'pt3', code:'HRG-0003', name:'Luar Kota 2', description:'Harga jual luar kota wilayah 2', status:true, isDefault:false, sortOrder:3 },
+    { id:'pt4', code:'HRG-0004', name:'Harga Khusus', description:'Harga kesepakatan khusus', status:true, isDefault:false, sortOrder:4 }
+  ];
+
   const customers = [
     { id:'c1', code:'C-0001', name:'Toko Sumber Rejeki', address:'Jl. Merdeka No. 12, Kersik Putih', channel:'Grosir', week:'Genap', day:'Senin', priceType:'in', phone:'081234567890', sales:'Fahri', lastOrder:null, orderedToday:false, description:'Pelanggan rutin pekan genap' },
     { id:'c2', code:'C-0002', name:'Aneka Jaya', address:'Jl. Pahlawan No. 88, Balikpapan', channel:'Retail', week:'Ganjil', day:'Selasa', priceType:'out', phone:'081298765432', sales:'Zainudin', lastOrder:null, orderedToday:false, description:'' },
@@ -171,6 +178,9 @@ function seedData() {
     { id:'c7', code:'C-0007', name:'Toko Sejahtera', address:'Jl. Gatot Subroto No. 3', channel:'Retail', week:'Genap', day:'Sabtu', priceType:'out', phone:'081211223344', sales:'Fahri', lastOrder:null, orderedToday:false, description:'' },
     { id:'c8', code:'C-0008', name:'Grosir Makmur', address:'Jl. Mulawarman No. 17', channel:'Star Outlet', week:'Ganjil', day:'Senin', priceType:'in', phone:'081322334455', sales:'Zainudin', lastOrder:null, orderedToday:false, description:'' }
   ];
+
+  const customerPriceTypeMap = { c1:'pt1', c2:'pt2', c3:'pt1', c4:'pt3', c5:'pt1', c6:'pt4', c7:'pt2', c8:'pt1' };
+  customers.forEach(customer => { customer.priceTypeId = customerPriceTypeMap[customer.id] || 'pt1'; });
 
   const units = ['Pcs', 'Krt', 'Box', 'Sak', 'Kg', 'Roll', 'Liter', 'Set'];
 
@@ -189,6 +199,17 @@ function seedData() {
     { id:'p2', code:'ABI-0002', name:'ABI MINERAL 330 ML(BOTOL)', categoryId:'cat2', minStock:20, unit:'Krt', cost:16000, inSale:39000, outSale:40000, stock:100, status:true },
     { id:'p3', code:'ABI-0003', name:'ABI MINERAL 600 ML(BOTOL)', categoryId:'cat2', minStock:20, unit:'Krt', cost:17600, inSale:42000, outSale:43000, stock:100, status:true }
   ];
+
+  const productPriceSeed = {
+    p1:{ pt1:22000, pt2:24000, pt3:25000, pt4:21000 },
+    p2:{ pt1:39000, pt2:40000, pt3:41000, pt4:38000 },
+    p3:{ pt1:42000, pt2:43000, pt3:44000, pt4:41000 }
+  };
+  products.forEach(product => {
+    product.prices = { ...(productPriceSeed[product.id] || { pt1:Number(product.inSale) || 0, pt2:Number(product.outSale) || 0 }) };
+    product.inSale = Number(product.prices.pt1) || 0;
+    product.outSale = Number(product.prices.pt2) || 0;
+  });
 
   const materials = [
     { id:'mat1', code:'BRG-0001', name:'Botol PET 600 ml', categoryId:'cat3', unit:'Pcs', purchasePrice:800, minStock:1000, stock:0, status:true, description:'Botol kosong 600 ml' },
@@ -406,7 +427,7 @@ function seedData() {
   attendanceNotes.push({ id:'notedisp1', employeeId:'emp1', date:'2026-10-06', type:'dispensasi', note:'Dispensasi telat dari admin', by:'Admin', createdAt:'2026-10-06' });
 
   return {
-    customers, products, promos, orders, deliveries, returns, warehouses,
+    priceTypes, customers, products, promos, orders, deliveries, returns, warehouses,
     stockHistory, opnames, incomes, expenses, receivables,
     collections, payments, users, roles, monthlyHistory,
     categories, materials, suppliers, purchaseRequests, units, purchaseOrders,
@@ -442,6 +463,7 @@ function app() {
     actionMenu: { open: false, kind: '', id: null, top: 0, left: 0, items: [] },
 
     /* ---------- DATA ---------- */
+    priceTypes: seed.priceTypes,
     customers: seed.customers,
     products: seed.products,
     promos: seed.promos,
@@ -598,27 +620,32 @@ function app() {
         return;
       }
       if (parsed && (parsed.version === 14 || parsed.version === 15) && parsed.data) {
-        this.migrateFromV19(parsed);
+        this.migrateFromV20(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 16 && parsed.data) {
-        this.migrateFromV19(parsed);
+        this.migrateFromV20(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 17 && parsed.data) {
-        this.migrateFromV19(parsed);
+        this.migrateFromV20(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 18 && parsed.data) {
-        this.migrateFromV19(parsed);
+        this.migrateFromV20(parsed);
         this.saveStore();
         return;
       }
       if (parsed && parsed.version === 19 && parsed.data) {
-        this.migrateFromV19(parsed);
+        this.migrateFromV20(parsed);
+        this.saveStore();
+        return;
+      }
+      if (parsed && parsed.version === 20 && parsed.data) {
+        this.migrateFromV20(parsed);
         this.saveStore();
         return;
       }
@@ -655,6 +682,29 @@ function app() {
     },
     migrateFromV16(parsed) {
       this.migrateFromV14(parsed);
+    },
+    migrateFromV20(parsed) {
+      this.migrateFromV19(parsed);
+      const fresh = seedData();
+      if (!Array.isArray(this.priceTypes) || !this.priceTypes.length) this.priceTypes = fresh.priceTypes.map(type => ({ ...type }));
+      if (!this.priceTypes.some(type => type.isDefault)) this.priceTypes[0].isDefault = true;
+      const defaultId = (this.priceTypes.find(type => type.isDefault) || this.priceTypes[0] || {}).id;
+      (this.products || []).forEach(product => {
+        const prices = product.prices && typeof product.prices === 'object' ? { ...product.prices } : {};
+        if (!(Number(prices[defaultId]) > 0)) prices[defaultId] = Number(product.inSale) || 0;
+        if (!(Number(prices.pt2) > 0)) prices.pt2 = Number(product.outSale) || Number(prices[defaultId]) || 0;
+        this.priceTypes.forEach(type => {
+          if (!(Number(prices[type.id]) > 0)) prices[type.id] = Number(product.outSale) || Number(prices[defaultId]) || 0;
+        });
+        product.prices = prices;
+        product.inSale = Number(prices[defaultId]) || 0;
+        product.outSale = Number(prices.pt2) || 0;
+      });
+      (this.customers || []).forEach(customer => {
+        if (!customer.priceTypeId || !this.priceTypes.some(type => type.id === customer.priceTypeId)) {
+          customer.priceTypeId = customer.priceType === 'out' ? 'pt2' : (defaultId || 'pt1');
+        }
+      });
     },
     migrateFromV19(parsed) {
       this.migrateFromV18(parsed);
@@ -2291,6 +2341,7 @@ function app() {
       this.customerModalOpen = false;
       this.promoModalOpen = false;
       this.productModalOpen = false;
+      this.priceTypeModalOpen = false;
       this.categoryModalOpen = false;
       this.materialModalOpen = false;
       this.supplierModalOpen = false;
@@ -2405,6 +2456,12 @@ function app() {
         case 'warehouses': return [
           { label:'Edit', icon:'i-pencil', run:() => this.openWarehouse(row) },
           { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-warehouse', row.id, 'Hapus gudang?', 'Gudang ' + row.name + ' akan dihapus.') }
+        ];
+        case 'price-types': return [
+          { label:'Edit', icon:'i-pencil', run:() => this.openPriceType(row) },
+          { label:'Jadikan Default', icon:'i-check', show:!row.isDefault, run:() => this.setDefaultPriceType(row) },
+          { label:row.status ? 'Nonaktifkan' : 'Aktifkan', icon:row.status ? 'i-x' : 'i-check', show:!row.isDefault, run:() => this.togglePriceTypeStatus(row) },
+          { label:'Hapus', icon:'i-trash', danger:true, show:!row.isDefault && this.priceTypeCustomerCount(row.id) === 0, run:() => this.deletePriceType(row) }
         ];
         case 'products': return [
           { label:'Edit Produk', icon:'i-pencil', run:() => this.openProduct(row) },
@@ -3412,10 +3469,40 @@ function app() {
     get displayDeliverySuccess() { return this.deliveries.filter(d => d.status === 'success').length; },
     get displayReturnPending() { return this.returns.filter(r => r.status === 'pending').length; },
 
+    /* ---------- PRICE TYPES ---------- */
+    priceTypeById(id) { return (this.priceTypes || []).find(type => type.id === id) || {}; },
+    priceTypeName(id) { return this.priceTypeById(id).name || '-'; },
+    get sortedPriceTypes() {
+      return [...(this.priceTypes || [])].sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || String(a.name).localeCompare(String(b.name)));
+    },
+    get activePriceTypes() { return this.sortedPriceTypes.filter(type => type.status); },
+    get defaultPriceType() {
+      return this.activePriceTypes.find(type => type.isDefault) || this.activePriceTypes[0] || this.sortedPriceTypes[0] || {};
+    },
+    get defaultPriceTypeId() { return this.defaultPriceType.id || ''; },
+    customerPriceTypeId(customer) {
+      if (customer && customer.priceTypeId) return customer.priceTypeId;
+      if (customer && customer.priceType === 'out') return 'pt2';
+      return this.defaultPriceTypeId || 'pt1';
+    },
+    productPrice(productOrId, priceTypeId = '') {
+      const product = typeof productOrId === 'string' ? this.product(productOrId) : (productOrId || {});
+      if (!product || !product.id) return 0;
+      const typeId = priceTypeId || this.defaultPriceTypeId;
+      const prices = product.prices || {};
+      const value = Number(prices[typeId]) || 0;
+      if (value > 0) return value;
+      const fallback = Number(prices[this.defaultPriceTypeId]) || 0;
+      if (fallback > 0) return fallback;
+      if (typeId === 'pt2') return Number(product.outSale) || 0;
+      return Number(product.inSale) || 0;
+    },
+    priceFor(p) { return this.productPrice(p, this.customerPriceTypeId(this.selectedCustomer)); },
+
     /* ---------- CUSTOMER ---------- */
     customerSearch: '', customerChannel: '', customerSales: '', customerWeek: '', customerDay: '', customerPrice: '',
     customerModalOpen: false, customerEditId: null,
-    customerForm: { name:'', address:'', channel:'Grosir', sales:'Fahri', week:'Genap', day:'Senin', priceType:'in', phone:'', description:'' },
+    customerForm: { name:'', address:'', channel:'Grosir', sales:'Fahri', week:'Genap', day:'Senin', priceTypeId:'', phone:'', description:'' },
     get filteredCustomers() {
       const q = this.customerSearch.toLowerCase();
       return this.customers.filter(c => {
@@ -3425,22 +3512,22 @@ function app() {
         if (this.customerSales && c.sales !== this.customerSales) return false;
         if (this.customerWeek && c.week !== this.customerWeek) return false;
         if (this.customerDay && c.day !== this.customerDay) return false;
-        if (this.customerPrice && c.priceType !== this.customerPrice) return false;
+        if (this.customerPrice && this.customerPriceTypeId(c) !== this.customerPrice) return false;
         return true;
       });
     },
     openCustomer(c = null) {
       this.customerEditId = c ? c.id : null;
       this.customerForm = c
-        ? { name:c.name, address:c.address, channel:c.channel, sales:c.sales, week:c.week, day:c.day, priceType:c.priceType, phone:c.phone, description:c.description }
-        : { name:'', address:'', channel:'Grosir', sales:this.role === 'Sales' ? this.currentUser : 'Fahri', week:'Genap', day:'Senin', priceType:'in', phone:'', description:'' };
+        ? { name:c.name, address:c.address, channel:c.channel, sales:c.sales, week:c.week, day:c.day, priceTypeId:this.customerPriceTypeId(c), phone:c.phone, description:c.description }
+        : { name:'', address:'', channel:'Grosir', sales:this.role === 'Sales' ? this.currentUser : 'Fahri', week:'Genap', day:'Senin', priceTypeId:this.defaultPriceTypeId, phone:'', description:'' };
       this.customerModalOpen = true;
     },
     saveCustomer() {
       if (!this.customerForm.name || !this.customerForm.address) { this.notify('Nama dan alamat wajib diisi', 'error'); return; }
       if (this.customerEditId) {
         const c = this.customers.find(x => x.id === this.customerEditId);
-        if (c) Object.assign(c, this.customerForm);
+        if (c) Object.assign(c, this.customerForm, { priceType:['pt2','pt3','pt4'].includes(this.customerForm.priceTypeId) ? 'out' : 'in' });
         this.notify('Pelanggan berhasil diperbarui');
       } else {
         this.customers.unshift({
@@ -3449,6 +3536,7 @@ function app() {
           orderedToday:false,
           lastOrder:todayISO(),
           ...this.customerForm
+          , priceType:['pt2','pt3','pt4'].includes(this.customerForm.priceTypeId) ? 'out' : 'in'
         });
         this.notify('Pelanggan baru berhasil ditambahkan');
       }
@@ -3495,7 +3583,7 @@ function app() {
     productTab: 'items', productSearch: '', productStatus: '', productCategory: '', productModalOpen: false, productEditId: null,
     recipePreviewOpen: false, recipePreviewProductId: null,
     formPicker: { open:false, kind:'category', target:'product', query:'', top:0, left:0, width:280 },
-    productForm: { name:'', categoryId:'cat1', unit:'Krt', cost:0, inSale:0, outSale:0, stock:0, minStock:20, status:true, recipe:[] },
+    productForm: { name:'', categoryId:'cat1', unit:'Krt', cost:0, prices:{}, stock:0, minStock:20, status:true, recipe:[] },
     get filteredProducts() {
       const q = this.productSearch.toLowerCase();
       return this.products.filter(p => {
@@ -3505,6 +3593,81 @@ function app() {
         return true;
       });
     },
+    priceTypeSearch: '', priceTypeModalOpen: false, priceTypeEditId: null,
+    priceTypeForm: { name:'', description:'', status:true, sortOrder:1 },
+    get filteredPriceTypes() {
+      const q = String(this.priceTypeSearch || '').toLowerCase();
+      return this.sortedPriceTypes.filter(type => !q || (type.code + ' ' + type.name + ' ' + (type.description || '')).toLowerCase().includes(q));
+    },
+    priceTypeCustomerCount(id) { return (this.customers || []).filter(customer => this.customerPriceTypeId(customer) === id).length; },
+    openPriceType(type = null) {
+      this.priceTypeEditId = type ? type.id : null;
+      this.priceTypeForm = type
+        ? { name:type.name, description:type.description || '', status:type.status !== false, sortOrder:Number(type.sortOrder) || 1 }
+        : { name:'', description:'', status:true, sortOrder:(this.sortedPriceTypes.length + 1) };
+      this.priceTypeModalOpen = true;
+    },
+    savePriceType() {
+      const name = String(this.priceTypeForm.name || '').trim();
+      if (!name) { this.notify('Nama tipe harga wajib diisi', 'error'); return; }
+      if ((this.priceTypes || []).some(type => type.id !== this.priceTypeEditId && String(type.name).toLowerCase() === name.toLowerCase())) {
+        this.notify('Nama tipe harga sudah dipakai', 'error'); return;
+      }
+      if (this.priceTypeEditId) {
+        const type = this.priceTypes.find(item => item.id === this.priceTypeEditId);
+        if (!type) return;
+        if (type.isDefault && !this.priceTypeForm.status) { this.notify('Tipe default tidak dapat dinonaktifkan', 'error'); return; }
+        Object.assign(type, {
+          name,
+          description:String(this.priceTypeForm.description || '').trim(),
+          status:!!this.priceTypeForm.status,
+          sortOrder:Math.max(1, Number(this.priceTypeForm.sortOrder) || 1)
+        });
+        this.notify('Tipe harga diperbarui');
+      } else {
+        const type = {
+          id:'pt' + Date.now(),
+          code:nextSimpleCode(this.priceTypes, 'HRG-'),
+          name,
+          description:String(this.priceTypeForm.description || '').trim(),
+          status:this.priceTypeForm.status !== false,
+          isDefault:!(this.priceTypes || []).length,
+          sortOrder:Math.max(1, Number(this.priceTypeForm.sortOrder) || ((this.priceTypes || []).length + 1))
+        };
+        this.priceTypes.push(type);
+        (this.products || []).forEach(product => {
+          product.prices = product.prices || {};
+          product.prices[type.id] = Number(product.prices[this.defaultPriceTypeId]) || Number(product.inSale) || 0;
+        });
+        this.notify('Tipe harga baru ditambahkan; harga produk menyalin tipe default');
+      }
+      this.priceTypeModalOpen = false;
+      this.persist();
+    },
+    setDefaultPriceType(type) {
+      if (!type || !type.id) return;
+      (this.priceTypes || []).forEach(item => { item.isDefault = item.id === type.id; if (item.id === type.id) item.status = true; });
+      this.persist();
+      this.notify('Tipe harga default: ' + type.name);
+    },
+    togglePriceTypeStatus(type) {
+      if (!type || !type.id) return;
+      if (type.isDefault && type.status) { this.notify('Tipe default harus tetap aktif', 'error'); return; }
+      if (type.status && this.priceTypeCustomerCount(type.id) > 0) { this.notify('Tipe ini masih dipakai pelanggan; pindahkan pelanggan terlebih dahulu', 'error'); return; }
+      type.status = !type.status;
+      this.persist();
+      this.notify('Status tipe harga diperbarui');
+    },
+    deletePriceType(type) {
+      if (!type || !type.id) return;
+      if (type.isDefault) { this.notify('Tipe default tidak dapat dihapus', 'error'); return; }
+      const used = this.priceTypeCustomerCount(type.id);
+      if (used > 0) { this.notify(used + ' pelanggan masih memakai tipe ini', 'error'); return; }
+      this.priceTypes = this.priceTypes.filter(item => item.id !== type.id);
+      (this.products || []).forEach(product => { if (product.prices) delete product.prices[type.id]; });
+      this.persist();
+      this.notify('Tipe harga dihapus');
+    },
     get productCategories() { return this.categories.filter(c => c.type === 'product'); },
     get materialCategories() { return this.categories.filter(c => c.type === 'material'); },
     categoryName(id) { return (this.categories.find(c => c.id === id) || {}).name || '-'; },
@@ -3513,7 +3676,13 @@ function app() {
       this.productEditId = p ? p.id : null;
       this.productForm = p
         ? {
-            name:p.name, categoryId:p.categoryId || '', unit:p.unit, cost:p.cost, inSale:p.inSale, outSale:p.outSale,
+            name:p.name, categoryId:p.categoryId || '', unit:p.unit, cost:p.cost,
+            prices:this.activePriceTypes.reduce((prices, type) => {
+              const fromMap = Number((p.prices || {})[type.id]);
+              const legacy = type.isDefault ? Number(p.inSale) : (type.id === 'pt2' ? Number(p.outSale) : Number(p.inSale));
+              prices[type.id] = fromMap > 0 ? fromMap : (legacy || 0);
+              return prices;
+            }, {}),
             stock:p.stock, minStock:p.minStock || 0, status:p.status,
             recipe:this.recipeRows(p.id).map(row => ({
               materialId:row.materialId,
@@ -3522,7 +3691,7 @@ function app() {
               materialSearch:''
             }))
           }
-        : { name:'', categoryId:this.productCategories[0]?.id || '', unit:'Krt', cost:0, inSale:0, outSale:0, stock:0, minStock:20, status:true, recipe:[] };
+        : { name:'', categoryId:this.productCategories[0]?.id || '', unit:'Krt', cost:0, prices:this.activePriceTypes.reduce((prices, type) => { prices[type.id] = 0; return prices; }, {}), stock:0, minStock:20, status:true, recipe:[] };
       this.productModalOpen = false;
       this.go('product-create');
     },
@@ -3587,12 +3756,21 @@ function app() {
         return;
       }
       const { recipe, ...base } = this.productForm;
+      const defaultId = this.defaultPriceTypeId;
+      const existingProduct = this.productEditId ? this.product(this.productEditId) : null;
+      const prices = { ...((existingProduct && existingProduct.prices) || {}) };
+      this.activePriceTypes.forEach(type => {
+        prices[type.id] = Math.max(0, Number((this.productForm.prices || {})[type.id]) || 0);
+      });
+      if (defaultId && !(prices[defaultId] > 0)) { this.notify('Harga jual tipe default wajib diisi', 'error'); return; }
+      Object.keys(prices).forEach(id => { if (!(prices[id] > 0)) prices[id] = prices[defaultId] || 0; });
       const data = {
         ...base,
+        prices,
         categoryId:this.productForm.categoryId || null,
         cost:Number(this.productForm.cost),
-        inSale:Number(this.productForm.inSale),
-        outSale:Number(this.productForm.outSale),
+        inSale:Number(prices[defaultId]) || 0,
+        outSale:Number(prices['pt2']) || Number(prices[defaultId]) || 0,
         stock:Number(this.productForm.stock),
         minStock:Number(this.productForm.minStock) || 0,
         status:!!this.productForm.status
@@ -9019,7 +9197,6 @@ function app() {
       this.orderStockOverride = false;
     },
     incQty(id, delta) { this.setQty(id, this.qty(id) + delta); },
-    priceFor(p) { return this.selectedCustomer.priceType === 'out' ? p.outSale : p.inSale; },
     bestPromo(productId, type) {
       const today = todayISO();
       return this.promos
@@ -9113,6 +9290,8 @@ function app() {
         code:this.nextCode('INV', this.orders),
         customerId:c.id,
         sales:c.sales,
+        priceTypeId:this.customerPriceTypeId(c),
+        priceTypeName:this.priceTypeName(this.customerPriceTypeId(c)),
         orderBy:this.role === 'Sales' ? c.sales : this.currentUser,
         createdById:this.currentUserId,
         createdBy:this.currentUser,
@@ -11165,7 +11344,7 @@ function app() {
         const customer = this.customer(customerId);
         const items = specs.map(([productId, qty]) => {
           const product = this.product(productId);
-          const price = customer.priceType === 'out' ? product.outSale : product.inSale;
+          const price = this.productPrice(product, this.customerPriceTypeId(customer));
           return { productId, qty, price, discPercent:0 };
         });
         const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -11184,6 +11363,8 @@ function app() {
           code:code('INV', date),
           customerId,
           sales:customer.sales,
+          priceTypeId:this.customerPriceTypeId(customer),
+          priceTypeName:this.priceTypeName(this.customerPriceTypeId(customer)),
           orderBy:creator,
           createdById:creatorUser ? creatorUser.id : null,
           createdBy:creator,
@@ -11850,7 +12031,7 @@ function app() {
         productId:'p1',
         name:this.productName('p1'),
         qty:1,
-        price:this.product('p1').inSale,
+        price:this.productPrice(this.product('p1'), this.defaultPriceTypeId),
         type:'change',
         condition:'damaged',
         action:'discard',

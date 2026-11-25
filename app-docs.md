@@ -763,14 +763,14 @@ Route: `/dashboard/customer`
 
 **Toolbar**
 - Search "Cari..." (aktif saat Enter).
-- Multi-select: Channel, Sales, Pekan (Genap/Ganjil), Hari (Senin–Minggu), Jenis Harga (Dalam Kota/Luar Kota).
+- Multi-select: Channel, Sales, Pekan (Genap/Ganjil), Hari (Senin–Minggu), Jenis Harga (dinamis dari Master Tipe Harga).
 - Tombol kanan: **+ Tambah Pelanggan**.
 
 **Tabel**
 Kolom: `#`, `ID` (sortable), `Nama Pelanggan` (sortable), `Alamat`, `Channel`, `Sales`, `Pekan`, `Hari`, `Jenis Harga`, `Action`.
 
 - Pekan Genap: badge biru; Ganjil: badge kuning.
-- Jenis harga: teks biru (Dalam Kota) / amber (Luar Kota).
+- Jenis harga: badge nama tipe harga yang sedang dipakai pelanggan.
 - Action dropdown: **Edit**, separator, **Hapus** (merah).
 - Empty state standar.
 - Pagination 10 baris.
@@ -789,7 +789,7 @@ Kolom kanan:
 - **Sales** * — select; untuk Sales/Sales Office otomatis user sendiri (hidden).
 - **Pekan** * — Genap/Ganjil.
 - **Hari** * — Senin–Minggu.
-- **Jenis Harga** * — radio Dalam Kota / Luar Kota.
+- **Jenis Harga** * — dropdown tipe harga aktif.
 - **Nomor Telepon** * — tel, 8–15 digit.
 - **Keterangan** (textarea).
 - Footer: **Batal**, **Simpan** (spinner saat proses).
@@ -1206,13 +1206,25 @@ Route: `/dashboard/warehouse`
 
 ---
 
+### 8.9a Master Tipe Harga
+
+Berada sebagai tab **Tipe Harga** di halaman Master Produk.
+
+- Field: kode, nama, deskripsi, urutan, status, default.
+- Tipe awal: **Dalam Kota** (default), **Luar Kota 1**, **Luar Kota 2**, **Harga Khusus**.
+- Tipe default tidak dapat dinonaktifkan/dihapus.
+- Tipe yang masih dipakai pelanggan tidak dapat dinonaktifkan/dihapus sebelum pelanggan dipindahkan.
+- Tipe baru otomatis menyalin harga tipe default ke semua produk.
+- Pelanggan memilih tipe harga lewat dropdown.
+- Order menyimpan snapshot `priceTypeId` dan `priceTypeName`; perubahan tipe setelahnya tidak mengubah order lama.
+
 ### 8.9 Master Barang
 
 Route: `/dashboard/product`
 
 - Toolbar: search, multi-select Status Barang (Aktif/Nonaktif), **+ Tambah Barang**.
 - Tabel:
-  - `#`, `Kode Barang`, `Nama Barang` (sortable), `Satuan`, `Harga Modal` (sortable), `Harga Jual (Dalam Kota)` (sortable), `Harga Jual (Luar Kota)` (sortable), `Status Barang`, `Action`.
+  - `#`, `Kode Barang`, `Nama Barang` (sortable), `Satuan`, `Harga Modal` (sortable), kolom harga untuk setiap **Tipe Harga aktif**, `Status Barang`, `Action`.
 - Status: badge **Aktif** hijau / **Nonaktif** abu.
 - Action: Edit / Hapus.
 
@@ -1222,8 +1234,8 @@ Route: `/dashboard/product`
 - Nama Barang *.
 - Satuan * — select dengan `+ Tambah Satuan`.
 - Harga Modal * (Rp).
-- Harga Jual Dalam Kota * (Rp).
-- Harga Jual Luar Kota * (Rp).
+- Harga Jual per **Tipe Harga aktif** (Rp). Harga tipe default wajib diisi; tipe lain yang kosong memakai harga default.
+- Tipe harga baru otomatis menyalin harga tipe default ke seluruh produk.
 - Keterangan.
 - Batal/Simpan.
 

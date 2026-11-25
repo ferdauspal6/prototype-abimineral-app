@@ -608,7 +608,7 @@
             </select>
             <select class="select w-28" x-model="customerWeek"><option value="">Pekan</option><option>Genap</option><option>Ganjil</option></select>
             <select class="select w-28" x-model="customerDay"><option value="">Hari</option><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select>
-            <select class="select w-36" x-model="customerPrice"><option value="">Jenis Harga</option><option value="in">Dalam Kota</option><option value="out">Luar Kota</option></select>
+            <select class="select w-44" x-model="customerPrice"><option value="">Jenis Harga</option><template x-for="type in activePriceTypes" :key="type.id"><option :value="type.id" x-text="type.name"></option></template></select>
           </div>
           <button class="btn btn-primary" @click="openCustomer()">
             <svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Pelanggan
@@ -628,7 +628,7 @@
                   <td><span class="flex items-center gap-2"><span class="avatar" x-text="initials(c.sales)"></span><span x-text="c.sales"></span></span></td>
                   <td><span class="badge" :class="c.week === 'Genap' ? 'badge-blue' : 'badge-yellow'" x-text="c.week"></span></td>
                   <td x-text="c.day"></td>
-                  <td><span :class="c.priceType === 'in' ? 'text-sky-700' : 'text-amber-700'" x-text="c.priceType === 'in' ? 'Dalam Kota' : 'Luar Kota'"></span></td>
+                  <td><span class="badge badge-slate" x-text="priceTypeName(customerPriceTypeId(c))"></span></td>
                   <td class="actions">
                     <button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'customers', c)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button>
                   </td>
@@ -712,7 +712,7 @@
               <div class="flex flex-wrap gap-1.5 mt-2.5">
                 <span class="badge badge-slate" x-text="c.day"></span>
                 <span class="badge" :class="c.week === 'Genap' ? 'badge-blue' : 'badge-yellow'" x-text="'Pekan ' + c.week"></span>
-                <span class="badge badge-amber" x-text="c.priceType === 'in' ? 'Dalam Kota' : 'Luar Kota'"></span>
+                <span class="badge badge-amber" x-text="priceTypeName(customerPriceTypeId(c))"></span>
               </div>
               <div class="flex items-start gap-2 mt-3 text-xs text-slate-500">
                 <svg class="icon icon-sm mt-0.5"><use href="#i-map-pin"></use></svg><span x-text="c.address"></span>
@@ -754,7 +754,7 @@
             </div>
           </div>
           <div class="flex items-center gap-4 text-xs">
-            <div><div class="text-slate-400">Jenis Harga</div><div class="font-semibold" x-text="selectedCustomer.priceType === 'in' ? 'Dalam Kota' : 'Luar Kota'"></div></div>
+            <div><div class="text-slate-400">Jenis Harga</div><div class="font-semibold" x-text="priceTypeName(customerPriceTypeId(selectedCustomer))"></div></div>
             <div><div class="text-slate-400">Sales</div><div class="font-semibold" x-text="selectedCustomer.sales"></div></div>
             <div><div class="text-slate-400">Jadwal</div><div class="font-semibold" x-text="dateShort(orderDate)"></div></div>
           </div>
@@ -989,6 +989,7 @@
               <div class="space-y-1">
                 <div><span class="inline-block w-32 text-slate-400">Tanggal Invoice</span><span x-text="dateShort(selectedOrder.date)"></span></div>
                 <div><span class="inline-block w-32 text-slate-400">Metode Pembayaran</span><span x-text="selectedOrder.paymentMethod || 'Kredit'"></span></div>
+                <div><span class="inline-block w-32 text-slate-400">Jenis Harga</span><span x-text="selectedOrder.priceTypeName || priceTypeName(customerPriceTypeId(customer(selectedOrder.customerId)))"></span></div>
                 <div x-show="(selectedOrder.paymentMethod || 'Kredit') !== 'Tunai'"><span class="inline-block w-32 text-slate-400">Tanggal Jatuh Tempo</span><span x-text="dateShort(selectedOrder.dueDate)"></span></div>
                 <div><span class="inline-block w-32 text-slate-400">Sales</span><span x-text="selectedOrder.sales"></span></div>
                 <div><span class="inline-block w-32 text-slate-400">No. Surat Jalan</span><span x-text="(deliveries.find(d => d.orderIds.includes(selectedOrder.id)) || {}).code || '-'"></span></div>
@@ -1052,6 +1053,7 @@
                 <div class="space-y-1">
                   <div><span class="inline-block w-32 text-slate-400">Tanggal Invoice</span><span x-text="dateShort(order.date)"></span></div>
                   <div><span class="inline-block w-32 text-slate-400">Metode Pembayaran</span><span x-text="order.paymentMethod || 'Kredit'"></span></div>
+                  <div><span class="inline-block w-32 text-slate-400">Jenis Harga</span><span x-text="order.priceTypeName || priceTypeName(customerPriceTypeId(customer(order.customerId)))"></span></div>
                   <div x-show="(order.paymentMethod || 'Kredit') !== 'Tunai'"><span class="inline-block w-32 text-slate-400">Tanggal Jatuh Tempo</span><span x-text="dateShort(order.dueDate)"></span></div>
                   <div><span class="inline-block w-32 text-slate-400">Sales</span><span x-text="order.sales"></span></div>
                   <div><span class="inline-block w-32 text-slate-400">No. Surat Jalan</span><span x-text="(deliveries.find(d => d.orderIds.includes(order.id)) || {}).code || '-'"></span></div>
@@ -1633,6 +1635,7 @@
         <div class="seg mb-4">
           <button class="seg-btn" :class="{ 'active': productTab === 'items' }" @click="productTab = 'items'">Produk</button>
           <button class="seg-btn" :class="{ 'active': productTab === 'categories' }" @click="productTab = 'categories'">Kategori Produk</button>
+          <button class="seg-btn" :class="{ 'active': productTab === 'price-types' }" @click="productTab = 'price-types'">Tipe Harga</button>
         </div>
 
         <div x-show="productTab === 'items'">
@@ -1646,19 +1649,19 @@
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>#</th><th>Kode</th><th>Nama Produk</th><th>Kategori</th><th>Satuan</th><th>Bahan Baku</th><th class="num">Harga Modal</th><th class="num">Jual Dalam Kota</th><th class="num">Jual Luar Kota</th><th>Status</th><th class="actions">Action</th></tr></thead>
+              <thead><tr><th>#</th><th>Kode</th><th>Nama Produk</th><th>Kategori</th><th>Satuan</th><th>Bahan Baku</th><th class="num">Harga Modal</th><template x-for="type in activePriceTypes" :key="type.id"><th class="num" x-text="type.name"></th></template><th>Status</th><th class="actions">Action</th></tr></thead>
               <tbody>
                 <template x-for="(p, i) in filteredProducts" :key="p.id">
                   <tr>
                     <td x-text="i + 1"></td><td x-text="p.code"></td><td class="font-semibold" x-text="p.name"></td>
                     <td><span class="badge badge-slate" x-text="categoryName(p.categoryId)"></span></td><td x-text="p.unit"></td>
                     <td><button class="badge" :class="recipeCount(p.id) ? 'badge-blue' : 'badge-slate'" @click="openRecipePreview(p)" :title="recipeCount(p.id) ? 'Lihat resep bahan baku' : 'Belum ada resep'" x-text="recipeCount(p.id) ? recipeCount(p.id) + ' bahan' : 'Belum ada resep'"></button></td>
-                    <td class="num" x-text="rp(p.cost)"></td><td class="num" x-text="rp(p.inSale)"></td><td class="num" x-text="rp(p.outSale)"></td>
+                    <td class="num" x-text="rp(p.cost)"></td><template x-for="type in activePriceTypes" :key="type.id"><td class="num" x-text="rp(productPrice(p, type.id))"></td></template>
                     <td><span class="badge" :class="p.status ? 'badge-green' : 'badge-stone'" x-text="p.status ? 'Aktif' : 'Nonaktif'"></span></td>
                     <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'products', p)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
                   </tr>
                 </template>
-                <tr x-show="filteredProducts.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Data Tidak Ditemukan</div></div></td></tr>
+                <tr x-show="filteredProducts.length === 0"><td :colspan="9 + activePriceTypes.length"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Data Tidak Ditemukan</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -1677,6 +1680,34 @@
                   <tr><td x-text="i + 1"></td><td class="font-semibold" x-text="c.code"></td><td x-text="c.name"></td><td class="text-slate-500" x-text="c.description || '-'"></td><td><span class="badge" :class="c.status ? 'badge-green' : 'badge-stone'" x-text="c.status ? 'Aktif' : 'Nonaktif'"></span></td><td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'product-categories', c)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td></tr>
                 </template>
                 <tr x-show="filteredCategories('product').length === 0"><td colspan="6"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada kategori produk</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div x-show="productTab === 'price-types'">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari tipe harga..." x-model="priceTypeSearch"></div>
+            <button class="btn btn-primary" @click="openPriceType()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Tipe Harga</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Kode</th><th>Nama Tipe</th><th>Deskripsi</th><th class="num">Urutan</th><th class="num">Pelanggan</th><th>Default</th><th>Status</th><th class="actions">Action</th></tr></thead>
+              <tbody>
+                <template x-for="(type, i) in filteredPriceTypes" :key="type.id">
+                  <tr>
+                    <td x-text="i + 1"></td>
+                    <td class="font-semibold" x-text="type.code"></td>
+                    <td class="font-semibold" x-text="type.name"></td>
+                    <td class="text-slate-500" x-text="type.description || '-'"></td>
+                    <td class="num" x-text="type.sortOrder"></td>
+                    <td class="num" x-text="priceTypeCustomerCount(type.id)"></td>
+                    <td><span x-show="type.isDefault" class="badge badge-green">Default</span><span x-show="!type.isDefault" class="text-slate-400">-</span></td>
+                    <td><span class="badge" :class="type.status ? 'badge-green' : 'badge-stone'" x-text="type.status ? 'Aktif' : 'Nonaktif'"></span></td>
+                    <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'price-types', type)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
+                  </tr>
+                </template>
+                <tr x-show="filteredPriceTypes.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada tipe harga</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -1712,8 +1743,13 @@
             <div><label class="label">Stok Awal</label><input type="number" class="input" x-model.number="productForm.stock"></div>
             <div><label class="label">Stok Minimum</label><input type="number" class="input" x-model.number="productForm.minStock"></div>
             <div><label class="label">Harga Modal <span class="req">*</span></label><div class="input-group"><input type="number" class="input" x-model.number="productForm.cost"><span class="addon">Rp</span></div></div>
-            <div><label class="label">Harga Jual Dalam Kota <span class="req">*</span></label><div class="input-group"><input type="number" class="input" x-model.number="productForm.inSale"><span class="addon">Rp</span></div></div>
-            <div><label class="label">Harga Jual Luar Kota <span class="req">*</span></label><div class="input-group"><input type="number" class="input" x-model.number="productForm.outSale"><span class="addon">Rp</span></div></div>
+            <div class="md:col-span-2 xl:col-span-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <template x-for="type in activePriceTypes" :key="type.id">
+                  <div><label class="label" x-text="'Harga Jual ' + type.name + (type.isDefault ? ' (Default)' : '')"></label><div class="input-group"><input type="number" class="input" x-model.number="productForm.prices[type.id]"><span class="addon">Rp</span></div></div>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -4412,6 +4448,23 @@
     </div>
   </div>
 
+  <!-- PRICE TYPE MODAL -->
+  <div x-show="priceTypeModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="priceTypeModalOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title" x-text="priceTypeEditId ? 'Edit Tipe Harga' : 'Tambah Tipe Harga'"></div><div class="modal-desc">Tipe harga dipakai produk dan pelanggan.</div></div><button class="icon-btn" @click="priceTypeModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div><label class="label">Nama Tipe <span class="req">*</span></label><input class="input" x-model="priceTypeForm.name" placeholder="Contoh: Luar Kota 3"></div>
+        <div><label class="label">Deskripsi</label><input class="input" x-model="priceTypeForm.description" placeholder="Opsional"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Urutan</label><input type="number" min="1" class="input" x-model.number="priceTypeForm.sortOrder"></div>
+          <div class="pt-6"><label class="flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" x-model="priceTypeForm.status"> Aktif</label></div>
+        </div>
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Tipe baru otomatis memakai harga tipe default pada semua produk, lalu bisa disesuaikan.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="priceTypeModalOpen = false">Batal</button><button class="btn btn-primary" @click="savePriceType()">Simpan</button></div>
+    </div>
+  </div>
+
   <!-- CUSTOMER MODAL -->
   <div x-show="customerModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="customerModalOpen = false">
     <div class="modal-panel modal-xl">
@@ -4435,7 +4488,7 @@
             <div><label class="label">Pekan <span class="req">*</span></label><select class="select" x-model="customerForm.week"><option>Genap</option><option>Ganjil</option></select></div>
             <div><label class="label">Hari <span class="req">*</span></label><select class="select" x-model="customerForm.day"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select></div>
           </div>
-          <div><label class="label">Jenis Harga <span class="req">*</span></label><div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input type="radio" class="radio" value="in" x-model="customerForm.priceType"> Dalam Kota</label><label class="flex items-center gap-2"><input type="radio" class="radio" value="out" x-model="customerForm.priceType"> Luar Kota</label></div></div>
+          <div><label class="label">Jenis Harga <span class="req">*</span></label><select class="select" x-model="customerForm.priceTypeId"><template x-for="type in activePriceTypes" :key="type.id"><option :value="type.id" x-text="type.name"></option></template></select></div>
           <div><label class="label">Nomor Telepon <span class="req">*</span></label><input class="input" x-model="customerForm.phone" placeholder="081234567890"></div>
           <div><label class="label">Keterangan</label><textarea class="textarea" x-model="customerForm.description" placeholder="Keterangan"></textarea></div>
         </div>
@@ -4702,7 +4755,7 @@
       <div class="modal-body space-y-4">
         <div class="flex items-start justify-between gap-4 rounded-xl bg-slate-50 border border-slate-200 p-3">
           <div><div class="font-bold" x-text="selectedCustomer.name"></div><div class="text-[11px] text-slate-400" x-text="selectedCustomer.code + ' • ' + selectedCustomer.address"></div></div>
-          <div class="text-right text-xs"><div class="text-slate-400">Metode Pembayaran</div><div class="font-semibold" x-text="paymentMethod"></div></div>
+          <div class="text-right text-xs"><div class="text-slate-400">Metode Pembayaran</div><div class="font-semibold" x-text="paymentMethod"></div><div class="text-slate-400 mt-1">Jenis Harga</div><div class="font-semibold" x-text="priceTypeName(customerPriceTypeId(selectedCustomer))"></div></div>
         </div>
         <div x-show="orderStockShortages.length" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1.5">
           <div class="flex items-start gap-2 font-semibold"><svg class="icon icon-sm mt-0.5"><use href="#i-alert"></use></svg><span>Stock barang di system tidak mencukup, order tetap dilanjutkan.</span></div>
@@ -5419,7 +5472,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261125e"></script>
+<script src="assets/app.js?v=20261125g"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
