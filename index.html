@@ -2659,10 +2659,16 @@
                           <template x-if="row.component === 'penyusutan'">
                             <input type="number" min="0" class="input input-sm w-36 text-right" x-model.number="hppForm.depreciationTotal">
                           </template>
-                          <template x-if="row.component !== 'penyusutan' && hppCostValueReadonly(row.component)">
+                          <template x-if="row.component === 'air'">
+                            <input type="number" min="0" step="0.01" class="input input-sm w-36 text-right" x-model.number="hppForm.airPerDus">
+                          </template>
+                          <template x-if="row.component === 'overhead'">
+                            <input type="number" min="0" step="0.01" class="input input-sm w-36 text-right" x-model.number="hppForm.overheadPerDus">
+                          </template>
+                          <template x-if="!['penyusutan','air','overhead'].includes(row.component) && hppCostValueReadonly(row.component)">
                             <div class="flex h-8 items-center justify-end px-2 text-xs font-medium" x-text="rp(row.value)"></div>
                           </template>
-                          <template x-if="row.component !== 'penyusutan' && !hppCostValueReadonly(row.component)">
+                          <template x-if="!['penyusutan','air','overhead'].includes(row.component) && !hppCostValueReadonly(row.component)">
                             <input type="number" min="0" class="input input-sm w-36 text-right" x-model.number="hppForm.monthlyCosts[row.component]">
                           </template>
                         </td>
@@ -5408,7 +5414,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261124d"></script>
+<script src="assets/app.js?v=20261125a"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

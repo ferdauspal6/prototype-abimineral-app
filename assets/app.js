@@ -197,7 +197,13 @@ function seedData() {
     { id:'mat4', code:'BRG-0004', name:'Karton Box', categoryId:'cat6', unit:'Pcs', purchasePrice:3309, minStock:300, stock:0, status:true, description:'Karton kemasan produk' },
     { id:'mat5', code:'BRG-0005', name:'LID 220 ml', categoryId:'cat4', unit:'Pcs', purchasePrice:39, minStock:1000, stock:0, status:true, description:'Tutup cup 220 ml' },
     { id:'mat6', code:'BRG-0006', name:'Straw', categoryId:'cat7', unit:'Pcs', purchasePrice:15, minStock:1000, stock:0, status:true, description:'Sedotan produk cup' },
-    { id:'mat7', code:'BRG-0007', name:'Lakban', categoryId:'cat7', unit:'Pcs', purchasePrice:31, minStock:20, stock:0, status:true, description:'Lakban kemasan' }
+    { id:'mat7', code:'BRG-0007', name:'Lakban', categoryId:'cat7', unit:'Pcs', purchasePrice:31, minStock:20, stock:0, status:true, description:'Lakban kemasan' },
+    { id:'mat8', code:'BRG-0008', name:'Botol PET 330 ml', categoryId:'cat3', unit:'Pcs', purchasePrice:836, minStock:1000, stock:0, status:true, description:'Botol kosong 330 ml' },
+    { id:'mat9', code:'BRG-0009', name:'Tutup Botol', categoryId:'cat7', unit:'Pcs', purchasePrice:122, minStock:1000, stock:0, status:true, description:'Tutup botol 330/600 ml' },
+    { id:'mat10', code:'BRG-0010', name:'Shiring', categoryId:'cat7', unit:'Pcs', purchasePrice:46, minStock:1000, stock:0, status:true, description:'Shiring botol' },
+    { id:'mat11', code:'BRG-0011', name:'Box 600 ml', categoryId:'cat6', unit:'Pcs', purchasePrice:4667, minStock:100, stock:0, status:true, description:'Karton box botol 600 ml' },
+    { id:'mat12', code:'BRG-0012', name:'Box 330 ml', categoryId:'cat6', unit:'Pcs', purchasePrice:3314, minStock:100, stock:0, status:true, description:'Karton box botol 330 ml' },
+    { id:'mat13', code:'BRG-0013', name:'Lakban 600 ml', categoryId:'cat7', unit:'Pcs', purchasePrice:32, minStock:20, stock:0, status:true, description:'Lakban khusus kemasan 600 ml' }
   ];
 
   materials.forEach(material => {
@@ -216,7 +222,17 @@ function seedData() {
     { id:'rec2', productId:'p1', materialId:'mat5', qtyPerUnit:48 },
     { id:'rec3', productId:'p1', materialId:'mat6', qtyPerUnit:48 },
     { id:'rec4', productId:'p1', materialId:'mat4', qtyPerUnit:1 },
-    { id:'rec5', productId:'p1', materialId:'mat7', qtyPerUnit:2 }
+    { id:'rec5', productId:'p1', materialId:'mat7', qtyPerUnit:2 },
+    { id:'rec6', productId:'p2', materialId:'mat8', qtyPerUnit:24 },
+    { id:'rec7', productId:'p2', materialId:'mat9', qtyPerUnit:24 },
+    { id:'rec8', productId:'p2', materialId:'mat10', qtyPerUnit:24 },
+    { id:'rec9', productId:'p2', materialId:'mat12', qtyPerUnit:1 },
+    { id:'rec10', productId:'p2', materialId:'mat7', qtyPerUnit:2 },
+    { id:'rec11', productId:'p3', materialId:'mat1', qtyPerUnit:24 },
+    { id:'rec12', productId:'p3', materialId:'mat9', qtyPerUnit:24 },
+    { id:'rec13', productId:'p3', materialId:'mat10', qtyPerUnit:24 },
+    { id:'rec14', productId:'p3', materialId:'mat11', qtyPerUnit:1 },
+    { id:'rec15', productId:'p3', materialId:'mat13', qtyPerUnit:2 }
   ];
   const productions = [];
   const productionLogs = [];
@@ -252,7 +268,8 @@ function seedData() {
     { id:'acc21', code:'5-1500', name:'Beban Pemeliharaan', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Perawatan gudang dan kendaraan' },
     { id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun penyeimbang saldo awal' },
     { id:'acc25', code:'5-1600', name:'Beban Listrik Produksi', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan produksi' },
-    { id:'acc26', code:'5-1610', name:'Beban Listrik Kantor', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan kantor' }
+    { id:'acc26', code:'5-1610', name:'Beban Listrik Kantor', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan kantor' },
+    { id:'acc27', code:'5-1700', name:'Beban Leasing', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Biaya leasing kendaraan dan peralatan' }
   ];
 
   const journals = [];
@@ -5921,7 +5938,7 @@ function app() {
     hppMonthlyForm: {},
     hppSourcePeriod: '',
     hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000, roundingMode:'none' },
-    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0, costPeriod:previousMonthKey(todayISO().slice(0, 7)), monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 }, payrollPeriod:'', listrikSource:'manual' },
+    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0, costPeriod:previousMonthKey(todayISO().slice(0, 7)), monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0 }, airPerDus:0, overheadPerDus:0, payrollPeriod:'', listrikSource:'manual' },
     hppFinalizeOpen: false,
     hppEditId: null,
     hppDetailId: null,
@@ -6013,10 +6030,10 @@ function app() {
       return (this.biayaProduksiBulanan || []).some(row => row.period === period);
     },
     seedDummyMonthlyPeriod(period) {
-      const factors = { '2026-09':0.95, '2026-10':1, '2026-11':1.03 };
+      const factors = { '2026-09':1, '2026-10':1, '2026-11':1.03 };
       const factor = factors[period] != null ? factors[period] : 1;
       const isOctober = period === '2026-10';
-      const base = { gaji:32637692, uang_makan:7720000, bpjs:3382080, listrik:14567560, overhead:0 };
+      const base = { gaji:32637692, uang_makan:7720000, bpjs:3382080, bonusan:9187785, reject:4902758, air:286400, listrik:14567560, overhead:3587000 };
       const counts = { gaji:12, uang_makan:12, bpjs:12 };
       this.biayaProduksiBulanan = (this.biayaProduksiBulanan || []).filter(row => row.period !== period);
       const rows = Object.keys(base).map(component => ({
@@ -6027,7 +6044,7 @@ function app() {
         employeeCount:counts[component] != null ? counts[component] : null,
         sourceType:'manual',
         type:isOctober ? 'aktual' : 'estimasi',
-        note:isOctober ? 'Data client HPP 30 Oktober' : 'Data dummy prototipe',
+        note:period === '2026-09' ? 'Data Excel September 2026' : (isOctober ? 'Data client HPP 30 Oktober' : 'Data dummy prototipe'),
         createdBy:this.currentUser || 'Admin',
         updatedBy:this.currentUser || 'Admin',
         updatedAt:todayISO(),
@@ -6238,7 +6255,12 @@ function app() {
     hppDefaultCostPeriod(date) {
       return previousMonthKey(String(date || todayISO()).slice(0, 7));
     },
-    hppMonthlyKeys() { return ['gaji','uang_makan','bpjs','listrik','overhead','air']; },
+    hppMonthlyKeys() { return ['gaji','uang_makan','bpjs','listrik']; },
+    hppDefaultAirRate() {
+      const liters = Number(this.hppSettings.waterLitersPerKrt) || 0;
+      const price = Number(this.hppSettings.waterPricePerM3) || 0;
+      return (liters / 1000) * price;
+    },
     hppLoadMonthlyCosts(period, options = {}) {
       const form = this.hppForm;
       if (!form || !period) return;
@@ -6314,7 +6336,8 @@ function app() {
         date:todayISO(), productId:'', allocationPercent:100,
         bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0,
         costPeriod:this.hppDefaultCostPeriod(todayISO()),
-        monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 },
+        monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0 },
+        airPerDus:this.hppDefaultAirRate(), overheadPerDus:0,
         payrollPeriod:'', listrikSource:'manual'
       };
       this.hppLoadMonthlyCosts(this.hppForm.costPeriod);
@@ -6339,6 +6362,8 @@ function app() {
       }
       this.hppForm.materialOverrides = {};
       this.hppLoadMonthlyCosts('2026-10');
+      this.hppForm.airPerDus = this.hppDefaultAirRate();
+      this.hppForm.overheadPerDus = 0;
       this.hppForm.bonusQty = demo.bonusQty;
       this.hppForm.bonusNote = demo.bonusNote;
       this.hppForm.demoScenario = true;
@@ -6359,12 +6384,14 @@ function app() {
       (row.materials || []).forEach(material => {
         if (material.priceOverridden) overrides[material.materialId] = { price:material.price, reason:material.overrideReason || '' };
       });
-      const monthlyCosts = { gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 };
+      const monthlyCosts = { gaji:0, uang_makan:0, bpjs:0, listrik:0 };
       (row.costs || []).forEach(cost => {
         if (monthlyCosts[cost.component] !== undefined) monthlyCosts[cost.component] = Number(cost.monthlyValue) || 0;
       });
       const gajiCost = (row.costs || []).find(cost => cost.component === 'gaji');
       const listrikCost = (row.costs || []).find(cost => cost.component === 'listrik');
+      const airCost = (row.costs || []).find(cost => cost.component === 'air');
+      const overheadCost = (row.costs || []).find(cost => cost.component === 'overhead');
       const costPeriod = (gajiCost && gajiCost.sourcePeriod) || row.costPeriod || this.hppDefaultCostPeriod(row.date);
       this.hppForm = {
         date:row.date, productId:row.productId,
@@ -6374,6 +6401,8 @@ function app() {
         depreciationTotal:Number(row.depreciationTotal) || 0,
         costPeriod,
         monthlyCosts,
+        airPerDus:airCost ? Number(airCost.monthlyValue) || Number(airCost.perDus) || 0 : this.hppDefaultAirRate(),
+        overheadPerDus:overheadCost ? Number(overheadCost.monthlyValue) || Number(overheadCost.perDus) || 0 : 0,
         payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : '',
         listrikSource:listrikCost && listrikCost.sourceType === 'jurnal' ? 'jurnal' : 'manual'
       };
@@ -6499,6 +6528,26 @@ function app() {
           formula:'(' + this.fmt(value) + ' ÷ ' + this.fmt(workingDays) + ') ÷ ' + this.fmt(output) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(rawPerDus)
         });
       });
+      const air = Number(this.hppForm.airPerDus) || 0;
+      const airRaw = air * (allocation / 100);
+      const airPerDus = rounding === 'component' ? Math.round(airRaw) : airRaw;
+      rows.push({
+        component:'air', label:'Air', period:'', source:{ sourceType:'manual' }, sourceType:'manual',
+        value:air, type:'manual', perDus:airPerDus, rawPerDus:airRaw,
+        note:Math.abs(airPerDus - airRaw) >= 0.005 ? 'Nilai asli ' + this.fmt2(airRaw) : '',
+        missing:false,
+        formula:this.fmt2(air) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(airRaw)
+      });
+      const overhead = Number(this.hppForm.overheadPerDus) || 0;
+      const overheadRaw = overhead * (allocation / 100);
+      const overheadPerDus = rounding === 'component' ? Math.round(overheadRaw) : overheadRaw;
+      rows.push({
+        component:'overhead', label:'Overhead', period:'', source:{ sourceType:'manual' }, sourceType:'manual',
+        value:overhead, type:'manual', perDus:overheadPerDus, rawPerDus:overheadRaw,
+        note:Math.abs(overheadPerDus - overheadRaw) >= 0.005 ? 'Nilai asli ' + this.fmt2(overheadRaw) : '',
+        missing:false,
+        formula:this.fmt2(overhead) + ' × ' + this.fmt(allocation) + '% = ' + this.fmt2(overheadRaw)
+      });
       const depreciation = Number(this.hppForm.depreciationTotal) || 0;
       const depreciationRaw = output > 0 ? (depreciation / output) * (allocation / 100) : 0;
       const depreciationPerDus = rounding === 'component' ? Math.round(depreciationRaw) : depreciationRaw;
@@ -6541,6 +6590,8 @@ function app() {
         && this.hppMaterialRows.length > 0
         && this.hppMaterialRows.every(row => row.price > 0 && (!row.priceOverridden || String(row.overrideReason || '').trim()))
         && this.hppMonthlyKeys().every(key => Number(this.hppForm.monthlyCosts[key]) >= 0)
+        && Number(this.hppForm.airPerDus) >= 0
+        && Number(this.hppForm.overheadPerDus) >= 0
         && Number(this.hppForm.depreciationTotal) >= 0
         && Number(this.hppForm.allocationPercent) >= 0
         && Number(this.hppForm.allocationPercent) <= 100;
@@ -6589,6 +6640,8 @@ function app() {
           bonusNote:form.bonusNote || '',
           costPeriod:form.costPeriod,
           monthlyCosts:{ ...form.monthlyCosts },
+          airPerDus:Number(form.airPerDus) || 0,
+          overheadPerDus:Number(form.overheadPerDus) || 0,
           payrollPeriod:form.payrollPeriod,
           listrikSource:form.listrikSource,
           materialMode:'actual',
@@ -6764,12 +6817,14 @@ function app() {
       (next.materials || []).forEach(material => {
         if (material.priceOverridden) overrides[material.materialId] = { price:material.price, reason:material.overrideReason || '' };
       });
-      const monthlyCosts = { gaji:0, uang_makan:0, bpjs:0, listrik:0, overhead:0, air:0 };
+      const monthlyCosts = { gaji:0, uang_makan:0, bpjs:0, listrik:0 };
       (next.costs || []).forEach(cost => {
         if (monthlyCosts[cost.component] !== undefined) monthlyCosts[cost.component] = Number(cost.monthlyValue) || 0;
       });
       const gajiCost = (next.costs || []).find(cost => cost.component === 'gaji');
       const listrikCost = (next.costs || []).find(cost => cost.component === 'listrik');
+      const airCost = (next.costs || []).find(cost => cost.component === 'air');
+      const overheadCost = (next.costs || []).find(cost => cost.component === 'overhead');
       this.hppForm = {
         date:next.date, productId:next.productId,
         allocationPercent:next.allocationPercent,
@@ -6778,6 +6833,8 @@ function app() {
         depreciationTotal:next.depreciationTotal,
         costPeriod:(gajiCost && gajiCost.sourcePeriod) || next.costPeriod || this.hppDefaultCostPeriod(next.date),
         monthlyCosts,
+        airPerDus:airCost ? Number(airCost.monthlyValue) || Number(airCost.perDus) || 0 : this.hppDefaultAirRate(),
+        overheadPerDus:overheadCost ? Number(overheadCost.monthlyValue) || Number(overheadCost.perDus) || 0 : 0,
         payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : '',
         listrikSource:listrikCost && listrikCost.sourceType === 'jurnal' ? 'jurnal' : 'manual'
       };
@@ -10666,6 +10723,121 @@ function app() {
         'Isi Data'
       );
     },
+    ensureDummyHppMaster() {
+      const fresh = seedData();
+      fresh.accounts.filter(account => account.code === '5-1700').forEach(account => {
+        if (!(this.accounts || []).some(item => item.code === account.code || item.id === account.id)) this.accounts.push({ ...account });
+      });
+      fresh.materials.filter(material => Number(String(material.code || '').replace('BRG-', '')) >= 8).forEach(material => {
+        if (!(this.materials || []).some(item => item.code === material.code || item.id === material.id)) this.materials.push({ ...material });
+      });
+      fresh.recipes.filter(recipe => ['p2','p3'].includes(recipe.productId)).forEach(recipe => {
+        if (!(this.recipes || []).some(item => item.productId === recipe.productId && item.materialId === recipe.materialId)) this.recipes.push({ ...recipe });
+      });
+    },
+    seedDummyHppBulanan() {
+      const pool = {
+        gaji:32637692, uang_makan:7720000, bpjs:3382080,
+        bonusan:9187785, reject:4902758, air:286400,
+        listrik:14567560, overhead:3587000
+      };
+      const products = [
+        { productId:'p1', qtyDus:38288, qtySource:'manual', qtyNote:'Data Excel September 2026', pcsPerDus:48, materials:[
+          { materialId:'mat5', pcsPerDus:48, price:41, priceSource:'avg', note:'' },
+          { materialId:'mat2', pcsPerDus:48, price:123, priceSource:'avg', note:'' },
+          { materialId:'mat6', pcsPerDus:48, price:15, priceSource:'avg', note:'' },
+          { materialId:'mat4', pcsPerDus:1, price:3309, priceSource:'avg', note:'' },
+          { materialId:'mat7', pcsPerDus:2, price:31, priceSource:'avg', note:'' }
+        ] },
+        { productId:'p2', qtyDus:423, qtySource:'manual', qtyNote:'Data Excel September 2026', pcsPerDus:24, materials:[
+          { materialId:'mat8', pcsPerDus:24, price:836, priceSource:'avg', note:'' },
+          { materialId:'mat9', pcsPerDus:24, price:122, priceSource:'avg', note:'' },
+          { materialId:'mat10', pcsPerDus:24, price:46, priceSource:'avg', note:'' },
+          { materialId:'mat12', pcsPerDus:1, price:3314, priceSource:'avg', note:'' },
+          { materialId:'mat7', pcsPerDus:2, price:31, priceSource:'avg', note:'' }
+        ] },
+        { productId:'p3', qtyDus:85, qtySource:'manual', qtyNote:'Data Excel September 2026', pcsPerDus:24, materials:[
+          { materialId:'mat1', pcsPerDus:24, price:815, priceSource:'avg', note:'' },
+          { materialId:'mat9', pcsPerDus:24, price:122, priceSource:'avg', note:'' },
+          { materialId:'mat10', pcsPerDus:24, price:46, priceSource:'avg', note:'' },
+          { materialId:'mat11', pcsPerDus:1, price:4667, priceSource:'avg', note:'' },
+          { materialId:'mat13', pcsPerDus:2, price:32, priceSource:'avg', note:'' }
+        ] }
+      ];
+      const computed = this.calculateHppBulanan({ pool, products, includeBonus:true, roundTariff:true });
+      const doc = {
+        id:'hpbsep' + Date.now(),
+        code:'HPB-2026-09-0001',
+        period:'2026-09',
+        version:1,
+        status:'final',
+        costPeriod:'2026-09',
+        includeBonus:true,
+        roundTariff:true,
+        pool:{ ...pool },
+        bonusanRows:[],
+        rejectRows:[],
+        poolTotal:computed.effectivePool,
+        totalDus:computed.totalDus,
+        tariffRaw:computed.tariffRaw,
+        tariffPerDus:computed.tariffPerDus,
+        products:computed.products,
+        cogsTotal:computed.cogsTotal,
+        createdBy:'Rina',
+        createdById:'u5',
+        createdAt:'2026-09-30',
+        finalizedBy:'Rina',
+        finalizedAt:'2026-09-30',
+        reviseReason:'',
+        appliedBy:'Rina',
+        appliedAt:'2026-09-30',
+        history:[
+          { action:'final', by:'Rina', byRole:'Manager', at:'2026-09-30', note:'Finalisasi HPP September 2026 dari laporan Excel' },
+          { action:'apply', by:'Rina', byRole:'Manager', at:'2026-09-30', note:'Harga modal produk diperbarui' }
+        ]
+      };
+      (this.hppBulanan = this.hppBulanan || []).unshift(doc);
+      computed.products.forEach(product => {
+        const record = this.product(product.productId);
+        if (!record.id) return;
+        const oldCost = Number(record.cost) || 0;
+        record.cost = Math.round(product.hppPerDus);
+        record.costHistory = record.costHistory || [];
+        record.costHistory.unshift({ at:'2026-09-30', by:'Rina', old:oldCost, new:record.cost, hppId:doc.id, hppCode:doc.code });
+      });
+      return doc;
+    },
+    seedDummyHppHarian() {
+      this.hppEditId = null;
+      this.hppForm = {
+        date:'2026-10-30', productId:'p1', allocationPercent:100,
+        bonusQty:32, bonusNote:'Bonusan 32 dus',
+        materialOverrides:{}, depreciationTotal:0,
+        costPeriod:'2026-09',
+        monthlyCosts:{ gaji:32637692, uang_makan:7720000, bpjs:3382080, listrik:14567560 },
+        airPerDus:this.hppDefaultAirRate(), overheadPerDus:0,
+        payrollPeriod:'', listrikSource:'manual'
+      };
+      const payload = this.hppPayload('final');
+      payload.createdBy = 'Rina';
+      payload.createdById = 'u5';
+      payload.createdAt = '2026-10-30';
+      payload.finalizedBy = 'Rina';
+      payload.finalizedAt = '2026-10-30';
+      payload.appliedBy = 'Rina';
+      payload.appliedAt = '2026-10-30';
+      payload.history = payload.history || [];
+      this.hppHarian.unshift(payload);
+      const product = this.product(payload.productId);
+      if (product.id) {
+        const oldCost = Number(product.cost) || 0;
+        product.cost = Math.round(payload.hppPerDus);
+        product.costHistory = product.costHistory || [];
+        product.costHistory.unshift({ at:'2026-10-30', by:'Rina', old:oldCost, new:product.cost, hppId:payload.id, hppCode:payload.code });
+      }
+      this.hppLog.unshift({ id:'hlog' + Date.now() + 'dummy', hppId:payload.id, action:'final', by:'Rina', byRole:'Manager', at:'2026-10-30', note:'Finalisasi HPP 30 Oktober dan terapkan harga modal' });
+      return payload;
+    },
     seedDummyData() {
       const requiredMaterials = ['mat1','mat2','mat3','mat4','mat5','mat6','mat7'];
       const requiredProducts = ['p1','p2','p3'];
@@ -10696,8 +10868,9 @@ function app() {
         const journal = this.createSystemJournal({ date, description, source, sourceId, lines });
         return journal ? journal.id : '';
       };
-      const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','productions','productionLogs','journals'];
+      const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','productions','productionLogs','journals','hppHarian','hppBulanan','hppLog'];
       reset.forEach(key => { this[key] = []; });
+      this.ensureDummyHppMaster();
       const openingEquity = accId('3-1100') || accId('3-1000');
       if (openingEquity) {
         post(d(-30), 'Saldo awal demo', 'opening-demo', 'opening-demo', [
@@ -10707,14 +10880,14 @@ function app() {
           { accountId:openingEquity, debit:0, credit:75000000, memo:'Saldo awal ekuitas' }
         ]);
       }
-      const demoMaterialPrices = { mat2:132, mat5:39, mat6:15, mat4:3309, mat7:31 };
+      const demoMaterialPrices = { mat1:815, mat2:132, mat5:39, mat6:15, mat4:3309, mat7:31 };
       this.materials.forEach(material => {
         if (demoMaterialPrices[material.id] != null) material.purchasePrice = demoMaterialPrices[material.id];
         material.stock = 0;
         material.stockValue = 0;
         material.avgCost = Number(material.purchasePrice) || 0;
       });
-      this.products.forEach((product, index) => { product.stock = index === 0 ? 800 : 300; });
+      this.products.forEach((product, index) => { product.stock = index === 0 ? 800 : 300; product.costHistory = []; });
       this.seedDummyMonthlyPeriods();
       const addMaterialStock = (materialId, warehouseId, qty, value, type, refType, refId, refNumber, date, unitCost) => {
         const material = this.material(materialId);
@@ -10782,6 +10955,44 @@ function app() {
           stockApplied:true,
           costAtOrder:items.reduce((sum, item) => sum + (Number(this.product(item.productId).cost) || 0) * item.qty, 0),
           items
+        };
+        this.orders.unshift(order);
+        return order;
+      };
+      const makeExcelOrder = (customerId, productId, qty, subtotal, date, salesName) => {
+        const customer = this.customer(customerId);
+        const product = this.product(productId);
+        const tax = Math.round(Number(subtotal) * 0.11);
+        const total = Number(subtotal) + tax;
+        const price = qty > 0 ? Number(subtotal) / qty : 0;
+        const creatorUser = this.users.find(user => user.name === salesName || user.username === salesName);
+        const order = {
+          id:'o' + Date.now() + Math.random().toString(16).slice(2),
+          code:code('INV', date),
+          customerId,
+          sales:customer.sales,
+          orderBy:salesName,
+          createdById:creatorUser ? creatorUser.id : null,
+          createdBy:salesName,
+          createdByRole:'Sales',
+          salesChannel:'Sales',
+          salesPerson:salesName,
+          status:'success',
+          payment:'unpaid',
+          delivery:'full',
+          radius:'onsite',
+          date,
+          schedule:date,
+          dueDate:shiftISO(date, 14),
+          subtotal:Number(subtotal),
+          discount:0,
+          tax,
+          total,
+          customDiscount:0,
+          paymentMethod:'Transfer',
+          stockApplied:false,
+          costAtOrder:(Number(product.cost) || 0) * qty,
+          items:[{ productId, qty, price, discPercent:0 }]
         };
         this.orders.unshift(order);
         return order;
@@ -11332,6 +11543,11 @@ function app() {
       this.productions.unshift(demoProduction);
       this.productionLogs.unshift({ id:'plog' + Date.now() + 'demo', productionId:demoProduction.id, at:'2026-10-30', user:'Rina', role:'Manager', action:'demo', detail:'Skenario demo HPP 30 Oktober: ' + this.fmt(demoQty) + ' Krt tanpa pergerakan stok.', reason:'' });
 
+      this.seedDummyHppBulanan();
+      const sepOrder1 = makeExcelOrder('c1', 'p1', 38288, 799001314, '2026-09-15', 'Fahri');
+      const sepOrder2 = makeExcelOrder('c2', 'p2', 423, 16111000, '2026-09-20', 'Zainudin');
+      const sepOrder3 = makeExcelOrder('c3', 'p3', 85, 3485000, '2026-09-25', 'Fahri');
+
       const order1Date = d(-6);
       const order1 = makeOrder('c1', [['p1', 10], ['p2', 5]], 'pending', 'unpaid', order1Date, { orderBy:'Fahri' });
       const order2 = makeOrder('c2', [['p2', 20]], 'already', 'unpaid', d(-5), { orderBy:'Zainudin' });
@@ -11356,6 +11572,14 @@ function app() {
           ]);
         }
       });
+      if (accId('5-1100') && accId('5-1700')) {
+        post('2026-09-30', 'Beban operasional September 2026', 'excel-september', 'excel-september-opex', [
+          { accountId:accId('5-1100'), debit:135111770, credit:0, memo:'Beban operasional September' },
+          { accountId:accId('5-1700'), debit:11680000, credit:0, memo:'Biaya leasing September' },
+          { accountId:accId('1-1200'), debit:0, credit:146791770, memo:'Bank keluar' }
+        ]);
+      }
+      this.seedDummyHppHarian();
       makeDelivery([order3], 'shipping', d(-3), 'Rina');
       makeDelivery([order4, order5], 'success', d(-1), 'Sari');
       makeDelivery([order2], 'pending', now, 'Rina');
@@ -11397,6 +11621,8 @@ function app() {
         { accountId:accId('1-1100'), debit:0, credit:150000, memo:'Kas keluar' }
       ]);
 
+      this.reportFrom = '2026-09-01';
+      this.reportTo = '2026-09-30';
       this.selectedOrderId = order3.id;
       this.selectedDeliveryId = this.deliveries[0]?.id || null;
       this.selectedCollectionId = col1.id;

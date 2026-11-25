@@ -208,7 +208,7 @@ Aturan utama:
 - Setiap form memiliki **Periode Biaya**; nilai komponen disimpan juga ke pool biaya bulanan periode tersebut agar HPP Bulanan per produk tetap berjalan.
 - Sumber **Gaji Produksi** dapat Manual atau **Payroll** Diposting (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
 - **Listrik Produksi** hanya bersumber dari Manual atau Jurnal. Jurnal mengambil total debit jurnal posted ke akun `5-1600 Beban Listrik Produksi`; akun `5-1610 Beban Listrik Kantor` tidak masuk HPP.
-- **Overhead** dan **Air** diisi manual sebagai nilai bulanan, **Penyusutan** diisi manual sebagai total per dokumen.
+- **Air** dan **Overhead** diisi manual **per Krt**, **Penyusutan** diisi manual sebagai total per dokumen. Nilai Air/Overhead harian tidak menimpa pool HPP Bulanan.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
 - Penyusutan per Krt = `nilai penyusutan ÷ hasil produksi × alokasi%`.
 - **Pembulatan** dapat dipilih di Pengaturan:
@@ -216,9 +216,13 @@ Aturan utama:
   - **Bulatkan tiap komponen**,
   - **Bulatkan HPP akhir**.
   - Nilai asli komponen yang dibulatkan tetap ditampilkan sebagai keterangan.
-- **Isi Data Dummy** membuat pool biaya September (95%), Oktober (angka sheet client, **Aktual**), dan November (103%) 2026.
+- **Isi Data Dummy** memakai pool biaya produksi September 2026 persis dari `LAPORAN DANA SEPTEMBER 2026.xlsx` (gaji, uang makan, BPJS, bonusan, reject, air, listrik, overhead), lalu Oktober 100% dan November 103%.
 - **Isi Data Dummy** juga menyiapkan stok bahan baku Abi Mineral 220ml (CUP) minimal untuk **2.000 Krt**: Cup 96.400, LID 96.350, Straw 96.400, Karton Box 2.300, dan Lakban 4.600. Qty pembelian dummy untuk Cup, LID, dan Straw menjadi 130.000 pcs.
 - **Harga master bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga tersebut dan memakai harga yang sama pada PO dummy.
+- **Data dummy HPP** juga membuat:
+  - HPP Harian **30 Oktober 2026**: 1.515 Krt, bahan 12.299/Krt, biaya produksi 1.553,76/Krt, HPP **13.852,76/Krt**, status **Selesai**, dan harga modal p1 menjadi **13.853**.
+  - HPP Bulanan **September 2026**: pool 76.271.275, produksi 38.796 dus, tarif 1.966/dus, HPP CUP 13.929, BOTOL 330 29.438, BOTOL 600 30.289, COGS **548.340.391**.
+  - Order penjualan September: **818.597.314**; laba kotor **270.256.923**; beban operasional termasuk leasing **146.791.770**; laba bersih **123.465.153**.
 - **Skenario demo 30 Oktober**: produksi 1.515 Krt tanpa pergerakan stok; tombol **Demo 30 Oktober** di tab HPP Harian langsung membuka form dengan tanggal 30 Oktober 2026, produk ABI-0001, bonus 32 dus, periode biaya Oktober, dan harga bahan dari master (tanpa override). Memilih tanggal/produk yang sama secara manual juga mengisi otomatis.
 - Satu HPP final per tanggal + produk.
 - Daftar HPP Harian memakai satu badge status: **Draft**, **Belum disetujui** (final lama yang belum diterapkan ke harga modal), dan **Selesai**. Kolom Versi dan Status terpisah dihapus; versi lama tidak ditampilkan di daftar.
