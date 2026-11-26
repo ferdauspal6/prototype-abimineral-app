@@ -1922,7 +1922,7 @@
                   <td x-text="i + 1"></td><td class="font-semibold" x-text="pr.code"></td><td x-text="dateShort(pr.date)"></td>
                   <td><span class="flex items-center gap-2"><span class="avatar" x-text="initials(pr.requester)"></span><span x-text="pr.requester"></span></span></td>
                   <td class="max-w-[260px] whitespace-normal" x-text="pr.purpose"></td>
-                  <td><div class="flex flex-wrap gap-1"><template x-for="po in purchaseRequestPOs(pr)" :key="po.id"><button class="badge badge-blue" @click="viewPO(po)" x-text="po.code"></button></template><span x-show="purchaseRequestPOs(pr).length === 0" class="text-slate-400">-</span></div></td>
+                  <td><div class="flex flex-wrap gap-1"><template x-for="po in purchaseRequestPOs(pr)" :key="po.id"><button class="badge badge-blue" @click="viewPO(po)" :title="supplierName(po.supplierId)" x-text="po.code"></button></template><span x-show="purchaseRequestPOs(pr).length === 0" class="text-slate-400">-</span></div></td>
                   <td class="num" x-text="(pr.items || []).length"></td><td class="num" x-text="fmt((pr.items || []).reduce((s, item) => s + Number(item.qty || 0), 0))"></td>
                   <td><span class="badge" :class="prStatusBadge(pr.status)" x-text="prStatusLabel(pr.status)"></span></td>
                   <td class="actions">
@@ -2196,23 +2196,33 @@
             <div><label class="label">Referensi PR</label><input class="input bg-slate-50" :value="poForm.prId ? (purchaseRequests.find(pr => pr.id === poForm.prId) || {}).code || '-' : 'Tanpa PR'" readonly></div>
           </div>
           <div class="mt-3"><label class="label">Catatan</label><input class="input" x-model="poForm.notes" placeholder="Catatan untuk supplier / purchasing"></div>
-          <div x-show="poForm.prId" class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">PO ini terhubung ke PR. Qty tiap baris tidak boleh melebihi sisa qty PR.</div>
+          <div x-show="poForm.prId" class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">PO ini terhubung ke PR. Hilangkan centang barang yang akan dipesan ke supplier lain. Qty tiap baris tidak boleh melebihi sisa qty PR.</div>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="text-sm font-semibold">Rincian Barang</div>
           <div class="flex flex-wrap items-center gap-2">
             <button class="btn btn-outline btn-sm" @click="addPOLine()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Baris</button>
+            <button x-show="poForm.prId" class="btn btn-outline btn-sm" @click="setAllPOItems(true)">Pilih Semua</button>
+            <button x-show="poForm.prId" class="btn btn-outline btn-sm" @click="setAllPOItems(false)">Kosongkan</button>
             <button class="btn btn-outline btn-sm" @click="addPOAdditionalCost()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Biaya</button>
+          </div>
+        </div>
+        <div x-show="poForm.prId" class="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>PO ini memuat <b x-text="poPrSummary ? poPrSummary.includedCount : 0"></b> dari <b x-text="poPrSummary ? poPrSummary.totalCount : 0"></b> item PR yang belum dialokasikan.</span>
+            <span>Sisa setelah PO ini: <b x-text="poPrSummary ? fmt(poPrSummary.afterQty) : 0"></b> qty.</span>
+            <span class="text-blue-600">Hilangkan centang barang yang akan dipesan ke supplier lain.</span>
           </div>
         </div>
         <div class="table-wrap" style="overflow: visible">
           <table class="data-table">
-            <thead><tr><th style="width:40px;min-width:40px;max-width:40px" class="text-center">#</th><th style="width:auto">Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:140px">Harga</th><th class="num" style="width:140px">Subtotal</th><th class="actions" style="width:70px">Action</th></tr></thead>
+            <thead><tr><th style="width:40px;min-width:40px;max-width:40px" class="text-center">#</th><th x-show="poForm.prId" style="width:48px;min-width:48px" class="text-center">Ikut</th><th style="width:auto">Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:140px">Harga</th><th class="num" style="width:140px">Subtotal</th><th class="actions" style="width:70px">Action</th></tr></thead>
             <tbody>
               <template x-for="(item, index) in poForm.items" :key="index">
-                <tr>
+                <tr :class="poForm.prId && item.include === false ? 'opacity-50' : ''">
                   <td class="text-center text-xs text-slate-400" x-text="index + 1"></td>
+                  <td x-show="poForm.prId" class="text-center"><input type="checkbox" class="checkbox" x-model="item.include"></td>
                   <td>
                     <div class="relative" @click.outside="item.materialOpen = false">
                       <button type="button" class="input input-sm w-full flex items-center justify-between gap-2 text-left" :class="item.materialId ? 'text-slate-800' : 'text-slate-400'" @click="item.materialOpen = !item.materialOpen">
@@ -2234,15 +2244,15 @@
                     </div>
                     <div x-show="poForm.prId && poMaterialMaxQty(index) !== null" class="text-[10px] text-slate-400 mt-1">Sisa PR: <b x-text="fmt(poMaterialMaxQty(index) || 0)"></b></div>
                   </td>
-                  <td class="num"><input type="number" min="1" class="input input-sm w-24 text-right" :max="poMaterialMaxQty(index) !== null ? poMaterialMaxQty(index) : null" x-model.number="item.qty"></td>
-                  <td class="num"><input type="number" min="0" class="input input-sm w-32 text-right" x-model.number="item.price"></td>
+                  <td class="num"><input type="number" min="1" class="input input-sm w-24 text-right" :max="poMaterialMaxQty(index) !== null ? poMaterialMaxQty(index) : null" :disabled="poForm.prId && item.include === false" x-model.number="item.qty"></td>
+                  <td class="num"><input type="number" min="0" class="input input-sm w-32 text-right" :disabled="poForm.prId && item.include === false" x-model.number="item.price"></td>
                   <td class="num font-semibold" x-text="rp(poLineSubtotal(item))"></td>
                   <td class="actions"><button class="icon-btn icon-btn-sm icon-btn-danger" @click="removePOLine(index)" title="Hapus baris"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button></td>
                 </tr>
               </template>
-              <tr x-show="poForm.items.length === 0"><td colspan="6"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div></div></td></tr>
+              <tr x-show="poForm.items.length === 0"><td :colspan="poForm.prId ? 7 : 6"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div></div></td></tr>
               <tr class="bg-slate-50 font-bold">
-                <td colspan="4" class="text-right">Subtotal Barang</td>
+                <td :colspan="poForm.prId ? 5 : 4" class="text-right">Subtotal Barang</td>
                 <td class="num" x-text="rp(poSubtotal)"></td>
                 <td></td>
               </tr>
@@ -4894,15 +4904,22 @@
         </div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
           <span class="text-slate-400">PO Terkait:</span>
-          <template x-for="po in purchaseRequestPOs(selectedPR)" :key="po.id"><button class="badge" :class="poStatusBadge(po.status)" @click="viewPO(po); prDetailOpen = false" x-text="po.code"></button></template>
           <span x-show="purchaseRequestPOs(selectedPR).length === 0" class="text-slate-400">Belum ada PO</span>
+          <div x-show="purchaseRequestPOs(selectedPR).length > 0" class="flex flex-wrap gap-1.5">
+            <template x-for="po in purchaseRequestPOs(selectedPR)" :key="po.id">
+              <div class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-1.5 py-1">
+                <button class="badge" :class="poStatusBadge(po.status)" @click="viewPO(po); prDetailOpen = false" x-text="po.code"></button>
+                <span class="text-[10px] text-slate-500" x-text="supplierName(po.supplierId)"></span>
+              </div>
+            </template>
+          </div>
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>Kode</th><th>Barang</th><th class="num">Qty</th><th class="num">Sudah Dipesan</th><th class="num">Sisa</th><th>Catatan</th></tr></thead>
+            <thead><tr><th>#</th><th>Kode</th><th>Barang</th><th class="num">Qty</th><th class="num" title="Termasuk PO draft dan menunggu persetujuan">Sudah Dialokasikan</th><th class="num">Sisa</th><th>Catatan</th></tr></thead>
             <tbody>
               <template x-for="(item, index) in (selectedPR.items || [])" :key="index">
-                <tr><td x-text="index + 1"></td><td class="font-semibold" x-text="(materials.find(m => m.id === item.materialId) || {}).code || '-'"></td><td x-text="materialName(item.materialId)"></td><td class="num" x-text="fmt(item.qty)"></td><td class="num text-slate-500" x-text="fmt(item.orderedQty || 0)"></td><td class="num font-semibold" x-text="fmt(Math.max(0, item.qty - (item.orderedQty || 0)))"></td><td class="text-slate-500" x-text="item.note || '-'"></td></tr>
+                <tr><td x-text="index + 1"></td><td class="font-semibold" x-text="(materials.find(m => m.id === item.materialId) || {}).code || '-'"></td><td x-text="materialName(item.materialId)"></td><td class="num" x-text="fmt(item.qty)"></td><td class="num text-slate-500" x-text="fmt(prItemAllocatedQty(selectedPR, item.materialId))"></td><td class="num font-semibold" x-text="fmt(prItemRemainingQty(selectedPR, item.materialId))"></td><td class="text-slate-500" x-text="item.note || '-'"></td></tr>
               </template>
             </tbody>
           </table>
@@ -4931,7 +4948,8 @@
         </div>
         <div class="modal-actions modal-actions-right">
           <button class="btn btn-outline" @click="startPRPreview(selectedPR)"><svg class="icon icon-sm"><use href="#i-printer"></use></svg> Preview A4</button>
-          <button x-show="['approved','processing'].includes(selectedPR.status)" class="btn btn-primary" @click="openPOCreate(selectedPR); prDetailOpen = false">Buat PO</button>
+          <button x-show="['approved','processing'].includes(selectedPR.status) && prHasRemaining(selectedPR)" class="btn btn-primary" @click="openPOCreate(selectedPR); prDetailOpen = false" x-text="purchaseRequestPOs(selectedPR).length ? 'Buat PO Lagi' : 'Buat PO'"></button>
+          <span x-show="['approved','processing'].includes(selectedPR.status) && !prHasRemaining(selectedPR)" class="text-[11px] text-slate-500">Semua qty sudah dialokasikan ke PO.</span>
           <button x-show="selectedPR.status === 'draft'" class="btn btn-outline" @click="startPREdit(selectedPR); prDetailOpen = false">Edit Draft</button>
           <button x-show="selectedPR.status === 'draft'" class="btn btn-primary" @click="submitPR(selectedPR)">Submit</button>
           <button x-show="canApprovePR && selectedPR.status === 'submitted' && selectedPR.requesterId !== currentUserId" class="btn btn-danger" @click="openRejectPR(selectedPR)">Tolak</button>
@@ -5524,7 +5542,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261126c"></script>
+<script src="assets/app.js?v=20261126e"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

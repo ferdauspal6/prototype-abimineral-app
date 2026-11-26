@@ -2035,7 +2035,30 @@ function app() {
           }
           break;
         }
-        case 'purchase-order-create': this.openPOCreate(); break;
+        case 'purchase-order-create': {
+          let pr = this.purchaseRequests.find(item => ['approved','processing'].includes(item.status) && this.prHasRemaining(item));
+          if (!pr) {
+            const now = todayISO();
+            pr = {
+              id:'prcanvas',
+              code:this.nextCode('PR', this.purchaseRequests),
+              date:now,
+              requester:this.currentUser,
+              requesterId:this.currentUserId,
+              purpose:'Pengadaan bahan kemasan',
+              status:'approved',
+              items:[
+                { materialId:'mat2', qty:100, orderedQty:0, note:'' },
+                { materialId:'mat5', qty:100, orderedQty:0, note:'' }
+              ],
+              history:[]
+            };
+            this.purchaseRequests.unshift(pr);
+          }
+          this.openPOCreate(pr);
+          if (this.poForm.items[1]) this.poForm.items[1].include = false;
+          break;
+        }
         case 'purchase-order-preview': {
           const row = first(this.purchaseOrders);
           if (row) { this.selectedPOId = row.id; this.page = 'purchase-order-preview'; }
@@ -2500,7 +2523,8 @@ function app() {
         case 'purchase-requests': return [
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPR(row) },
           { label:'Preview A4', icon:'i-printer', run:() => this.startPRPreview(row) },
-          { label:'Buat PO', icon:'i-file', show:['approved','processing'].includes(row.status), run:() => this.openPOCreate(row) },
+          { label:this.purchaseRequestPOs(row).length ? 'Buat PO Lagi' : 'Buat PO', icon:'i-file', show:['approved','processing'].includes(row.status) && this.prHasRemaining(row), run:() => this.openPOCreate(row) },
+          { label:'Semua item sudah dialokasikan', icon:'i-check', disabled:true, show:['approved','processing'].includes(row.status) && !this.prHasRemaining(row) },
           { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startPREdit(row) },
           { label:'Submit', icon:'i-send', show:row.status === 'draft', run:() => this.submitPR(row) },
           { label:'Setujui', icon:'i-check', show:this.canApprovePR && row.status === 'submitted' && row.requesterId !== this.currentUserId, run:() => this.approvePR(row) },
@@ -4386,10 +4410,32 @@ function app() {
     },
     get canApprovePO() { return this.role === 'Manager'; },
     get poSubtotal() {
-      return (this.poForm.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+      return (this.poForm.items || [])
+        .filter(item => item.include !== false)
+        .reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
     },
     get poFormQty() {
-      return (this.poForm.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+      return (this.poForm.items || [])
+        .filter(item => item.include !== false)
+        .reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+    },
+    get poPrSummary() {
+      const pr = this.poSourcePR;
+      if (!pr) return null;
+      const remainingRows = (pr.items || []).filter(item => this.prItemRemainingQty(pr, item.materialId, this.poEditId) > 0);
+      const included = (this.poForm.items || []).filter(item => item.include !== false && item.materialId);
+      const includedQty = included.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+      const remainingQty = remainingRows.reduce((sum, item) => sum + this.prItemRemainingQty(pr, item.materialId, this.poEditId), 0);
+      return {
+        totalCount: remainingRows.length,
+        includedCount: included.length,
+        includedQty,
+        remainingQty,
+        afterQty: Math.max(0, remainingQty - includedQty)
+      };
+    },
+    setAllPOItems(include) {
+      (this.poForm.items || []).forEach(item => { item.include = !!include; });
     },
     get activeSuppliers() { return this.suppliers.filter(supplier => supplier.status); },
     supplierName(id) { return (this.suppliers.find(s => s.id === id) || {}).name || '-'; },
@@ -4422,7 +4468,7 @@ function app() {
       const query = String(item.materialSearch || '').toLowerCase();
       const source = this.poSourcePR;
       const allowed = source
-        ? (source.items || []).filter(prItem => Number(prItem.qty) - Number(prItem.orderedQty || 0) > 0).map(prItem => prItem.materialId)
+        ? (source.items || []).filter(prItem => this.prItemRemainingQty(source, prItem.materialId, this.poEditId) > 0).map(prItem => prItem.materialId)
         : null;
       return this.activeMaterials.filter(material => {
         if (allowed && !allowed.includes(material.id)) return false;
@@ -4437,7 +4483,7 @@ function app() {
       if (!source || !item.materialId) return null;
       const prItem = (source.items || []).find(row => row.materialId === item.materialId);
       if (!prItem) return 0;
-      return Math.max(0, Number(prItem.qty) - Number(prItem.orderedQty || 0));
+      return this.prItemRemainingQty(source, item.materialId, this.poEditId);
     },
     selectPOMaterial(index, material) {
       const item = this.poForm.items[index];
@@ -4448,7 +4494,7 @@ function app() {
       item.materialSearch = '';
     },
     addPOLine() {
-      this.poForm.items.push({ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' });
+      this.poForm.items.push({ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' });
     },
     removePOLine(index) {
       this.poForm.items.splice(index, 1);
@@ -4465,15 +4511,17 @@ function app() {
           return;
         }
         const items = (pr.items || [])
-          .filter(item => Number(item.qty) - Number(item.orderedQty || 0) > 0)
-          .map(item => ({
-            materialId:item.materialId,
-            qty:Number(item.qty) - Number(item.orderedQty || 0),
-            price:this.materialBuyPrice(item.materialId),
+          .map(item => ({ item, remaining:this.prItemRemainingQty(pr, item.materialId) }))
+          .filter(row => row.remaining > 0)
+          .map(row => ({
+            materialId:row.item.materialId,
+            qty:row.remaining,
+            price:this.materialBuyPrice(row.item.materialId),
+            include:true,
             materialOpen:false,
             materialSearch:''
           }));
-        if (!items.length) { this.notify('Semua qty PR sudah dipesan', 'error'); return; }
+        if (!items.length) { this.notify('Semua qty PR sudah dialokasikan ke PO', 'error'); return; }
         const supplier = this.activeSuppliers[0];
         this.poEditId = null;
         this.poForm = {
@@ -4494,7 +4542,7 @@ function app() {
           prId:'',
           paymentTerms:supplier ? supplier.paymentTerms : '',
           notes:'',
-          items:[{ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' }],
+          items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }],
           additionalCosts:[]
         };
       }
@@ -4513,6 +4561,7 @@ function app() {
           materialId:item.materialId,
           qty:item.qty,
           price:item.price,
+          include:true,
           materialOpen:false,
           materialSearch:''
         })),
@@ -4523,7 +4572,7 @@ function app() {
     poValidationError(items) {
       if (!this.poForm.supplierId) return 'Supplier wajib dipilih';
       const rows = (items || []).filter(item => item.materialId && Number(item.qty) > 0);
-      if (!rows.length) return 'Tambahkan minimal 1 barang dengan qty lebih dari 0';
+      if (!rows.length) return this.poForm.prId ? 'Pilih minimal 1 barang untuk PO ini' : 'Tambahkan minimal 1 barang dengan qty lebih dari 0';
       const duplicates = rows.map(item => item.materialId).filter((id, index, list) => list.indexOf(id) !== index);
       if (duplicates.length) return 'Barang yang sama tidak boleh dipilih dua kali';
       for (const item of rows) {
@@ -4537,7 +4586,7 @@ function app() {
         for (const item of rows) {
           const prItem = (pr.items || []).find(row => row.materialId === item.materialId);
           if (!prItem) return 'Barang tidak ada pada PR sumber';
-          if (Number(item.qty) > Number(prItem.qty) - Number(prItem.orderedQty || 0)) {
+          if (Number(item.qty) > this.prItemRemainingQty(pr, item.materialId, this.poEditId)) {
             return 'Qty ' + this.materialName(item.materialId) + ' melebihi sisa PR';
           }
         }
@@ -4552,7 +4601,7 @@ function app() {
     },
     savePO(submit = false, confirmed = false) {
       const items = (this.poForm.items || [])
-        .filter(item => item.materialId && Number(item.qty) > 0)
+        .filter(item => item.include !== false && item.materialId && Number(item.qty) > 0)
         .map(item => ({
           materialId:item.materialId,
           qty:Number(item.qty),
@@ -4714,7 +4763,7 @@ function app() {
       for (const poItem of (po.items || [])) {
         const prItem = (pr.items || []).find(item => item.materialId === poItem.materialId);
         if (!prItem) return 'Barang tidak ada pada PR sumber';
-        if (Number(poItem.qty) > Number(prItem.qty) - Number(prItem.orderedQty || 0)) {
+        if (Number(poItem.qty) > this.prItemRemainingQty(pr, poItem.materialId, po.id)) {
           return 'Qty ' + this.materialName(poItem.materialId) + ' melebihi sisa PR';
         }
       }
@@ -4782,6 +4831,28 @@ function app() {
     purchaseRequestPOs(pr) {
       if (!pr || !pr.id) return [];
       return this.purchaseOrders.filter(po => po.prId === pr.id && !['rejected','cancelled'].includes(po.status));
+    },
+    prItemAllocatedQty(pr, materialId, excludePoId = null) {
+      if (!pr || !pr.id || !materialId) return 0;
+      const prItem = (pr.items || []).find(item => item.materialId === materialId);
+      const approved = Number(prItem && prItem.orderedQty) || 0;
+      const draftPending = (this.purchaseOrders || [])
+        .filter(po => po.prId === pr.id
+          && po.id !== excludePoId
+          && ['draft','pending_approval'].includes(po.status))
+        .reduce((sum, po) => sum + (po.items || [])
+          .filter(item => item.materialId === materialId)
+          .reduce((rowSum, item) => rowSum + (Number(item.qty) || 0), 0), 0);
+      return approved + draftPending;
+    },
+    prItemRemainingQty(pr, materialId, excludePoId = null) {
+      if (!pr || !pr.id || !materialId) return 0;
+      const prItem = (pr.items || []).find(item => item.materialId === materialId);
+      if (!prItem) return 0;
+      return Math.max(0, (Number(prItem.qty) || 0) - this.prItemAllocatedQty(pr, materialId, excludePoId));
+    },
+    prHasRemaining(pr, excludePoId = null) {
+      return (pr && pr.items || []).some(item => this.prItemRemainingQty(pr, item.materialId, excludePoId) > 0);
     },
     poFullyReceived(po) {
       if (!po) return false;

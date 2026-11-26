@@ -89,6 +89,7 @@ Purchase Request (L2):
 - PR menjadi `completed` ketika semua PO terkait sudah fully received/closed.
 - Jika seluruh PO terkait dibatalkan/ditolak, PR kembali ke `approved`.
 - Hanya memilih Master Barang, tidak bisa memilih produk jadi.
+- **Satu PR dapat menghasilkan beberapa PO**, karena item PR bisa berasal dari supplier berbeda. Setiap PO tetap hanya untuk satu supplier.
 - Tidak membuat jurnal, utang, atau perubahan stok.
 - Approve/reject hanya oleh role **Manager**.
 - Jika pembuat PR adalah Manager, Submit—termasuk langsung dari halaman Buat PR—langsung menjadi `approved` (auto approve) karena hanya ada satu Manager.
@@ -101,6 +102,10 @@ Purchase Order (L3):
 - Semua PO memerlukan approval Manager; Admin/Developer tidak approve.
 - Jika pembuat PO adalah Manager, Submit—termasuk langsung dari halaman Buat PO—langsung `approved` dan menjalankan reservasi qty PR (auto approve).
 - Harga awal diambil dari harga beli rata-rata Master Barang dan dapat diubah pada PO. PO tidak mengubah harga master.
+- Saat membuat PO dari PR, setiap baris memiliki centang **Ikut PO**. Hanya baris tercentang yang masuk ke PO.
+- Baris yang tidak dicentang tetap menjadi sisa PR dan bisa dipesan ke supplier lain melalui **Buat PO Lagi**.
+- Sisa qty PR memperhitungkan PO **draft**, **menunggu persetujuan**, dan **disetujui**, sehingga dua PO tidak bisa mengalokasikan qty melebihi PR.
+- PR detail menampilkan semua PO terkait beserta supplier dan statusnya.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
 - Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.
 - Saat approve, `orderedQty` PR bertambah dan status PR menjadi `processing`/`completed`.
