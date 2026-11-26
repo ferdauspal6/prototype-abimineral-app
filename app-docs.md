@@ -99,12 +99,12 @@ Purchase Order (L3):
 - Dibuat dari PR `approved`/`processing` atau manual.
 - Qty PO dibatasi sisa qty PR; satu PR bisa dipecah ke beberapa PO.
 - Semua PO memerlukan approval Manager; Admin/Developer tidak approve.
-- Jika pembuat PO adalah Manager, Submit—termasuk langsung dari halaman Buat PO—langsung `approved` dan menjalankan reservasi qty PR serta update harga master (auto approve).
-- Harga awal dari Master Barang dan dapat diubah. Harga master diperbarui saat PO disetujui.
+- Jika pembuat PO adalah Manager, Submit—termasuk langsung dari halaman Buat PO—langsung `approved` dan menjalankan reservasi qty PR (auto approve).
+- Harga awal diambil dari harga beli rata-rata Master Barang dan dapat diubah pada PO. PO tidak mengubah harga master.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
 - Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.
 - Saat approve, `orderedQty` PR bertambah dan status PR menjadi `processing`/`completed`.
-- Cancel PO approved mengembalikan `orderedQty`; harga master tidak di-rollback.
+- Cancel PO approved mengembalikan `orderedQty`; harga master tidak berubah karena PO tidak pernah mengubah harga.
 - PO tidak membuat jurnal, utang, atau perubahan stok.
 - Preview A4 + Print + Export PDF tersedia.
 - PO ikut terhapus saat **Hapus Transaksi**.
@@ -203,7 +203,7 @@ Aturan utama:
 - Hasil produksi diambil dari dokumen Produksi posted, bukan diketik.
 - HPP per Krt = bahan baku per Krt + biaya produksi per Krt.
 - Bahan selalu memakai qty aktual dari PRD (tanpa mode Standar).
-- Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli master barang.
+- Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli awal Master Barang.
 - Biaya produksi diisi langsung pada form **HPP Harian** (tab Biaya Bulanan sudah dihapus).
 - Setiap form memiliki **Periode Biaya**; nilai komponen disimpan juga ke pool biaya bulanan periode tersebut agar HPP Bulanan per produk tetap berjalan.
 - Sumber **Gaji Produksi** dapat Manual atau **Payroll** Diposting (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
@@ -219,7 +219,7 @@ Aturan utama:
 - **Isi Data Dummy** memakai pool biaya produksi September 2026 persis dari `LAPORAN DANA SEPTEMBER 2026.xlsx` (gaji, uang makan, BPJS, bonusan, reject, air, listrik, overhead), lalu Oktober 100% dan November 103%.
 - **Isi Data Dummy** menambahkan pelanggan **Toko Bintang Jaya** dengan satu order belum lunas sebagai contoh alert tagihan.
 - **Isi Data Dummy** juga menyiapkan stok bahan baku Abi Mineral 220ml (CUP) minimal untuk **2.000 Krt**: Cup 96.400, LID 96.350, Straw 96.400, Karton Box 2.300, dan Lakban 4.600. Qty pembelian dummy untuk Cup, LID, dan Straw menjadi 130.000 pcs.
-- **Harga master bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga tersebut dan memakai harga yang sama pada PO dummy.
+- **Harga awal bahan Abi Mineral 220ml (CUP)** mengikuti sheet client: CUP 132, LID 39, STRAW 15, BOX 3.309, LAKBAN 31. **Isi Data Dummy** menyetel ulang harga awal tersebut dan memakai harga yang sama pada PO dummy.
 - **Data dummy HPP** juga membuat:
   - HPP Harian **30 Oktober 2026**: 1.515 Krt, bahan 12.299/Krt, biaya produksi 1.553,76/Krt, HPP **13.852,76/Krt**, status **Selesai**, dan harga modal p1 menjadi **13.853**.
   - HPP Bulanan **September 2026**: pool 76.271.275, produksi 38.796 dus, tarif 1.966/dus, HPP CUP 13.929, BOTOL 330 29.438, BOTOL 600 30.289, COGS **548.340.391**.
@@ -258,6 +258,14 @@ Aturan utama:
   - payable/AP otomatis dengan jatuh tempo dari termin supplier,
   - status PO menjadi `partially_received` / `fully_received`.
 - Stok per gudang dihitung dari `stockMovements` dan ditampilkan di **Stock → Barang**.
+- Harga beli master memakai **moving average global perusahaan**:
+  `rata-rata baru = (nilai stok lama + nilai penerimaan) ÷ (qty stok lama + qty penerimaan)`.
+- Pemakaian/keluar dinilai pada rata-rata saat itu dan **tidak** mengubah rata-rata. Rata-rata hanya berubah saat ada penerimaan atau penyesuaian masuk.
+- `purchasePrice` hanya **Harga Beli Awal** dan fallback saat stok kosong; tidak lagi ditimpa harga PO atau penerimaan terakhir.
+- Harga beli yang tampil di Master Barang, default harga PO, estimasi resep, dan fallback HPP memakai rata-rata yang sama.
+- Angka `avgCost` dan `stockValue` disimpan presisi penuh; pembulatan hanya saat ditampilkan.
+- Kartu stok dihitung ulang dari `stockMovements`; transaksi bertanggal mundur otomatis menyesuaikan saldo dan rata-rata.
+- Di Stock, qty per gudang tetap ditampilkan terpisah, tetapi nilai dan rata-rata memakai **rata-rata global** (`qty gudang × rata-rata global`), sehingga total nilai gudang sama dengan nilai persediaan.
 - Daftar penerimaan menampilkan **Nilai Diterima** dan **Total PO**.
 - Action **Riwayat** menampilkan riwayat draft/posted beserta user dan jabatan.
 - Preview A4 + Print/Export PDF tersedia.

@@ -1490,7 +1490,7 @@
           </div>
           <div x-show="materialStockTab === 'active'" class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Gudang</th><th class="num">Qty</th><th class="num">Nilai</th><th class="num">Rata-rata</th><th class="num">Min</th><th>Status</th></tr></thead>
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Gudang</th><th class="num">Qty</th><th class="num">Nilai</th><th class="num" title="Rata-rata bergerak global perusahaan">Rata-rata</th><th class="num">Min</th><th>Status</th></tr></thead>
               <tbody>
                 <template x-for="row in filteredMaterialStocks" :key="row.materialId + '-' + row.warehouseId">
                   <tr><td class="font-semibold" x-text="row.code"></td><td x-text="row.name"></td><td x-text="row.warehouse"></td><td class="num font-semibold" :class="row.qty <= row.minStock ? 'text-red-600' : ''" x-text="fmt(row.qty)"></td><td class="num" x-text="rp(row.value)"></td><td class="num" x-text="rp(row.avgCost)"></td><td class="num text-slate-500" x-text="fmt(row.minStock)"></td><td><span class="badge" :class="row.status ? 'badge-green' : 'badge-stone'" x-text="row.status ? 'Aktif' : 'Nonaktif'"></span></td></tr>
@@ -1830,13 +1830,13 @@
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>#</th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Satuan</th><th class="num">Harga Beli</th><th>Dipakai di</th><th>Status</th><th class="actions">Action</th></tr></thead>
+              <thead><tr><th>#</th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Satuan</th><th class="num">Harga Beli (Rata-rata)</th><th>Dipakai di</th><th>Status</th><th class="actions">Action</th></tr></thead>
               <tbody>
                 <template x-for="(m, i) in filteredMaterials" :key="m.id">
                   <tr>
                     <td x-text="i + 1"></td><td class="font-semibold" x-text="m.code"></td><td x-text="m.name"></td>
                     <td><span class="badge badge-slate" x-text="categoryName(m.categoryId)"></span></td><td x-text="m.unit"></td>
-                    <td class="num" x-text="rp(m.purchasePrice)"></td>
+                    <td class="num" x-text="rp(materialBuyPrice(m))"></td>
                     <td><span class="badge" :class="productsUsingMaterial(m.id).length ? 'badge-blue' : 'badge-slate'" x-text="productsUsingMaterial(m.id).length ? productsUsingMaterial(m.id).length + ' produk' : '-'"></span></td>
                     <td><span class="badge" :class="m.status ? 'badge-green' : 'badge-stone'" x-text="m.status ? 'Aktif' : 'Nonaktif'"></span></td>
                     <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'materials', m)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
@@ -4546,7 +4546,7 @@
         <div class="text-[11px] text-slate-500" title="Daftar bahan baku untuk membuat 1 satuan produk">Daftar bahan baku untuk membuat 1 <span x-text="recipePreviewProduct.unit || 'satuan'"></span>.</div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>Barang</th><th>Satuan</th><th class="num">Qty per 1 <span x-text="recipePreviewProduct.unit || 'satuan'"></span></th><th class="num">Harga Beli</th><th class="num">Subtotal</th></tr></thead>
+            <thead><tr><th>#</th><th>Barang</th><th>Satuan</th><th class="num">Qty per 1 <span x-text="recipePreviewProduct.unit || 'satuan'"></span></th><th class="num">Harga Rata-rata</th><th class="num">Subtotal</th></tr></thead>
             <tbody>
               <template x-for="(row, index) in recipeRows(recipePreviewProductId)" :key="row.id">
                 <tr>
@@ -4604,7 +4604,7 @@
             </button>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3"><div><label class="label">Harga Beli</label><div class="input-group"><input type="number" class="input" x-model.number="materialForm.purchasePrice"><span class="addon">Rp</span></div></div><div><label class="label">Stok</label><input type="number" class="input" x-model.number="materialForm.stock"></div><div><label class="label">Stok Minimum</label><input type="number" class="input" x-model.number="materialForm.minStock"></div></div>
+        <div class="grid grid-cols-3 gap-3"><div><label class="label">Harga Beli Awal</label><div class="input-group"><input type="number" min="0" class="input" x-model.number="materialForm.purchasePrice"><span class="addon">Rp</span></div><div class="mt-1 text-[10px] leading-snug text-slate-500">Dipakai saat stok kosong atau belum ada penerimaan. Setelah ada penerimaan, harga beli mengikuti rata-rata bergerak.</div><div class="mt-1 text-[10px] text-slate-500" x-show="materialEditId">Harga beli saat ini: <b x-text="rp(materialBuyPrice(materialEditId))"></b></div></div><div><label class="label">Stok</label><input type="number" min="0" class="input" x-model.number="materialForm.stock"></div><div><label class="label">Stok Minimum</label><input type="number" min="0" class="input" x-model.number="materialForm.minStock"></div></div>
         <div><label class="label">Keterangan</label><textarea class="textarea" x-model="materialForm.description"></textarea></div>
       </div>
       <div class="modal-foot"><button class="btn btn-outline" @click="materialModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveMaterial()">Simpan</button></div>
@@ -5512,7 +5512,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261125h"></script>
+<script src="assets/app.js?v=20261126a"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

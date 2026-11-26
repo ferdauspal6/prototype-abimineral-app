@@ -658,6 +658,8 @@ function app() {
       DOMAIN_KEYS.forEach(key => {
         if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
       });
+      this.ensureMaterialOpeningBalances();
+      this.rebuildAllMaterialCosts();
       this.savedAt = parsed.savedAt || null;
       const session = parsed.session || {};
       if (session.userId) {
@@ -706,6 +708,8 @@ function app() {
           customer.priceTypeId = customer.priceType === 'out' ? 'pt2' : (defaultId || 'pt1');
         }
       });
+      this.ensureMaterialOpeningBalances();
+      this.rebuildAllMaterialCosts();
     },
     migrateFromV19(parsed) {
       this.migrateFromV18(parsed);
@@ -865,7 +869,6 @@ function app() {
           po.history = po.history || [];
           po.history.push({ action:'approved', by:po.approvedBy, byRole:'Manager', at:todayISO(), note:'Auto approve Manager' });
           this.reservePRQuantities(po);
-          this.updateMaterialPrices(po);
         }
       });
     },
@@ -2871,7 +2874,6 @@ function app() {
         po.history = po.history || [];
         po.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
         this.reservePRQuantities(po);
-        this.updateMaterialPrices(po);
         this.notify('Purchase Order ' + po.code + ' disetujui');
       }
       if (action === 'cancel-po') {
@@ -3054,12 +3056,8 @@ function app() {
         const opname = this.opnames.find(o => o.id === id);
         if (opname) {
           if (opname.materialId) {
-            const material = this.material(opname.materialId);
-            const unitCost = Number(opname.unitCost) || Number(material.avgCost) || Number(material.purchasePrice) || 0;
-            material.stock = Math.max(0, (Number(material.stock) || 0) - opname.qty);
-            material.stockValue = Math.max(0, (Number(material.stockValue) || 0) - opname.qty * unitCost);
-            material.avgCost = material.stock > 0 ? material.stockValue / material.stock : unitCost;
             this.stockMovements = this.stockMovements.filter(movement => !(movement.refType === 'opname' && movement.refId === opname.id));
+            this.rebuildMaterialCost(opname.materialId);
           } else {
             const product = this.product(opname.productId);
             if (product.id) product.stock = Math.max(0, (Number(product.stock) || 0) - opname.qty);
@@ -3147,6 +3145,8 @@ function app() {
         const data = this.pendingImport;
         this.pendingImport = null;
         DOMAIN_KEYS.forEach(key => { if (data[key] !== undefined) this[key] = data[key]; });
+        this.ensureMaterialOpeningBalances();
+        this.rebuildAllMaterialCosts();
         this.syncRoleCounts();
         if (!this.users.some(u => u.id === this.currentUserId)) {
           this.currentUserId = null;
@@ -3722,7 +3722,7 @@ function app() {
     recipeMaterial(materialId) { return this.materials.find(material => material.id === materialId) || {}; },
     recipeLineSubtotal(row) {
       const material = this.recipeMaterial(row.materialId);
-      return (Number(row.qtyPerUnit) || 0) * (Number(material.purchasePrice) || 0);
+      return (Number(row.qtyPerUnit) || 0) * this.materialBuyPrice(material);
     },
     get recipeEstimatedCost() {
       return (this.productForm.recipe || []).reduce((sum, row) => sum + this.recipeLineSubtotal(row), 0);
@@ -4005,11 +4005,23 @@ function app() {
       let created = null;
       if (this.materialEditId) {
         const material = this.materials.find(m => m.id === this.materialEditId);
-        if (material) Object.assign(material, data);
+        if (material) {
+          const oldStock = Number(material.stock) || 0;
+          Object.assign(material, data);
+          const diff = (Number(data.stock) || 0) - oldStock;
+          if (diff !== 0) {
+            this.recordMaterialAdjustment(material, diff, Number(material.avgCost) || Number(data.purchasePrice) || 0, 'Penyesuaian stok manual');
+          }
+          this.rebuildMaterialCost(material.id);
+        }
         this.notify('Barang berhasil diperbarui');
       } else {
         created = { id:'mat' + Date.now(), code:nextSimpleCode(this.materials, 'BRG-'), ...data };
         this.materials.push(created);
+        if (Number(created.stock) > 0) {
+          this.recordMaterialAdjustment(created, Number(created.stock), created.purchasePrice, 'Stok awal barang');
+        }
+        this.rebuildMaterialCost(created.id);
         this.notify('Barang baru berhasil ditambahkan');
       }
       if (created && this.prMaterialTargetIndex !== null) {
@@ -4425,7 +4437,7 @@ function app() {
       const item = this.poForm.items[index];
       if (!item) return;
       item.materialId = material.id;
-      item.price = Number(material.purchasePrice) || 0;
+      item.price = this.materialBuyPrice(material);
       item.materialOpen = false;
       item.materialSearch = '';
     },
@@ -4451,7 +4463,7 @@ function app() {
           .map(item => ({
             materialId:item.materialId,
             qty:Number(item.qty) - Number(item.orderedQty || 0),
-            price:Number(this.material(item.materialId).purchasePrice) || 0,
+            price:this.materialBuyPrice(item.materialId),
             materialOpen:false,
             materialSearch:''
           }));
@@ -4595,7 +4607,6 @@ function app() {
             po.approvedAt = now;
             po.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:now, note:'Auto approve Manager' });
             this.reservePRQuantities(po);
-            this.updateMaterialPrices(po);
           } else {
             po.status = 'pending_approval';
           }
@@ -4630,7 +4641,6 @@ function app() {
         this.poSelectedId = po.id;
         if (autoApprove) {
           this.reservePRQuantities(po);
-          this.updateMaterialPrices(po);
         }
         this.notify(submit ? (autoApprove ? 'PO berhasil dibuat dan langsung disetujui' : 'PO berhasil dibuat dan disubmit') : 'Draft PO berhasil dibuat');
       }
@@ -4668,7 +4678,6 @@ function app() {
         po.approvedAt = todayISO();
         po.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'Auto approve Manager' });
         this.reservePRQuantities(po);
-        this.updateMaterialPrices(po);
         if (po.prId) {
           const pr = this.purchaseRequests.find(item => item.id === po.prId);
           if (pr) this.updatePRStatus(pr);
@@ -4811,12 +4820,6 @@ function app() {
       this.updatePRStatus(pr);
       pr.history = pr.history || [];
       pr.history.push({ action:'po-cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:po.code });
-    },
-    updateMaterialPrices(po) {
-      (po.items || []).forEach(poItem => {
-        const material = this.materials.find(item => item.id === poItem.materialId);
-        if (material) material.purchasePrice = Number(poItem.price) || 0;
-      });
     },
     /* ---------- GOODS RECEIPT ---------- */
     receiptSearch: '', receiptStatus: '', receiptSupplier: '',
@@ -5010,7 +5013,6 @@ function app() {
           material.stock = newQty;
           material.stockValue = newValue;
           material.avgCost = newQty > 0 ? newValue / newQty : Number(material.purchasePrice) || 0;
-          material.purchasePrice = Number(item.price) || material.purchasePrice;
         }
         this.stockMovements.unshift({
           id:'mv' + Date.now() + Math.random().toString(16).slice(2),
@@ -5027,6 +5029,7 @@ function app() {
           createdAt:now
         });
       });
+      this.rebuildAllMaterialCosts();
       const allReceived = (po.items || []).every(item => Number(item.receivedQty || 0) >= Number(item.qty));
       const anyReceived = (po.items || []).some(item => Number(item.receivedQty || 0) > 0);
       po.status = allReceived ? 'fully_received' : anyReceived ? 'partially_received' : po.status;
@@ -5145,19 +5148,20 @@ function app() {
       const grouped = {};
       this.stockMovements.forEach(movement => {
         const key = movement.materialId + '|' + movement.warehouseId;
-        if (!grouped[key]) grouped[key] = { materialId:movement.materialId, warehouseId:movement.warehouseId, qty:0, value:0 };
+        if (!grouped[key]) grouped[key] = { materialId:movement.materialId, warehouseId:movement.warehouseId, qty:0 };
         grouped[key].qty += Number(movement.qty) || 0;
-        grouped[key].value += Number(movement.value) || 0;
       });
       return Object.values(grouped).map(row => {
         const material = this.material(row.materialId);
+        const globalAvg = this.materialBuyPrice(material);
         return {
           ...row,
+          value:(Number(row.qty) || 0) * globalAvg,
           code:material.code || '-',
           name:material.name || '-',
           unit:material.unit || '',
           minStock:Number(material.minStock) || 0,
-          avgCost:row.qty > 0 ? row.value / row.qty : 0,
+          avgCost:globalAvg,
           warehouse:this.warehouseName(row.warehouseId),
           status:material.status
         };
@@ -5419,6 +5423,7 @@ function app() {
       this.purchaseReturnSelectedId = purchaseReturn.id;
       po.history = po.history || [];
       po.history.push({ action:'purchase-return', by:this.currentUser, byRole:this.role, at:now, note:code });
+      this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Return pembelian ' + code + ' berhasil diposting');
       this.go('purchase-returns');
@@ -5486,6 +5491,7 @@ function app() {
       pr.replacementJournalId = journal ? journal.id : '';
       pr.history = pr.history || [];
       pr.history.push({ action:'replacement-received', by:this.currentUser, byRole:this.role, at:now, note:pr.code });
+      this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Ganti barang ' + pr.code + ' diterima dan stok diperbarui');
     },
@@ -5542,6 +5548,7 @@ function app() {
       pr.voidedBy = this.currentUser;
       pr.history = pr.history || [];
       pr.history.push({ action:'void', by:this.currentUser, byRole:this.role, at:now, note:'' });
+      this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Return pembelian ' + pr.code + ' dibatalkan');
     },
@@ -6736,26 +6743,171 @@ function app() {
     },
     get hppOutputQty() { return this.hppProductionDocs.reduce((sum, row) => sum + (Number(row.qty) || 0), 0); },
     get hppProductionIds() { return this.hppProductionDocs.map(row => row.id); },
-    materialAveragePriceAt(materialId, asOf) {
+    /* ---------- MATERIAL COST (MOVING AVERAGE) ---------- */
+    materialLedgerRows(materialId) {
       const movements = (this.stockMovements || [])
-        .filter(row => row.materialId === materialId && (!asOf || row.date <= asOf))
-        .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
+        .filter(row => row.materialId === materialId)
+        .slice()
+        .reverse()
+        .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
       let qty = 0;
       let value = 0;
-      movements.forEach(row => {
+      return movements.map(row => {
         const delta = Number(row.qty) || 0;
-        const rowValue = Number(row.value) || 0;
+        const unitCost = Number(row.unitCost) || 0;
+        let rowValue = 0;
         if (delta > 0) {
+          rowValue = Number(row.value);
+          if (!Number.isFinite(rowValue) || Math.abs(rowValue) < 0.000001) rowValue = delta * unitCost;
           qty += delta;
-          value += rowValue || delta * (Number(row.unitCost) || 0);
+          value += rowValue;
         } else if (delta < 0) {
-          const unit = qty > 0 ? value / qty : (Number(row.unitCost) || 0);
           const used = Math.min(qty, Math.abs(delta));
+          const currentAvg = qty > 0 ? value / qty : unitCost;
+          rowValue = -used * currentAvg;
           qty -= used;
-          value -= used * unit;
+          value += rowValue;
+          if (qty <= 0.000001) { qty = 0; value = 0; }
         }
+        return {
+          ...row,
+          delta,
+          value:rowValue,
+          rowValue,
+          balanceQty:qty,
+          balanceValue:value,
+          avgCost:qty > 0 ? value / qty : unitCost
+        };
       });
-      return qty > 0 ? value / qty : null;
+    },
+    materialBuyPrice(materialOrId) {
+      const material = typeof materialOrId === 'string' ? this.material(materialOrId) : (materialOrId || {});
+      if (!material.id) return 0;
+      const stock = Number(material.stock) || 0;
+      const stockValue = Number(material.stockValue) || 0;
+      if (stock > 0 && stockValue > 0) return stockValue / stock;
+      if (stock <= 0) {
+        const initial = Number(material.purchasePrice) || 0;
+        if (initial > 0) return initial;
+      }
+      const avg = Number(material.avgCost) || 0;
+      if (avg > 0) return avg;
+      const historical = this.materialAveragePriceAt(material.id, '');
+      if (historical != null && historical > 0) return historical;
+      return Number(material.purchasePrice) || 0;
+    },
+    recordMaterialAdjustment(material, qty, unitCost, note = '') {
+      if (!material || !material.id || !qty) return;
+      const cost = Number(unitCost) || 0;
+      const date = todayISO();
+      this.stockMovements.unshift({
+        id:'mv' + Date.now() + Math.random().toString(16).slice(2),
+        date,
+        materialId:material.id,
+        warehouseId:(this.warehouses && this.warehouses[0] ? this.warehouses[0].id : 'wh1'),
+        type: qty > 0 ? 'opening' : 'adjustment',
+        qty,
+        value:qty * cost,
+        unitCost:cost,
+        refType:'material',
+        refId:material.id,
+        refNumber:material.code || '',
+        note,
+        createdAt:date
+      });
+    },
+    rebuildMaterialCost(materialId) {
+      const material = this.material(materialId);
+      if (!material.id) return;
+      const rows = this.materialLedgerRows(materialId);
+      if (!rows.length) return;
+      const last = rows[rows.length - 1];
+      material.stock = last.balanceQty;
+      material.stockValue = last.balanceValue;
+      material.avgCost = last.balanceQty > 0
+        ? last.balanceValue / last.balanceQty
+        : (Number(last.avgCost) || Number(material.purchasePrice) || 0);
+    },
+    rebuildAllMaterialCosts() {
+      (this.materials || []).forEach(material => this.rebuildMaterialCost(material.id));
+    },
+    ensureMaterialOpeningBalances() {
+      (this.materials || []).forEach(material => {
+        const rows = this.materialLedgerRows(material.id);
+        const stock = Number(material.stock) || 0;
+        if (!rows.length) {
+          if (stock <= 0) return;
+          const cost = Number(material.avgCost) || Number(material.purchasePrice) || 0;
+          this.stockMovements.push({
+            id:'mvopen' + material.id,
+            date:'2000-01-01',
+            materialId:material.id,
+            warehouseId:(this.warehouses && this.warehouses[0] ? this.warehouses[0].id : 'wh1'),
+            type:'opening',
+            qty:stock,
+            value:stock * cost,
+            unitCost:cost,
+            refType:'material',
+            refId:material.id,
+            refNumber:material.code || '',
+            note:'Saldo awal',
+            createdAt:'2000-01-01'
+          });
+          return;
+        }
+        const last = rows[rows.length - 1];
+        const diff = stock - last.balanceQty;
+        if (Math.abs(diff) <= 0.0001) return;
+        const cost = Number(material.avgCost) || Number(material.purchasePrice) || (last.balanceQty > 0 ? last.balanceValue / last.balanceQty : 0);
+        this.recordMaterialAdjustment(material, diff, cost, 'Penyesuaian saldo awal');
+      });
+    },
+    runMaterialCostSelfTest() {
+      const run = (moves) => {
+        let qty = 0;
+        let value = 0;
+        let totalUsed = 0;
+        moves.forEach(move => {
+          const delta = Number(move.qty) || 0;
+          if (delta > 0) {
+            qty += delta;
+            value += delta * (Number(move.price) || 0);
+          } else if (delta < 0) {
+            const used = Math.min(qty, Math.abs(delta));
+            const avg = qty > 0 ? value / qty : 0;
+            totalUsed += used * avg;
+            qty -= used;
+            value -= used * avg;
+            if (qty <= 0.000001) { qty = 0; value = 0; }
+          }
+        });
+        return { qty, value, avg:qty > 0 ? value / qty : 0, totalUsed };
+      };
+      const near = (a, b, tolerance = 0.01) => Math.abs(a - b) <= tolerance;
+      const cases = [];
+      const addCase = (name, actual, expected) => {
+        cases.push({ name, actual, expected, pass:near(actual, expected) });
+      };
+      const a1 = run([{ qty:10, price:10000 }, { qty:-6 }]);
+      addCase('A Nov sisa nilai', a1.value, 40000);
+      addCase('A Nov pemakaian', a1.totalUsed, 60000);
+      const a2 = run([{ qty:10, price:10000 }, { qty:-6 }, { qty:70, price:12000 }, { qty:-50 }]);
+      addCase('A Des rata-rata', a2.avg, 11891.891891891892);
+      addCase('A Des nilai akhir', a2.value, 285405.4054054054);
+      const b = run([{ qty:100, price:10000 }, { qty:-60 }, { qty:50, price:12000 }, { qty:-70 }]);
+      addCase('B rata-rata setelah beli', 1000000 / 90, 11111.111111111111);
+      addCase('B nilai pemakaian Des', b.totalUsed - 600000, 777777.7777777778);
+      addCase('B nilai akhir', b.value, 222222.22222222222);
+      const c = run([{ qty:40, price:10000 }, { qty:-30 }, { qty:50, price:12000 }, { qty:-40 }]);
+      addCase('C total pemakaian', c.totalUsed, 766666.6666666667);
+      return { passed:cases.every(item => item.pass), cases };
+    },
+    materialAveragePriceAt(materialId, asOf) {
+      const rows = this.materialLedgerRows(materialId)
+        .filter(row => !asOf || String(row.date || '') <= String(asOf));
+      if (!rows.length) return null;
+      const last = rows[rows.length - 1];
+      return last.balanceQty > 0 ? last.balanceValue / last.balanceQty : null;
     },
     hppMaterialPrice(materialId) {
       const override = this.hppForm && this.hppForm.materialOverrides[materialId];
@@ -10018,7 +10170,7 @@ function app() {
           if (this.materialVarianceOnlyDiff && Math.abs(varianceQty) < 0.0001) return;
           if (this.materialVarianceMaterial && materialRow.materialId !== this.materialVarianceMaterial) return;
           if (q && !((production.code || '') + ' ' + (production.description || '') + ' ' + this.productName(production.productId) + ' ' + (material.code || '') + ' ' + (material.name || '') + ' ' + (materialRow.note || '')).toLowerCase().includes(q)) return;
-          const price = Number(materialRow.price) || Number(material.avgCost) || Number(material.purchasePrice) || 0;
+          const price = Number(materialRow.price) || this.materialBuyPrice(material);
           rows.push({
             id:production.id + '-' + materialRow.materialId,
             productionId:production.id,
@@ -10123,7 +10275,7 @@ function app() {
         materialId:material.id,
         warehouseId:form.warehouseId,
         qty,
-        unitCost:Number(material.avgCost) || Number(material.purchasePrice) || 0,
+        unitCost:this.materialBuyPrice(material),
         description:form.description || 'Penyesuaian stok barang',
         by:this.currentUser,
         byRole:this.role,
@@ -10148,6 +10300,7 @@ function app() {
       });
       this.opnames.unshift(opname);
       this.materialOpnameModalOpen = false;
+      this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Stock opname barang berhasil disimpan');
     },
@@ -10205,7 +10358,7 @@ function app() {
     },
     productionUnitPrice(materialId) {
       const material = this.material(materialId);
-      return Number(material.avgCost) || Number(material.purchasePrice) || 0;
+      return this.materialBuyPrice(material);
     },
     recipeQtyFor(productId, materialId) {
       const recipe = this.recipes.find(row => row.productId === productId && row.materialId === materialId);
@@ -10494,6 +10647,7 @@ function app() {
       this.productionEditId = null;
       this.productionSelectedId = production.id;
       this.stockTab = 'production';
+      this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Produksi ' + code + ' berhasil disimpan');
     },
@@ -10576,6 +10730,7 @@ function app() {
       this.productionCorrection = false;
       this.productionEditId = null;
       this.productionSelectedId = original.id;
+      this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Koreksi produksi ' + original.code + ' berhasil disimpan');
     },
@@ -12014,7 +12169,7 @@ function app() {
             materialId:recipe.materialId,
             standardQty,
             qty:used,
-            price:Number(material.avgCost) || Number(material.purchasePrice) || 0,
+            price:this.materialBuyPrice(material),
             note:used !== standardQty ? 'Penyesuaian lapangan' : '',
             fromRecipe:true
           };
@@ -12057,7 +12212,7 @@ function app() {
           materialId:recipe.materialId,
           standardQty:qty,
           qty,
-          price:Number(material.avgCost) || Number(material.purchasePrice) || 0,
+          price:this.materialBuyPrice(material),
           note:'Skenario demo',
           fromRecipe:true
         };
@@ -12181,6 +12336,7 @@ function app() {
       this.productionSelectedId = prod1.id;
       this.stockTab = 'production';
       this.materialStockTab = 'active';
+      this.rebuildAllMaterialCosts();
       this.persist();
       if (!this.canvasMode) this.notify('Data dummy berhasil diisi. Silakan jelajahi modul aplikasi.');
       this.go('dashboard');
