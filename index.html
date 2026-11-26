@@ -835,12 +835,12 @@
         <div x-show="orderTab === 'history'">
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Tanggal</th><th>Order ID</th><th>Pelanggan</th><th class="num">Nilai Transaksi</th><th>Sales</th><th>Status</th><th>Pembayaran</th><th class="actions">Action</th></tr></thead>
+              <thead><tr><th>Jadwal</th><th>Order ID</th><th>Pelanggan</th><th class="num">Nilai Transaksi</th><th>Sales</th><th>Metode</th><th>Status</th><th>Status Bayar</th><th class="actions">Action</th></tr></thead>
               <tbody>
                 <template x-for="o in orderHistory" :key="o.id">
-                  <tr><td x-text="dateShort(o.schedule)"></td><td><button class="font-medium text-blue-600 hover:underline" @click="viewInvoice(o.id)" x-text="o.code"></button></td><td x-text="customerName(o.customerId)"></td><td class="num" x-text="rp(o.total)"></td><td x-text="o.sales"></td><td><span class="badge" :class="statusBadge(o.status)" x-text="statusLabel(o.status)"></span></td><td><span class="badge" :class="paymentBadge(o.payment)" x-text="paymentLabel(o.payment)"></span></td><td class="actions"><button class="icon-btn icon-btn-sm" @click="viewOrder(o.id)"><svg class="icon icon-sm"><use href="#i-eye"></use></svg></button></td></tr>
+                  <tr><td x-text="dateShort(o.schedule || o.date)"></td><td><button class="font-medium text-blue-600 hover:underline" @click="viewInvoice(o.id)" x-text="o.code"></button></td><td x-text="customerName(o.customerId)"></td><td class="num" x-text="rp(o.total)"></td><td x-text="o.sales"></td><td><span class="badge" :class="paymentMethodBadge(o.paymentMethod)" x-text="paymentMethodLabel(o.paymentMethod)"></span></td><td><span class="badge" :class="statusBadge(o.status)" x-text="statusLabel(o.status)"></span></td><td><span class="badge" :class="paymentBadge(o.payment)" x-text="paymentLabel(o.payment)"></span></td><td class="actions"><button class="icon-btn icon-btn-sm" @click="viewOrder(o.id)"><svg class="icon icon-sm"><use href="#i-eye"></use></svg></button></td></tr>
                 </template>
-                <tr x-show="orderHistory.length === 0"><td colspan="8" class="text-center text-slate-400 py-8">Belum ada riwayat order untuk pelanggan ini.</td></tr>
+                <tr x-show="orderHistory.length === 0"><td colspan="9" class="text-center text-slate-400 py-8">Belum ada riwayat order untuk pelanggan ini.</td></tr>
               </tbody>
             </table>
           </div>
@@ -915,7 +915,7 @@
           <table class="data-table">
             <thead><tr>
               <th><input type="checkbox" class="checkbox" :checked="selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0" @change="toggleAllOrders()"></th>
-              <th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th class="hidden md:table-cell">Order by</th><th>Order Radius</th><th>Delivery</th><th>Status</th><th class="actions">Action</th>
+              <th>Order ID</th><th>Pelanggan</th><th>Jadwal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th>Pembayaran</th><th class="hidden md:table-cell">Order by</th><th>Order Radius</th><th>Delivery</th><th>Status</th><th class="actions">Action</th>
             </tr></thead>
             <tbody>
               <template x-for="o in filteredOrders" :key="o.id">
@@ -923,9 +923,10 @@
                   <td><input type="checkbox" class="checkbox" :checked="selectedOrderIds.includes(o.id)" @change="toggleOrder(o.id)"></td>
                   <td><button class="font-semibold text-blue-600 hover:underline" @click="viewInvoice(o.id)" x-text="o.code"></button></td>
                   <td><div class="font-semibold" x-text="customerName(o.customerId)"></div><span class="sub" x-text="customer(o.customerId).address"></span></td>
-                  <td x-text="dateShort(o.schedule)"></td>
+                  <td x-text="dateShort(o.schedule || o.date)"></td>
                   <td class="num font-medium" x-text="rp(o.total)"></td>
                   <td><span class="flex items-center gap-2"><span class="avatar" x-text="initials(o.sales)"></span><span x-text="o.sales"></span></span></td>
+                  <td><span class="badge" :class="paymentMethodBadge(o.paymentMethod)" x-text="paymentMethodLabel(o.paymentMethod)"></span></td>
                   <td class="hidden md:table-cell"><span class="flex items-center gap-2"><span class="avatar blue" x-text="initials(orderCreatorName(o))"></span><span><span class="block" x-text="orderCreatorName(o)"></span><span class="sub" x-text="orderSalesChannel(o)"></span></span></span></td>
                   <td><span class="badge" :class="o.radius === 'onsite' ? 'badge-green' : 'badge-red'" x-text="o.radius === 'onsite' ? 'Onsite' : 'Offsite'"></span></td>
                   <td><span class="badge" :class="o.delivery === 'full' ? 'badge-green' : 'badge-stone'" x-text="o.delivery === 'full' ? 'Penuh' : 'Parsial'"></span></td>
@@ -935,7 +936,7 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="filteredOrders.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Data Tidak Ditemukan</div><div class="text-xs text-slate-400">Coba ubah filter atau buat order baru.</div></div></td></tr>
+              <tr x-show="filteredOrders.length === 0"><td colspan="12"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Data Tidak Ditemukan</div><div class="text-xs text-slate-400">Coba ubah filter atau buat order baru.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -990,7 +991,7 @@
               </div>
               <div class="space-y-1">
                 <div><span class="inline-block w-32 text-slate-400">Tanggal Invoice</span><span x-text="dateShort(selectedOrder.date)"></span></div>
-                <div><span class="inline-block w-32 text-slate-400">Metode Pembayaran</span><span x-text="selectedOrder.paymentMethod || 'Kredit'"></span></div>
+                <div><span class="inline-block w-32 text-slate-400">Metode Pembayaran</span><span x-text="selectedOrder.paymentMethod || '-'"></span></div>
                 <div><span class="inline-block w-32 text-slate-400">Jenis Harga</span><span x-text="selectedOrder.priceTypeName || priceTypeName(customerPriceTypeId(customer(selectedOrder.customerId)))"></span></div>
                 <div x-show="(selectedOrder.paymentMethod || 'Kredit') !== 'Tunai'"><span class="inline-block w-32 text-slate-400">Tanggal Jatuh Tempo</span><span x-text="dateShort(selectedOrder.dueDate)"></span></div>
                 <div><span class="inline-block w-32 text-slate-400">Sales</span><span x-text="selectedOrder.sales"></span></div>
@@ -1054,7 +1055,7 @@
                 </div>
                 <div class="space-y-1">
                   <div><span class="inline-block w-32 text-slate-400">Tanggal Invoice</span><span x-text="dateShort(order.date)"></span></div>
-                  <div><span class="inline-block w-32 text-slate-400">Metode Pembayaran</span><span x-text="order.paymentMethod || 'Kredit'"></span></div>
+                  <div><span class="inline-block w-32 text-slate-400">Metode Pembayaran</span><span x-text="order.paymentMethod || '-'"></span></div>
                   <div><span class="inline-block w-32 text-slate-400">Jenis Harga</span><span x-text="order.priceTypeName || priceTypeName(customerPriceTypeId(customer(order.customerId)))"></span></div>
                   <div x-show="(order.paymentMethod || 'Kredit') !== 'Tunai'"><span class="inline-block w-32 text-slate-400">Tanggal Jatuh Tempo</span><span x-text="dateShort(order.dueDate)"></span></div>
                   <div><span class="inline-block w-32 text-slate-400">Sales</span><span x-text="order.sales"></span></div>
@@ -1152,21 +1153,22 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th><input type="checkbox" class="checkbox" :checked="deliveryDraft.orderIds.length === deliveryCandidates.length && deliveryCandidates.length > 0" @change="deliveryDraft.orderIds = deliveryDraft.orderIds.length === deliveryCandidates.length ? [] : deliveryCandidates.map(o => o.id)"></th><th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th>Pesanan</th><th>Status</th></tr></thead>
+            <thead><tr><th><input type="checkbox" class="checkbox" :checked="deliveryDraft.orderIds.length === deliveryCandidates.length && deliveryCandidates.length > 0" @change="deliveryDraft.orderIds = deliveryDraft.orderIds.length === deliveryCandidates.length ? [] : deliveryCandidates.map(o => o.id)"></th><th>Order ID</th><th>Pelanggan</th><th>Jadwal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th>Pembayaran</th><th>Pesanan</th><th>Status</th></tr></thead>
             <tbody>
               <template x-for="o in deliveryCandidates" :key="o.id">
                 <tr>
                   <td><input type="checkbox" class="checkbox" :checked="deliveryDraft.orderIds.includes(o.id)" @change="toggleDeliveryOrder(o.id)"></td>
                   <td class="font-semibold" x-text="o.code"></td>
                   <td><div class="font-semibold" x-text="customerName(o.customerId)"></div><span class="sub" x-text="customer(o.customerId).address"></span></td>
-                  <td x-text="dateShort(o.schedule)"></td>
+                  <td x-text="dateShort(o.schedule || o.date)"></td>
                   <td class="num" x-text="rp(o.total)"></td>
                   <td x-text="o.sales"></td>
+                  <td><span class="badge" :class="paymentMethodBadge(o.paymentMethod)" x-text="paymentMethodLabel(o.paymentMethod)"></span></td>
                   <td><button class="btn btn-outline btn-xs" @click="viewOrder(o.id)"><svg class="icon icon-xs"><use href="#i-box"></use></svg> Detail</button></td>
                   <td><span class="badge" :class="statusBadge(o.status)" x-text="statusLabel(o.status)"></span></td>
                 </tr>
               </template>
-              <tr x-show="deliveryCandidates.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Tidak ada order yang siap dikirim</div></div></td></tr>
+              <tr x-show="deliveryCandidates.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Tidak ada order yang siap dikirim</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1195,7 +1197,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Order ID</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th class="num">Tunai (Kas)</th><th class="num">Transfer</th><th>Akun Transfer</th><th class="num">Piutang</th><th>Status</th><th class="actions">Action</th></tr></thead>
+            <thead><tr><th>Order ID</th><th>Pelanggan</th><th>Jadwal</th><th class="num">Nilai Transaksi</th><th>Sales</th><th>Pembayaran</th><th class="num">Tunai (Kas)</th><th class="num">Transfer</th><th>Akun Transfer</th><th class="num">Piutang</th><th>Status</th><th class="actions">Action</th></tr></thead>
             <tbody>
               <template x-for="row in checkRows" :key="row.orderId">
                 <tr>
@@ -1204,6 +1206,7 @@
                   <td x-text="dateShort(row.date)"></td>
                   <td class="num" x-text="rp(row.amount)"></td>
                   <td x-text="order(row.orderId).sales"></td>
+                  <td><span class="badge" :class="paymentMethodBadge(row.paymentMethod)" x-text="paymentMethodLabel(row.paymentMethod)"></span></td>
                   <td class="num"><span x-show="deliveryReadOnly" x-text="rp(row.cash)"></span><input x-show="!deliveryReadOnly" type="number" class="input input-sm w-28 text-right" x-model.number="row.cash" min="0"></td>
                   <td class="num"><span x-show="deliveryReadOnly" x-text="rp(row.transfer)"></span><input x-show="!deliveryReadOnly" type="number" class="input input-sm w-28 text-right" x-model.number="row.transfer" min="0"></td>
                   <td>
@@ -1219,7 +1222,7 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="checkRows.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada order</div><div class="text-xs text-slate-400">Buka halaman ini dari daftar surat jalan.</div></div></td></tr>
+              <tr x-show="checkRows.length === 0"><td colspan="12"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada order</div><div class="text-xs text-slate-400">Buka halaman ini dari daftar surat jalan.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -5512,7 +5515,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261126a"></script>
+<script src="assets/app.js?v=20261126b"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

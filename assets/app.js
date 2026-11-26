@@ -523,6 +523,7 @@ function app() {
     },
     saveStore() {
       if (this.canvasMode) return;
+      this.ensureOrderSchedules();
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify({
           version: STORE_VERSION,
@@ -658,6 +659,7 @@ function app() {
       DOMAIN_KEYS.forEach(key => {
         if (parsed.data[key] !== undefined) this[key] = parsed.data[key];
       });
+      this.ensureOrderSchedules();
       this.ensureMaterialOpeningBalances();
       this.rebuildAllMaterialCosts();
       this.savedAt = parsed.savedAt || null;
@@ -708,6 +710,7 @@ function app() {
           customer.priceTypeId = customer.priceType === 'out' ? 'pt2' : (defaultId || 'pt1');
         }
       });
+      this.ensureOrderSchedules();
       this.ensureMaterialOpeningBalances();
       this.rebuildAllMaterialCosts();
     },
@@ -2328,6 +2331,8 @@ function app() {
     },
     paymentBadge(p) { return p === 'paid' || p === 'partial' ? 'badge-green' : 'badge-yellow'; },
     paymentLabel(p) { return p === 'paid' ? 'Lunas' : p === 'partial' ? 'Dibayar sebagian' : 'Belum dibayar'; },
+    paymentMethodLabel(method) { return method || '-'; },
+    paymentMethodBadge(method) { return { Tunai:'badge-green', Transfer:'badge-blue', Kredit:'badge-yellow' }[method] || 'badge-slate'; },
     printPage() { window.print(); },
     notify(message, type = 'success') {
       this.toast = { show: true, message, type };
@@ -3145,6 +3150,7 @@ function app() {
         const data = this.pendingImport;
         this.pendingImport = null;
         DOMAIN_KEYS.forEach(key => { if (data[key] !== undefined) this[key] = data[key]; });
+        this.ensureOrderSchedules();
         this.ensureMaterialOpeningBalances();
         this.rebuildAllMaterialCosts();
         this.syncRoleCounts();
@@ -3461,7 +3467,7 @@ function app() {
       const sales = this.role === 'Sales' ? this.currentUser : this.dashboardSales;
       const matchSales = (value) => !sales || sales === 'all' || value === sales;
       if (this.dashRecapTab === 'income') {
-        const rows = this.orders.filter(o => o.schedule === date && o.status !== 'cancel' && matchSales(o.sales));
+        const rows = this.orders.filter(o => (o.schedule || o.date) === date && o.status !== 'cancel' && matchSales(o.sales));
         const total = rows.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         let cash = 0;
         let transfer = 0;
@@ -9328,8 +9334,18 @@ function app() {
         return true;
       });
     },
+    ensureOrderSchedules() {
+      let changed = false;
+      (this.orders || []).forEach(order => {
+        if (!order.schedule) {
+          order.schedule = order.date || todayISO();
+          changed = true;
+        }
+      });
+      return changed;
+    },
     isOrderedToday(c) {
-      return this.orders.some(o => o.customerId === c.id && o.schedule === this.orderDate && !['cancel','failed','rejected'].includes(o.status));
+      return this.orders.some(o => o.customerId === c.id && (o.schedule || o.date) === this.orderDate && !['cancel','failed','rejected'].includes(o.status));
     },
     customerOrderCount(customerId) {
       return this.orders.filter(o => o.customerId === customerId && !['cancel','failed','rejected'].includes(o.status)).length;
@@ -9811,7 +9827,8 @@ function app() {
       this.selectedDeliveryId = d.id;
       this.deliveryReadOnly = readonly;
       this.checkRows = this.deliveryOrders(d).map(o => ({
-        orderId:o.id, code:o.code, customerId:o.customerId, date:o.schedule, amount:o.total,
+        orderId:o.id, code:o.code, customerId:o.customerId, date:o.schedule || o.date, amount:o.total,
+        paymentMethod:o.paymentMethod || '',
         cash:0, transfer:0,
         transferAccountId:o.transferAccountId || (d.transferAccounts && d.transferAccounts[o.id]) || this.defaultBankAccountId
       }));

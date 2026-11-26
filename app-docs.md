@@ -986,10 +986,11 @@ Permission: `Order Admin`
   - Tombol **+ Buat Order**.
 - Tabel:
   - Checkbox select-all.
-  - `Order ID`, `Pelanggan` (nama + alamat), `Tanggal`, `Nilai Transaksi` (rata kanan), `Sales` (avatar), `Dibuat Oleh` (avatar + channel Sales/Sales Kantor), `Order Radius`, `Delivery`, `Status`, `Action`.
+  - `Order ID`, `Pelanggan` (nama + alamat), `Jadwal`, `Nilai Transaksi` (rata kanan), `Sales` (avatar), `Pembayaran` (badge Tunai/Transfer/Kredit), `Dibuat Oleh` (avatar + channel Sales/Sales Kantor), `Order Radius`, `Delivery`, `Status`, `Action`.
   - Radius: badge Onsite hijau / Offsite merah.
   - Delivery: badge Penuh hijau / Parsial abu.
   - Status badge sesuai tabel status.
+  - `Jadwal` memakai `schedule`; jika kosong memakai `date` (tanggal invoice). Order lama yang `schedule`-nya kosong di-backfill otomatis dari `date`.
   - Action dropdown:
     - **Konfirmasi** (jika pending)
     - **View Detail**
@@ -1073,7 +1074,7 @@ Route: `/dashboard/order/delivery/create`
   - Search, multi-select pelanggan, tanggal, sales, status.
   - Status yang tersedia: **Siap dikirim**, **Ditahan**, **Selesai sebagian** (pending/processing/shipping/success dikecualikan).
 - Tabel order:
-  - Checkbox, `Order ID`, `Pelanggan` (nama + alamat), `Tanggal`, `Nilai Transaksi`, `Sales` (avatar), `Pesanan` (tombol **Detail** buka tab baru), `Status`.
+  - Checkbox, `Order ID`, `Pelanggan` (nama + alamat), `Jadwal`, `Nilai Transaksi`, `Sales` (avatar), `Pembayaran` (badge Tunai/Transfer/Kredit), `Pesanan` (tombol **Detail** buka tab baru), `Status`.
 - Preview button aktif jika minimal 1 order dipilih + driver + armada + gudang terisi.
 - **Preview Surat Jalan** (modal lebar):
   - Ringkasan periode, driver, armada, gudang.
@@ -1088,7 +1089,7 @@ Route: `/dashboard/order/delivery/detail/{delivery}`
 - Jika ada baris dicentang: dropdown **Action** → **Cetak Invoice** (multi).
 - Metadata: Delivery Order ID, Periode, Driver, Armada, Gudang.
 - Tabel:
-  - Checkbox, `Order ID`, `Pelanggan`, `Tanggal`, `Nilai Transaksi`, `Sales`, `Tunai`, `Transfer`, `Piutang`, `Status`, `Action`.
+  - Checkbox, `Order ID`, `Pelanggan`, `Jadwal`, `Nilai Transaksi`, `Sales`, `Pembayaran` (badge Tunai/Transfer/Kredit), `Tunai`, `Transfer`, `Akun Transfer`, `Piutang`, `Status`, `Action`.
 - Action per baris:
   - **Return** → modal return.
   - **Hapus** → hapus order dari delivery (jika lebih dari 1).
@@ -1101,6 +1102,8 @@ Route: `/dashboard/order/delivery/check/{delivery}`
 - Header back; dropdown Action Cetak Invoice; tombol **Submit** (jika status ≠ success).
 - Metadata sama.
 - Tabel sama, tetapi kolom **Tunai** dan **Transfer** berupa input angka sebelum submit.
+- Kolom **Pembayaran** menampilkan metode yang dipilih Sales (Tunai/Transfer/Kredit) sebagai panduan; nominal tetap diisi manual.
+- Kolom **Akun Transfer** muncul per baris saat nominal Transfer > 0.
   - Piutang dihitung otomatis: `total_amount - (cash + transfer)` minimal 0.
   - Input tidak boleh melebihi total (clamp).
 - Baris dengan order `success` menampilkan nilai read-only.
