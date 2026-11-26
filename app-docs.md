@@ -1249,7 +1249,7 @@ Route: `/dashboard/product`
 - Nama Barang *.
 - Satuan * — select dengan `+ Tambah Satuan`.
 - Harga Modal * (Rp).
-- Harga Jual ditampilkan sebagai tabel per **Tipe Harga aktif** (Tipe Harga, Harga Jual, Default, Status). Harga tipe default wajib diisi; tipe lain yang kosong memakai harga default.
+- Harga Jual ditampilkan pada **card terpisah** dengan tabel 2 kolom: **Tipe Harga** (lebar) dan **Harga Jual** (sempit, prefix `Rp`). Kolom Default dan Status tidak ditampilkan. Harga tipe default wajib diisi; tipe lain yang kosong memakai harga default.
 - Tipe harga baru otomatis menyalin harga tipe default ke seluruh produk.
 - Keterangan.
 - Batal/Simpan.

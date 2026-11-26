@@ -100,6 +100,7 @@ html.canvas-measuring *::after { transition: none !important; animation: none !i
 .input-group { display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: .6rem; overflow: hidden; background: #fff; }
 .input-group .input { border: 0; border-radius: 0; height: 2.4rem; }
 .input-group .addon { display: flex; align-items: center; padding: 0 .65rem; background: #f8fafc; color: #64748b; font-size: .75rem; border-left: 1px solid var(--border); white-space: nowrap; }
+.input-group .addon.prepend { border-left: 0; border-right: 1px solid var(--border); }
 .checkbox, .radio { width: 1rem; height: 1rem; accent-color: var(--navy); cursor: pointer; }
 
 /* Cards */
