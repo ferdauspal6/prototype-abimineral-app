@@ -520,6 +520,8 @@ Setiap label grup dapat diklik untuk **expand/collapse**. Chevron berputar saat 
 | Invoice Delivery | `/dashboard/order/delivery/invoice/{delivery}` | `Order Admin` |
 | Produk Delivery | `/dashboard/order/delivery/product/{delivery}` | `Order Admin` |
 | Return | `/dashboard/order/retur` | `Order Admin` |
+| Stock Produk | `/dashboard/inventory/stock-product` | `Stock` |
+| Stock Barang | `/dashboard/inventory/stock-material` | `Stock` |
 | Stock Aktif | `/dashboard/inventory/stock` | `Stock` |
 | Riwayat Stock | `/dashboard/inventory/history` | `Stock` |
 | Stock Opname | `/dashboard/inventory/opname` | `Stock` + `Stock Opname` |
@@ -655,16 +657,22 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 
 ### 7.5 Stock
 
-1. **Stock Aktif**: daftar produk + total stok dari semua gudang.
+Menu Stock dipisah menjadi dua halaman di sidebar:
+- **Stock Produk** — produk jadi.
+- **Stock Barang** — bahan baku.
+
+Tab **Produk / Barang** di dalam halaman dihapus.
+
+1. **Stock Produk → Stock Aktif**: daftar produk + total stok dari semua gudang.
 2. **Produksi**: membuat produk jadi dari bahan baku berdasarkan resep; standar dapat disesuaikan dengan pemakaian aktual.
 3. **Riwayat**: pergerakan stock masuk, produksi, koreksi produksi; nomor PRD dapat diklik menuju detail.
 4. **Opname**: penyesuaian stok per produk/gudang; qty positif menambah, negatif mengurangi.
-5. **Barang → Stock Aktif**: qty dan nilai bahan per gudang.
-6. **Barang → Riwayat**: pergerakan bahan baku dari penerimaan, return, produksi, dan opname.
-7. **Barang → Opname**: penyesuaian stok bahan baku per gudang; qty positif menambah, negatif mengurangi; tersimpan sebagai pergerakan `opname`.
+5. **Stock Barang → Stock Aktif**: qty dan nilai bahan per gudang.
+6. **Stock Barang → Riwayat**: pergerakan bahan baku dari penerimaan, return, produksi, dan opname.
+7. **Stock Barang → Opname**: penyesuaian stok bahan baku per gudang; qty positif menambah, negatif mengurangi; tersimpan sebagai pergerakan `opname`.
 8. **Master Barang**: status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
 9. **Master Gudang**: kode otomatis `ST-0001`.
-10. **Barang → Selisih**: analisis pemakaian bahan baku per tanggal, produk, bahan, dan gudang.
+10. **Stock Barang → Selisih**: analisis pemakaian bahan baku per tanggal, produk, bahan, dan gudang.
     - Selisih = qty aktual dipakai − qty standar resep.
     - Positif berarti lebih pakai, negatif berarti hemat.
     - Ringkasan per bahan dan detail per dokumen produksi.
@@ -1200,13 +1208,19 @@ Route: `/dashboard/order/retur`
 
 ---
 
-### 8.7 Inventory / Stock
+### 8.7 Inventory / Stock Produk & Stock Barang
 
-#### 8.7.1 Stock Aktif
+Menu Logistik memiliki dua halaman terpisah:
+- **Stock Produk** — menampilkan tab **Stock Aktif**, **Produksi**, **Riwayat**, dan **Opname**.
+- **Stock Barang** — menampilkan tab **Stock Aktif**, **Riwayat**, **Opname**, dan **Selisih**.
 
-Route: `/dashboard/inventory/stock`
+Tab **Produk / Barang** di bagian atas halaman dihapus.
 
-- Tabs: **Stock Aktif**, **Riwayat**, **Opname**.
+#### 8.7.1 Stock Aktif Produk
+
+Route: `/dashboard/inventory/stock-product`
+
+- Tabs: **Stock Aktif**, **Produksi**, **Riwayat**, **Opname**.
 - Toolbar: search, multi-select status barang, tombol **+ Tambah Stock**.
 - Tabel: `#`, `Kode Barang`, `Nama Barang`, `Stock Aktif` (rata kanan, angka + satuan).
 - Pagination.

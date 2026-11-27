@@ -434,7 +434,7 @@
           <div class="card" x-show="dashboardAccess.stock">
             <div class="card-header">
               <div class="section-title">Informasi Stock</div>
-              <button class="btn btn-ghost btn-xs" @click="go('stock')">Lihat semua <svg class="icon icon-xs"><use href="#i-chevron-right"></use></svg></button>
+              <button class="btn btn-ghost btn-xs" @click="go('stock-product')">Lihat semua <svg class="icon icon-xs"><use href="#i-chevron-right"></use></svg></button>
             </div>
             <div class="card-body pt-0 space-y-3">
               <div class="seg w-full">
@@ -479,7 +479,7 @@
               </div>
               <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs">
                 <span class="flex items-center gap-2"><svg class="icon icon-sm text-slate-400"><use href="#i-package"></use></svg> Produksi bulan ini</span>
-                <span class="flex items-center gap-2"><b x-text="stockDashboardStats.productionMonth"></b><button class="text-blue-600 hover:underline" @click="stockView = 'product'; stockTab = 'production'; go('stock')">Lihat</button></span>
+                <span class="flex items-center gap-2"><b x-text="stockDashboardStats.productionMonth"></b><button class="text-blue-600 hover:underline" @click="stockTab = 'production'; go('stock-product')">Lihat</button></span>
               </div>
             </div>
           </div>
@@ -1326,11 +1326,7 @@
       </section>
 
       <!-- STOCK -->
-      <section x-show="page === 'stock'">
-        <div class="seg mb-4">
-          <button class="seg-btn" :class="{ 'active': stockView === 'product' }" @click="stockView = 'product'">Produk</button>
-          <button class="seg-btn" :class="{ 'active': stockView === 'material' }" @click="stockView = 'material'">Barang</button>
-        </div>
+      <section x-show="['stock','stock-product','stock-material'].includes(page)">
         <div x-show="stockView === 'product'">
         <div class="seg w-fit mb-4">
           <button class="seg-btn" :class="{ 'active': stockTab === 'active' }" @click="stockTab = 'active'">Stock Aktif</button>
@@ -5846,7 +5842,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261127e"></script>
+<script src="assets/app.js?v=20261127f"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

@@ -69,6 +69,8 @@ const PAGE_PERMISSION = {
   'trial-balance': 'Laporan Keuangan',
   reports: 'Laporan Keuangan',
   stock: 'Stock',
+  'stock-product': 'Stock',
+  'stock-material': 'Stock',
   receivables: 'Piutang',
   payables: 'Utang',
   'collection-create': 'Piutang',
@@ -1634,7 +1636,8 @@ function app() {
           { page: 'warehouses', label: 'Master Gudang', icon: 'i-warehouse', match: ['warehouses'] },
           { page: 'products', label: 'Master Produk', icon: 'i-package', match: ['products','product-create'] },
           { page: 'materials', label: 'Master Barang', icon: 'i-box', match: ['materials'] },
-          { page: 'stock', label: 'Stock', icon: 'i-boxes', match: ['stock'] }
+          { page: 'stock-product', label: 'Stock Produk', icon: 'i-boxes', match: ['stock-product'] },
+          { page: 'stock-material', label: 'Stock Barang', icon: 'i-box', match: ['stock-material'] }
         ]},
         { title: 'HR', items: [
           { page: 'employees', label: 'Data Pegawai', icon: 'i-users', match: ['employees'] },
@@ -1709,6 +1712,8 @@ function app() {
         'delivery-invoice': { title: 'Preview Delivery', crumb: 'Order / Surat Jalan / Invoice' },
         returns: { title: 'Return', crumb: 'Order / Return' },
         stock: { title: 'Stock', crumb: 'Stock' },
+        'stock-product': { title: 'Stock Produk', crumb: 'Logistik / Stock Produk' },
+        'stock-material': { title: 'Stock Barang', crumb: 'Logistik / Stock Barang' },
         warehouses: { title: 'Master Gudang', crumb: 'Master Gudang' },
         products: { title: 'Master Produk', crumb: 'Master Produk' },
         'product-create': { title: 'Form Produk', crumb: 'Master Produk / Form Produk' },
@@ -1779,6 +1784,10 @@ function app() {
       if (page === 'receipt-preview') return this.receipts.length > 0;
       return true;
     },
+    applyStockPageView(page) {
+      if (page === 'stock-product') this.stockView = 'product';
+      if (page === 'stock-material') this.stockView = 'material';
+    },
     go(page) {
       if (page === 'trial-balance') page = 'reports';
       if (page !== 'login' && !this.currentUserId) {
@@ -1800,6 +1809,7 @@ function app() {
       if (page === 'finance-income') this.financeTab = 'income';
       if (page === 'finance-expense') this.financeTab = 'expense';
       if (page === 'attendance') this.attendanceView = 'list';
+      this.applyStockPageView(page);
       this.mobileMenu = false;
       this.userMenu = false;
       this.closeModals();
@@ -2003,13 +2013,13 @@ function app() {
           break;
         }
         case 'stock-modal': {
-          this.page = 'stock';
+          this.page = 'stock-product';
           this.stockView = 'product';
           this.openStock();
           break;
         }
         case 'opname-modal': {
-          this.page = 'stock';
+          this.page = 'stock-product';
           this.stockView = 'product';
           this.openOpname();
           break;
@@ -2229,6 +2239,7 @@ function app() {
         if (!this.canAccessPage(next) || !this.pageRequiresData(next)) next = 'dashboard';
         this.page = next;
         this.sessionPage = next;
+        this.applyStockPageView(next);
         try { history.replaceState(null, '', '#' + next); } catch (e) {}
       }
       if (['hpp-bulanan-create','hpp-bulanan-detail'].includes(this.page)) this.hppTab = 'bulanan';
@@ -2249,6 +2260,7 @@ function app() {
         if (!this.canAccessPage(next) || !this.pageRequiresData(next)) { this.go('dashboard'); return; }
         this.page = next;
         this.sessionPage = next;
+        this.applyStockPageView(next);
         if (next === 'finance-income') this.financeTab = 'income';
         if (next === 'finance-expense') this.financeTab = 'expense';
         if (['delivery-check','delivery-detail'].includes(next) && this.deliveries.length) {
@@ -2283,6 +2295,7 @@ function app() {
       this.loginRole = this.role;
       this.sessionPage = this.sessionPage && this.canAccessPage(this.sessionPage) ? this.sessionPage : 'dashboard';
       this.page = this.sessionPage;
+      this.applyStockPageView(this.page);
       this.saveStore();
       try { history.replaceState(null, '', '#' + this.page); } catch (e) {}
       this.notify('Selamat datang, ' + user.name);
