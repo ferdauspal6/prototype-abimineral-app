@@ -2056,7 +2056,7 @@ function app() {
             this.purchaseRequests.unshift(pr);
           }
           this.openPOCreate(pr);
-          if (this.poForm.items[1]) this.poForm.items[1].include = false;
+          if (this.poPrPickerRows[1]) this.poPrPickerRows[1].include = false;
           break;
         }
         case 'purchase-order-preview': {
@@ -2384,6 +2384,7 @@ function app() {
       this.prRejectOpen = false;
       this.poDetailOpen = false;
       this.poRejectOpen = false;
+      this.poPrPickerOpen = false;
       this.receiptDetailOpen = false;
       this.receiptHistoryOpen = false;
       this.purchaseReturnDetailOpen = false;
@@ -4391,7 +4392,8 @@ function app() {
     poSearch: '', poStatus: '', poSupplier: '',
     poSelectedId: null, poDetailOpen: false, poRejectOpen: false, poRejectId: null, poRejectReason: '',
     poEditId: null,
-    poForm: { date:todayISO(), supplierId:'', prId:'', paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
+    poPrSelectValue: '', poPrPickerOpen: false, poPrPickerPrId: null, poPrPickerRows: [],
+    poForm: { date:todayISO(), supplierId:'', prId:'', paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
     get filteredPurchaseOrders() {
       const q = this.poSearch.toLowerCase();
       return this.purchaseOrders.filter(po => {
@@ -4407,6 +4409,29 @@ function app() {
     },
     get poSourcePR() {
       return this.purchaseRequests.find(pr => pr.id === this.poForm.prId) || null;
+    },
+    get poPrOptions() {
+      const list = (this.purchaseRequests || [])
+        .filter(pr => ['approved','processing'].includes(pr.status) && this.prHasRemaining(pr, this.poEditId))
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.code || '').localeCompare(String(a.code || '')));
+      if (this.poForm.prId && !list.some(pr => pr.id === this.poForm.prId)) {
+        const current = (this.purchaseRequests || []).find(pr => pr.id === this.poForm.prId);
+        if (current) list.unshift(current);
+      }
+      return list;
+    },
+    get poPrPickerPr() {
+      return (this.purchaseRequests || []).find(pr => pr.id === this.poPrPickerPrId) || null;
+    },
+    get poPrPickerSelected() {
+      return (this.poPrPickerRows || []).filter(row => row.include && Number(row.qty) > 0);
+    },
+    get poPrPickerSelectedQty() {
+      return this.poPrPickerSelected.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+    },
+    get poPrPickerAllChecked() {
+      const rows = (this.poPrPickerRows || []).filter(row => row.remaining > 0);
+      return rows.length > 0 && rows.every(row => row.include);
     },
     get canApprovePO() { return this.role === 'Manager'; },
     get poSubtotal() {
@@ -4434,8 +4459,91 @@ function app() {
         afterQty: Math.max(0, remainingQty - includedQty)
       };
     },
-    setAllPOItems(include) {
-      (this.poForm.items || []).forEach(item => { item.include = !!include; });
+    onPoPrSelect() {
+      const value = this.poPrSelectValue || '';
+      if (!value) {
+        const hadPr = !!this.poForm.prId;
+        this.poForm.prId = '';
+        this.poForm.items = [{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }];
+        this.poPrPickerOpen = false;
+        this.poPrPickerPrId = null;
+        this.poPrPickerRows = [];
+        if (hadPr) this.notify('Referensi PR dihapus. PO menjadi PO manual.');
+        return;
+      }
+      if (this.poEditId && value !== this.poForm.prId) {
+        this.poPrSelectValue = this.poForm.prId || '';
+        this.notify('Referensi PR tidak dapat diubah saat edit draft', 'error');
+        return;
+      }
+      this.openPoPrPicker(value);
+    },
+    openPoPrPicker(prId) {
+      const pr = (this.purchaseRequests || []).find(item => item.id === prId);
+      if (!pr) { this.poPrSelectValue = this.poForm.prId || ''; return; }
+      const excludeId = this.poEditId || null;
+      const samePr = this.poForm.prId === pr.id;
+      const currentItems = samePr ? (this.poForm.items || []) : [];
+      const rows = (pr.items || []).map(item => {
+        const prQty = Number(item.qty) || 0;
+        const allocated = this.prItemAllocatedQty(pr, item.materialId, excludeId);
+        const remaining = Math.max(0, prQty - allocated);
+        const current = currentItems.find(row => row.materialId === item.materialId);
+        return {
+          materialId:item.materialId,
+          prQty,
+          allocated,
+          remaining,
+          include: current ? remaining > 0 : (!samePr && remaining > 0),
+          qty: current ? (Number(current.qty) || 0) : remaining,
+          price: current ? (Number(current.price) || 0) : this.materialBuyPrice(item.materialId)
+        };
+      }).filter(row => row.remaining > 0 || currentItems.some(current => current.materialId === row.materialId));
+      if (!rows.length) {
+        this.notify('Semua qty PR sudah dialokasikan ke PO', 'error');
+        this.poPrSelectValue = this.poForm.prId || '';
+        return;
+      }
+      this.poPrPickerPrId = pr.id;
+      this.poPrPickerRows = rows;
+      this.poPrPickerOpen = true;
+    },
+    cancelPoPrPicker() {
+      this.poPrPickerOpen = false;
+      this.poPrPickerPrId = null;
+      this.poPrPickerRows = [];
+      this.poPrSelectValue = this.poForm.prId || '';
+    },
+    setAllPoPrPicker(include) {
+      (this.poPrPickerRows || []).forEach(row => {
+        if (row.remaining > 0) row.include = !!include;
+      });
+    },
+    confirmPoPrPicker() {
+      const pr = (this.purchaseRequests || []).find(item => item.id === this.poPrPickerPrId);
+      if (!pr) return;
+      const selected = (this.poPrPickerRows || []).filter(row => row.include && Number(row.qty) > 0);
+      if (!selected.length) { this.notify('Pilih minimal 1 barang untuk PO ini', 'error'); return; }
+      for (const row of selected) {
+        if (Number(row.qty) > row.remaining + 0.0001) {
+          this.notify('Qty ' + this.materialName(row.materialId) + ' melebihi sisa PR', 'error');
+          return;
+        }
+      }
+      this.poForm.prId = pr.id;
+      this.poForm.items = selected.map(row => ({
+        materialId:row.materialId,
+        qty:Number(row.qty) || 0,
+        price:Number(row.price) || this.materialBuyPrice(row.materialId),
+        include:true,
+        materialOpen:false,
+        materialSearch:''
+      }));
+      this.poPrSelectValue = pr.id;
+      this.poPrPickerOpen = false;
+      this.poPrPickerPrId = null;
+      this.poPrPickerRows = [];
+      this.notify('Barang dari ' + pr.code + ' berhasil dimuat ke PO');
     },
     get activeSuppliers() { return this.suppliers.filter(supplier => supplier.status); },
     supplierName(id) { return (this.suppliers.find(s => s.id === id) || {}).name || '-'; },
@@ -4498,7 +4606,7 @@ function app() {
     },
     removePOLine(index) {
       this.poForm.items.splice(index, 1);
-      if (!this.poForm.items.length) this.poForm.items.push({ materialId:'', qty:1, price:0, materialOpen:false, materialSearch:'' });
+      if (!this.poForm.items.length) this.poForm.items.push({ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' });
     },
     onPOSupplierChange() {
       const supplier = this.suppliers.find(s => s.id === this.poForm.supplierId);
@@ -4524,6 +4632,8 @@ function app() {
         if (!items.length) { this.notify('Semua qty PR sudah dialokasikan ke PO', 'error'); return; }
         const supplier = this.activeSuppliers[0];
         this.poEditId = null;
+        this.poPrSelectValue = pr.id;
+        this.poPrPickerOpen = false;
         this.poForm = {
           date:todayISO(),
           supplierId:supplier ? supplier.id : '',
@@ -4533,24 +4643,30 @@ function app() {
           items,
           additionalCosts:[]
         };
-      } else {
-        const supplier = this.activeSuppliers[0];
-        this.poEditId = null;
-        this.poForm = {
-          date:todayISO(),
-          supplierId:supplier ? supplier.id : '',
-          prId:'',
-          paymentTerms:supplier ? supplier.paymentTerms : '',
-          notes:'',
-          items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }],
-          additionalCosts:[]
-        };
+        this.go('purchase-order-create');
+        this.openPoPrPicker(pr.id);
+        return;
       }
+      const supplier = this.activeSuppliers[0];
+      this.poEditId = null;
+      this.poPrSelectValue = '';
+      this.poPrPickerOpen = false;
+      this.poForm = {
+        date:todayISO(),
+        supplierId:supplier ? supplier.id : '',
+        prId:'',
+        paymentTerms:supplier ? supplier.paymentTerms : '',
+        notes:'',
+        items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }],
+        additionalCosts:[]
+      };
       this.go('purchase-order-create');
     },
     startPOEdit(po) {
       if (!po || po.status !== 'draft') { this.notify('Hanya PO draft yang dapat diedit', 'error'); return; }
       this.poEditId = po.id;
+      this.poPrSelectValue = po.prId || '';
+      this.poPrPickerOpen = false;
       this.poForm = {
         date:po.date,
         supplierId:po.supplierId,

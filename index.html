@@ -2193,36 +2193,43 @@
             <div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="poForm.date"></div>
             <div><label class="label">Supplier <span class="req">*</span></label><select class="select" x-model="poForm.supplierId" @change="onPOSupplierChange()"><option value="">Pilih supplier</option><template x-for="s in activeSuppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select></div>
             <div><label class="label">Termin Pembayaran</label><input class="input" x-model="poForm.paymentTerms" placeholder="Contoh: 30 hari"></div>
-            <div><label class="label">Referensi PR</label><input class="input bg-slate-50" :value="poForm.prId ? (purchaseRequests.find(pr => pr.id === poForm.prId) || {}).code || '-' : 'Tanpa PR'" readonly></div>
+            <div>
+              <label class="label">Referensi PR</label>
+              <select class="select" x-model="poPrSelectValue" @change="onPoPrSelect()" :disabled="!!poEditId">
+                <option value="">Tanpa PR</option>
+                <template x-for="pr in poPrOptions" :key="pr.id">
+                  <option :value="pr.id" x-text="pr.code + ' • ' + (pr.purpose || 'Tanpa keterangan')"></option>
+                </template>
+              </select>
+              <div class="mt-1 text-[10px] text-slate-400" x-show="poEditId">Referensi PR tidak dapat diubah saat edit draft.</div>
+            </div>
           </div>
           <div class="mt-3"><label class="label">Catatan</label><input class="input" x-model="poForm.notes" placeholder="Catatan untuk supplier / purchasing"></div>
-          <div x-show="poForm.prId" class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">PO ini terhubung ke PR. Hilangkan centang barang yang akan dipesan ke supplier lain. Qty tiap baris tidak boleh melebihi sisa qty PR.</div>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="text-sm font-semibold">Rincian Barang</div>
           <div class="flex flex-wrap items-center gap-2">
-            <button class="btn btn-outline btn-sm" @click="addPOLine()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Baris</button>
-            <button x-show="poForm.prId" class="btn btn-outline btn-sm" @click="setAllPOItems(true)">Pilih Semua</button>
-            <button x-show="poForm.prId" class="btn btn-outline btn-sm" @click="setAllPOItems(false)">Kosongkan</button>
+            <button x-show="!poForm.prId" class="btn btn-outline btn-sm" @click="addPOLine()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Baris</button>
+            <button x-show="poForm.prId" class="btn btn-outline btn-sm" @click="openPoPrPicker(poForm.prId)">Ubah Pilihan Barang PR</button>
             <button class="btn btn-outline btn-sm" @click="addPOAdditionalCost()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Biaya</button>
           </div>
         </div>
-        <div x-show="poForm.prId" class="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>PO ini memuat <b x-text="poPrSummary ? poPrSummary.includedCount : 0"></b> dari <b x-text="poPrSummary ? poPrSummary.totalCount : 0"></b> item PR yang belum dialokasikan.</span>
-            <span>Sisa setelah PO ini: <b x-text="poPrSummary ? fmt(poPrSummary.afterQty) : 0"></b> qty.</span>
-            <span class="text-blue-600">Hilangkan centang barang yang akan dipesan ke supplier lain.</span>
-          </div>
+        <div x-show="poForm.prId" class="mb-3 text-[11px] text-slate-500">
+          <span x-text="(purchaseRequests.find(pr => pr.id === poForm.prId) || {}).code || '-'"></span>
+          <span> • </span>
+          <span x-text="(poPrSummary ? poPrSummary.includedCount : 0) + ' dari ' + (poPrSummary ? poPrSummary.totalCount : 0) + ' item dipilih'"></span>
+          <span> • sisa </span>
+          <span x-text="fmt(poPrSummary ? poPrSummary.afterQty : 0)"></span>
+          <span> qty</span>
         </div>
         <div class="table-wrap" style="overflow: visible">
           <table class="data-table">
-            <thead><tr><th style="width:40px;min-width:40px;max-width:40px" class="text-center">#</th><th x-show="poForm.prId" style="width:48px;min-width:48px" class="text-center">Ikut</th><th style="width:auto">Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:140px">Harga</th><th class="num" style="width:140px">Subtotal</th><th class="actions" style="width:70px">Action</th></tr></thead>
+            <thead><tr><th style="width:40px;min-width:40px;max-width:40px" class="text-center">#</th><th style="width:auto">Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:140px">Harga</th><th class="num" style="width:140px">Subtotal</th><th class="actions" style="width:70px">Action</th></tr></thead>
             <tbody>
               <template x-for="(item, index) in poForm.items" :key="index">
-                <tr :class="poForm.prId && item.include === false ? 'opacity-50' : ''">
+                <tr>
                   <td class="text-center text-xs text-slate-400" x-text="index + 1"></td>
-                  <td x-show="poForm.prId" class="text-center"><input type="checkbox" class="checkbox" x-model="item.include"></td>
                   <td>
                     <div class="relative" @click.outside="item.materialOpen = false">
                       <button type="button" class="input input-sm w-full flex items-center justify-between gap-2 text-left" :class="item.materialId ? 'text-slate-800' : 'text-slate-400'" @click="item.materialOpen = !item.materialOpen">
@@ -2244,22 +2251,22 @@
                     </div>
                     <div x-show="poForm.prId && poMaterialMaxQty(index) !== null" class="text-[10px] text-slate-400 mt-1">Sisa PR: <b x-text="fmt(poMaterialMaxQty(index) || 0)"></b></div>
                   </td>
-                  <td class="num"><input type="number" min="1" class="input input-sm w-24 text-right" :max="poMaterialMaxQty(index) !== null ? poMaterialMaxQty(index) : null" :disabled="poForm.prId && item.include === false" x-model.number="item.qty"></td>
-                  <td class="num"><input type="number" min="0" class="input input-sm w-32 text-right" :disabled="poForm.prId && item.include === false" x-model.number="item.price"></td>
+                  <td class="num"><input type="number" min="1" class="input input-sm w-24 text-right" :max="poMaterialMaxQty(index) !== null ? poMaterialMaxQty(index) : null" x-model.number="item.qty"></td>
+                  <td class="num"><input type="number" min="0" class="input input-sm w-32 text-right" x-model.number="item.price"></td>
                   <td class="num font-semibold" x-text="rp(poLineSubtotal(item))"></td>
                   <td class="actions"><button class="icon-btn icon-btn-sm icon-btn-danger" @click="removePOLine(index)" title="Hapus baris"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button></td>
                 </tr>
               </template>
-              <tr x-show="poForm.items.length === 0"><td :colspan="poForm.prId ? 7 : 6"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div></div></td></tr>
+              <tr x-show="poForm.items.length === 0"><td colspan="6"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div></div></td></tr>
               <tr class="bg-slate-50 font-bold">
-                <td :colspan="poForm.prId ? 5 : 4" class="text-right">Subtotal Barang</td>
+                <td colspan="4" class="text-right">Subtotal Barang</td>
                 <td class="num" x-text="rp(poSubtotal)"></td>
                 <td></td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div class="flex flex-wrap items-center gap-2 mt-2">
+        <div x-show="!poForm.prId" class="flex flex-wrap items-center gap-2 mt-2">
           <button class="btn btn-outline btn-sm" @click="addPOLine()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Baris</button>
         </div>
 
@@ -5028,6 +5035,63 @@
     </div>
   </div>
 
+  <!-- PO PR ITEM PICKER MODAL -->
+  <div x-show="poPrPickerOpen" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cancelPoPrPicker()">
+    <div class="modal-panel modal-2xl">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Pilih Barang dari PR</div>
+          <div class="modal-desc" x-text="poPrPickerPr ? (poPrPickerPr.code + ' • ' + (poPrPickerPr.purpose || 'Tanpa keterangan')) : ''"></div>
+        </div>
+        <button class="icon-btn" @click="cancelPoPrPicker()"><svg class="icon"><use href="#i-x"></use></svg></button>
+      </div>
+      <div class="modal-body space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-[11px] text-slate-500">
+            Centang barang yang akan dipesan ke <b x-text="poForm.supplierId ? supplierName(poForm.supplierId) : 'supplier yang dipilih'"></b>.
+            <span x-show="!poForm.supplierId" class="text-amber-600">Supplier belum dipilih.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-outline btn-sm" @click="setAllPoPrPicker(true)">Pilih Semua</button>
+            <button class="btn btn-outline btn-sm" @click="setAllPoPrPicker(false)">Kosongkan</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th class="text-center" style="width:44px"><input type="checkbox" class="checkbox" :checked="poPrPickerAllChecked" @change="setAllPoPrPicker($event.target.checked)"></th>
+              <th>Kode</th><th>Barang</th><th>Satuan</th><th class="num">Qty PR</th><th class="num">Sudah Dialokasikan</th><th class="num">Sisa</th><th class="num" style="width:120px">Qty PO</th>
+            </tr></thead>
+            <tbody>
+              <template x-for="row in poPrPickerRows" :key="row.materialId">
+                <tr :class="row.include ? '' : 'opacity-50'">
+                  <td class="text-center"><input type="checkbox" class="checkbox" x-model="row.include" :disabled="row.remaining <= 0"></td>
+                  <td class="font-semibold" x-text="(materials.find(m => m.id === row.materialId) || {}).code || '-'"></td>
+                  <td x-text="materialName(row.materialId)"></td>
+                  <td><span class="badge badge-slate" x-text="(materials.find(m => m.id === row.materialId) || {}).unit || '-'"></span></td>
+                  <td class="num" x-text="fmt(row.prQty)"></td>
+                  <td class="num text-slate-500" x-text="fmt(row.allocated)"></td>
+                  <td class="num font-semibold" x-text="fmt(row.remaining)"></td>
+                  <td class="num"><input type="number" min="1" :max="row.remaining" :disabled="!row.include" class="input input-sm w-24 text-right" x-model.number="row.qty"></td>
+                </tr>
+              </template>
+              <tr x-show="poPrPickerRows.length === 0"><td colspan="8"><div class="empty py-6"><div class="font-semibold">Tidak ada barang tersisa</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-[11px] text-slate-500">
+          <span x-text="poPrPickerSelected.length + ' item dipilih'"></span>
+          <span> • </span>
+          <span x-text="'Qty ' + fmt(poPrPickerSelectedQty)"></span>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline" @click="cancelPoPrPicker()">Batal</button>
+        <button class="btn btn-primary" @click="confirmPoPrPicker()">Gunakan Item Terpilih</button>
+      </div>
+    </div>
+  </div>
+
   <!-- PURCHASE ORDER REJECT MODAL -->
   <div x-show="poRejectOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="poRejectOpen = false">
     <div class="modal-panel modal-md">
@@ -5542,7 +5606,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261126e"></script>
+<script src="assets/app.js?v=20261127a"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

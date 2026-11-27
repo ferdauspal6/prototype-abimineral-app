@@ -102,8 +102,11 @@ Purchase Order (L3):
 - Semua PO memerlukan approval Manager; Admin/Developer tidak approve.
 - Jika pembuat PO adalah Manager, Submit—termasuk langsung dari halaman Buat PO—langsung `approved` dan menjalankan reservasi qty PR (auto approve).
 - Harga awal diambil dari harga beli rata-rata Master Barang dan dapat diubah pada PO. PO tidak mengubah harga master.
-- Saat membuat PO dari PR, setiap baris memiliki centang **Ikut PO**. Hanya baris tercentang yang masuk ke PO.
-- Baris yang tidak dicentang tetap menjadi sisa PR dan bisa dipesan ke supplier lain melalui **Buat PO Lagi**.
+- **Referensi PR** di halaman Buat PO berupa dropdown. Pilihan hanya PR berstatus `approved`/`processing` yang masih punya sisa qty; PR yang sudah dialokasikan penuh tidak ditampilkan.
+- Memilih PR membuka **modal checklist barang**. Hanya barang yang dicentang yang masuk ke PO.
+- Modal menampilkan Qty PR, Sudah Dialokasikan, Sisa, dan Qty PO yang bisa disesuaikan (default = sisa).
+- Barang yang tidak dipilih tetap menjadi sisa PR dan bisa dipesan ke supplier lain melalui **Buat PO Lagi**.
+- Tombol **Buat PO / Buat PO Lagi** di halaman PR langsung membuka modal checklist yang sama.
 - Sisa qty PR memperhitungkan PO **draft**, **menunggu persetujuan**, dan **disetujui**, sehingga dua PO tidak bisa mengalokasikan qty melebihi PR.
 - PR detail menampilkan semua PO terkait beserta supplier dan statusnya.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
