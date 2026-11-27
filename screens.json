@@ -1467,6 +1467,17 @@
       "previewH": 900
     },
     {
+      "id": "employee-detail",
+      "name": "Detail Pegawai",
+      "src": "index.html?canvas=employee-detail",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/employee-detail.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
       "id": "attendance",
       "name": "Rekap Absensi",
       "src": "index.html?canvas=attendance",
@@ -1478,6 +1489,17 @@
       "previewH": 900
     },
     {
+      "id": "attendance-recap",
+      "name": "Rekap Absensi — Detail",
+      "src": "index.html?canvas=attendance-recap",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/attendance-recap.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
       "id": "perizinan",
       "name": "Perizinan",
       "src": "index.html?canvas=perizinan",
@@ -1485,6 +1507,17 @@
       "virtual": true,
       "w": 1440,
       "preview": "canvas/previews/perizinan.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
+      "id": "lembur",
+      "name": "Lembur",
+      "src": "index.html?canvas=lembur",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/lembur.jpg",
       "previewW": 1440,
       "previewH": 900
     },

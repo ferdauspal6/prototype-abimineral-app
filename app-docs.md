@@ -674,18 +674,38 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 ### 7.5a HR
 
 1. **Data Pegawai**: NIP, PIN mesin, nama, kelompok, posisi, **jenis kontrak** (Tetap/Kontrak/Harian), gaji pokok, uang makan per hari, status, dan rekening.
+   - Aksi **Detail** membuka modal read-only berisi data pegawai, foto, kontrak, gaji, bank, dan rekening.
+   - **Foto (opsional)** dapat diunggah dan otomatis diperkecil/dikompres agar penyimpanan tetap ringan.
    - Tombol **Export** membuka modal pilihan format CSV/Excel.
 2. **Rekap Absensi**:
+   - Halaman awal berupa **daftar rekap** yang sudah dibuat/diupload: periode, file, jumlah baris, diupload oleh, tanggal, status Draft/Tersimpan, dan action.
+   - Tombol **Buat Rekap** membuat rekap baru dengan memilih periode.
+   - Halaman rekap memiliki tombol **Import** dan **Simpan** (tombol hitam di kanan atas).
+   - Filter **Department** dan **search nama/NIP** (bukan dropdown pegawai).
    - Matriks harian dengan kode H/I/S/C/A/L/·.
+   - Klik sel tanggal menampilkan action popup kecil: **Izin** atau **Lembur**. Izin membuka modal Perizinan, Lembur membuka modal Lembur.
    - Kolom NIP dan Nama dibekukan saat scroll horizontal; header tetap sticky.
-   - Header tanggal, sel tanggal, hari libur, dan kolom ringkasan memakai warna berbeda agar mudah dibedakan.
-   - Titik telat dan penanda perlu cek menempel pada sel tanggal sehingga ikut bergeser saat scroll.
    - Import file mesin `.xls/.xlsx/.csv` dengan pencocokan PIN/NIP/nama.
-   - Keterangan manual izin, sakit, cuti, alfa, lembur, resign, dan dispensasi telat.
-   - Menu **Perizinan** khusus berisi tabel riwayat izin/keterangan dengan kolom Jenis, filter pegawai/jenis/periode, serta aksi tambah, edit, dan hapus.
    - Pengaturan jam masuk, toleransi, libur mingguan, libur nasional, dan aturan potong HK per jenis keterangan.
    - Alfa otomatis untuk hari kerja tanpa scan dan tanpa keterangan.
-3. **Payroll**:
+3. **Perizinan**:
+   - Menu HR khusus dengan tabel riwayat: tanggal, sampai, pegawai, jenis, potongan, catatan, input by, dibuat, action.
+   - Jenis: **Izin, Sakit, Cuti, Alfa, Lainnya**.
+   - Potongan gaji:
+     - **Potong gaji harian** → jumlah hari dari rentang tanggal, mengurangi HK (gaji pokok + uang makan).
+     - **Tanpa potong gaji**.
+     - **Potongan manual** → nominal total per rentang.
+   - Filter pegawai, jenis, periode, dan search.
+   - Tambah/Edit/Hapus perizinan.
+4. **Lembur**:
+   - Menu HR khusus dengan tabel riwayat lembur.
+   - Form: pegawai, tanggal/sampai, tipe nominal, nominal, catatan.
+   - Tipe nominal:
+     - **1 hari kerja (Gaji + Uang Makan)** → dihitung × jumlah hari.
+     - **Nominal khusus** → input angka.
+   - Nominal disimpan sebagai snapshot saat lembur dibuat.
+   - Filter pegawai, periode, dan search.
+5. **Payroll**:
    - Halaman utama berupa daftar payroll: No. Payroll, Tanggal Terbit, Periode, Jumlah Pegawai, Total Diterima, Status, Input by, dan Action.
    - Tombol **Buat Payroll** membuka form periode payroll + periode absensi, lalu membuat **Draft**.
    - Status: `draft → submitted → posted` (+ `rejected` / `direvisi`).
@@ -696,13 +716,15 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Revisi payroll Diposting membuat versi Draft baru; versi lama menjadi Direvisi.
    - Periode payroll dan periode absensi terpisah (default absensi bulan sebelumnya).
    - HK, hari telat, hari makan, dan HK lembur terisi dari rekap absensi.
-   - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan; lembur = HK lembur × (gaji/hari + uang makan/hari).
+   - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan.
+   - **Pot. Perizinan** dihitung dari potongan manual perizinan dan mengurangi total diterima.
+   - **Tunj. Lembur** memakai nominal dari menu Lembur. Data lama tanpa nominal tetap memakai rumus HK lembur × (gaji/hari + uang makan/hari).
    - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
    - Kolom **BPJS Perusahaan** tidak ditampilkan lagi di payroll dan export.
    - Komponen **BPJS** di HPP memakai total **Pot. BPJS Ket** (BPJS Ketenagakerjaan).
    - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari form HPP Harian dengan memilih payroll Diposting pada baris Gaji Produksi.
-4. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
-5. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.
+6. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
+7. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.
 
 ### 7.6 Keuangan & Laporan
 

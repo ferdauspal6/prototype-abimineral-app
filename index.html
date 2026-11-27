@@ -3100,6 +3100,20 @@
         <div class="modal-panel modal-lg">
           <div class="modal-head"><div><div class="modal-title" x-text="employeeEditId ? 'Edit Pegawai' : 'Tambah Pegawai'"></div><div class="modal-desc">Data pegawai dan gaji pokok.</div></div><button class="icon-btn" @click="employeeModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
           <div class="modal-body space-y-4">
+            <div class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-white flex items-center justify-center">
+                <img x-show="employeeForm.photo" :src="employeeForm.photo" alt="Foto pegawai" class="h-full w-full object-cover">
+                <svg x-show="!employeeForm.photo" class="icon icon-lg text-slate-300"><use href="#i-users"></use></svg>
+              </div>
+              <div class="min-w-0">
+                <div class="label mb-1">Foto Pegawai (Opsional)</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <input type="file" accept="image/*" class="block text-xs text-slate-600" @change="handleEmployeePhoto($event)">
+                  <button type="button" x-show="employeeForm.photo" class="btn btn-outline btn-xs text-red-600" @click="removeEmployeePhoto()">Hapus Foto</button>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-1">Foto otomatis diperkecil agar penyimpanan tetap ringan.</div>
+              </div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div><label class="label">NIP <span class="req">*</span></label><input class="input" x-model="employeeForm.nip" placeholder="EMP-0001"></div>
               <div><label class="label">PIN Mesin</label><input class="input" x-model="employeeForm.pin" placeholder="1001"></div>
@@ -3127,97 +3141,210 @@
         </div>
       </div>
 
+      <!-- EMPLOYEE DETAIL MODAL -->
+      <div x-show="employeeDetailOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="employeeDetailOpen = false">
+        <div class="modal-panel modal-xl">
+          <div class="modal-head">
+            <div class="flex items-center gap-3">
+              <div class="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
+                <img x-show="employeeDetail.photo" :src="employeeDetail.photo" alt="Foto pegawai" class="h-full w-full object-cover">
+                <span x-show="!employeeDetail.photo" class="text-sm font-bold text-slate-500" x-text="initials(employeeDetail.name)"></span>
+              </div>
+              <div>
+                <div class="modal-title" x-text="employeeDetail.name || '-'"></div>
+                <div class="modal-desc" x-text="(employeeDetail.nip || '-') + ' • ' + (employeeDetail.group || '-') + ' • ' + (employeeDetail.position || '-')"></div>
+              </div>
+            </div>
+            <button class="icon-btn" @click="employeeDetailOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button>
+          </div>
+          <div class="modal-body space-y-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">NIP</div><div class="font-semibold mt-1" x-text="employeeDetail.nip || '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">PIN Mesin</div><div class="font-semibold mt-1" x-text="employeeDetail.pin || '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Kelompok</div><div class="font-semibold mt-1" x-text="employeeDetail.group || '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Posisi</div><div class="font-semibold mt-1" x-text="employeeDetail.position || '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Jenis Kontrak</div><div class="mt-1"><span class="badge" :class="employeeDetail.contractType === 'Harian' ? 'badge-yellow' : employeeDetail.contractType === 'Kontrak' ? 'badge-blue' : 'badge-green'" x-text="employeeDetail.contractType || 'Tetap'"></span></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Tanggal Masuk</div><div class="font-semibold mt-1" x-text="employeeDetail.joinDate ? dateShort(employeeDetail.joinDate) : '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Status</div><div class="mt-1"><span class="badge" :class="employeeDetail.status ? 'badge-green' : 'badge-stone'" x-text="employeeDetail.status ? 'Aktif' : 'Nonaktif'"></span></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Tanggal Resign</div><div class="font-semibold mt-1" x-text="employeeDetail.resignDate ? dateShort(employeeDetail.resignDate) : '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Gaji Pokok</div><div class="font-semibold mt-1" x-text="rp(employeeDetail.basicSalary)"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Uang Makan / Hari</div><div class="font-semibold mt-1" x-text="rp(employeeDetail.mealPerDay)"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">Bank</div><div class="font-semibold mt-1" x-text="employeeDetail.bank || '-'"></div></div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><div class="text-slate-400">No. Rekening</div><div class="font-semibold mt-1" x-text="employeeDetail.accountNumber || '-'"></div></div>
+            </div>
+            <div class="rounded-lg border border-slate-200 px-3 py-2 text-xs"><div class="text-slate-400">Catatan</div><div class="mt-1 text-slate-700" x-text="employeeDetail.note || '-'"></div></div>
+          </div>
+          <div class="modal-foot"><button class="btn btn-outline" @click="employeeDetailOpen = false">Tutup</button><button class="btn btn-primary" @click="openEmployee(employeeDetail); employeeDetailOpen = false">Edit</button></div>
+        </div>
+      </div>
+
       <!-- ATTENDANCE -->
       <section x-show="page === 'attendance'">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div class="flex flex-wrap items-center gap-2">
-            <input type="month" class="input w-44" x-model="attendancePeriod">
-            <span class="text-[11px] text-slate-400" x-text="hrPeriodDays(attendancePeriod).length + ' hari'"></span>
-            <span class="badge badge-slate" x-text="attendanceEmployees.length + ' pegawai'"></span>
+        <div x-show="attendanceView === 'list'">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <div class="section-title">Rekap Absensi</div>
+              <div class="text-[11px] text-slate-400">Daftar rekap yang sudah dibuat atau diupload.</div>
+            </div>
+            <button class="btn btn-primary" @click="openAttendanceRecapModal()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Rekap</button>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button class="btn btn-outline" @click="openAttendanceImport()"><svg class="icon icon-sm"><use href="#i-upload"></use></svg> Import Data Mesin</button>
-            <button class="btn btn-outline" @click="openAttendanceNote()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Keterangan</button>
-            <button class="btn btn-outline" @click="openAttendanceSettings()" title="Pengaturan Absensi"><svg class="icon icon-sm"><use href="#i-settings"></use></svg></button>
-            <button class="btn btn-outline" @click="openExportModal('attendance')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="seg"><button class="seg-btn" :class="{ 'active': attendanceTab === 'recap' }" @click="attendanceTab = 'recap'">Rekap</button><button class="seg-btn" :class="{ 'active': attendanceTab === 'scans' }" @click="attendanceTab = 'scans'">Data Scan</button></div>
-            <select class="select w-48" x-model="attendanceEmployeeFilter"><option value="">Semua Pegawai</option><template x-for="employee in employeesActive" :key="employee.id"><option :value="employee.id" x-text="employee.nip + ' — ' + employee.name"></option></template></select>
-            <div class="input-icon w-52" x-show="attendanceTab === 'scans'"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari scan..." x-model="attendanceSearch"></div>
-          </div>
-        </div>
-        <div x-show="attendanceAutoAlfaCount > 0" class="mb-3 rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800" x-text="attendanceAutoAlfaCount + ' hari alfa otomatis belum dikonfirmasi'"></div>
-
-        <div x-show="attendanceTab === 'recap'" class="table-wrap overflow-auto max-h-[68vh]">
-          <table class="data-table" style="min-width:1700px">
-            <thead>
-              <tr>
-                <th class="frozen-col frozen-nip" style="min-width:92px">NIP</th>
-                <th class="frozen-col frozen-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
-                <template x-for="date in hrPeriodDays(attendancePeriod)" :key="date">
-                  <th class="matrix-day text-center" style="min-width:34px" :class="isWeeklyOffDate(date) || isHolidayDate(date) ? 'off' : ''" x-text="date.slice(-2)"></th>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Periode</th><th>File</th><th class="num">Baris</th><th>Diupload oleh</th><th>Tanggal</th><th>Status</th><th class="actions">Action</th></tr></thead>
+              <tbody>
+                <template x-for="batch in attendanceRecapList" :key="batch.id">
+                  <tr>
+                    <td class="font-semibold" x-text="monthLongLabel(batch.period)"></td>
+                    <td x-text="batch.fileName || 'Belum ada file'"></td>
+                    <td class="num" x-text="fmt(batch.rows || 0)"></td>
+                    <td x-text="batch.by || '-'"></td>
+                    <td x-text="batch.at ? dateShort(batch.at) : '-'"></td>
+                    <td><span class="badge" :class="attendanceRecapStatusBadge(batch.status)" x-text="attendanceRecapStatusLabel(batch.status)"></span></td>
+                    <td class="actions"><button class="btn btn-outline btn-xs" @click="openAttendanceRecap(batch)">Buka</button></td>
+                  </tr>
                 </template>
-                <th class="matrix-sum matrix-start num">Hadir</th><th class="matrix-sum num">Izin</th><th class="matrix-sum num">Sakit</th><th class="matrix-sum num">Cuti</th><th class="matrix-sum num">Alfa</th><th class="matrix-sum num">Lembur</th><th class="matrix-sum num">Telat</th><th class="matrix-sum num">HK</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="row in attendanceRecapRows" :key="row.employee.id">
-                <tr>
-                  <td class="frozen-col frozen-nip font-semibold" x-text="row.employee.nip"></td>
-                  <td class="frozen-col frozen-nama" style="box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.employee.name"></div><span class="sub" x-text="row.employee.group + ' • ' + row.employee.position"></span></td>
-                  <template x-for="day in row.days" :key="day.date">
-                    <td class="matrix-day text-center cursor-pointer p-1" :class="isWeeklyOffDate(day.date) || isHolidayDate(day.date) ? 'off' : ''" @click="openAttendanceNote(row.employee.id, day.date)" :title="day.scan ? ('Scan ' + day.scan.scan1 + (day.scan.scan2 ? ' / ' + day.scan.scan2 : '')) : (day.notes.map(n => attendanceTypeLabel(n.type)).join(', ') || attendanceStatusLabel(day.status))">
-                      <div class="relative inline-flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold" :class="attendanceStatusClass(day.status)">
-                        <span x-text="day.status"></span>
-                        <span x-show="day.late" class="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-orange-500"></span>
-                        <span x-show="day.perluCek" class="absolute -right-2 -top-2 text-[9px] font-bold text-red-500">!</span>
-                      </div>
-                    </td>
-                  </template>
-                  <td class="matrix-sum matrix-start num" x-text="row.summary.hadir"></td><td class="matrix-sum num" x-text="row.summary.izin"></td><td class="matrix-sum num" x-text="row.summary.sakit"></td><td class="matrix-sum num" x-text="row.summary.cuti"></td><td class="matrix-sum num text-yellow-700" x-text="row.summary.alfa"></td><td class="matrix-sum num" x-text="row.summary.lembur"></td><td class="matrix-sum num" x-text="row.summary.telat"></td><td class="matrix-sum num font-semibold" x-text="row.summary.hkDibayar"></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+                <tr x-show="attendanceRecapList.length === 0"><td colspan="7"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calendar"></use></svg><div class="font-semibold mt-2">Belum ada rekap absensi</div><div class="text-xs text-slate-400">Klik Buat Rekap untuk membuat rekap baru.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div x-show="attendanceTab === 'scans'" class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>PIN</th><th>NIP</th><th>Nama</th><th>Tanggal</th><th>Scan 1</th><th>Scan 2</th><th>Status</th></tr></thead>
-            <tbody>
-              <template x-for="scan in attendanceScanRows" :key="scan.id">
+        <div x-show="attendanceView === 'detail'">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="icon-btn" @click="backToAttendanceList()"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+              <div>
+                <div class="section-title">Rekap Absensi</div>
+                <div class="text-[11px] text-slate-400" x-text="monthLongLabel(attendancePeriod) + ' • ' + hrPeriodDays(attendancePeriod).length + ' hari'"></div>
+              </div>
+              <span class="badge badge-slate" x-text="attendanceEmployees.length + ' pegawai'"></span>
+              <span class="badge" :class="attendanceRecapStatusBadge(attendanceRecapCurrent.status || 'draft')" x-text="attendanceRecapStatusLabel(attendanceRecapCurrent.status || 'draft')"></span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="btn btn-outline" @click="openAttendanceImport()"><svg class="icon icon-sm"><use href="#i-upload"></use></svg> Import</button>
+              <button class="btn btn-primary" @click="saveAttendanceRecap()">Simpan</button>
+              <button class="btn btn-outline" @click="openAttendanceSettings()" title="Pengaturan Absensi"><svg class="icon icon-sm"><use href="#i-settings"></use></svg></button>
+              <button class="btn btn-outline" @click="openExportModal('attendance')"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="seg"><button class="seg-btn" :class="{ 'active': attendanceTab === 'recap' }" @click="attendanceTab = 'recap'">Rekap</button><button class="seg-btn" :class="{ 'active': attendanceTab === 'scans' }" @click="attendanceTab = 'scans'">Data Scan</button></div>
+              <select class="select w-44" x-model="attendanceDepartment"><option value="">Semua Department</option><template x-for="group in attendanceGroupOptions" :key="group"><option :value="group" x-text="group"></option></template></select>
+              <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari nama / NIP..." x-model="attendanceEmployeeSearch"></div>
+            </div>
+          </div>
+          <div x-show="attendanceAutoAlfaCount > 0" class="mb-3 rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800" x-text="attendanceAutoAlfaCount + ' hari alfa otomatis belum dikonfirmasi'"></div>
+
+          <div x-show="attendanceTab === 'recap'" class="table-wrap overflow-auto max-h-[68vh]">
+            <table class="data-table" style="min-width:1700px">
+              <thead>
                 <tr>
-                  <td x-text="scan.pin || '-'"></td><td x-text="scan.nip || '-'"></td><td class="font-semibold" x-text="employeeName(scan.employeeId) || scan.name"></td><td x-text="dateShort(scan.date)"></td><td x-text="scan.scan1 || '-'"></td><td x-text="scan.scan2 || '-'"></td>
-                  <td><button x-show="(isWeeklyOffDate(scan.date) || isHolidayDate(scan.date)) && !attendanceNoteFor(scan.employeeId, scan.date, ['lembur'])" class="badge badge-blue hover:underline" @click="addAttendanceLembur(scan.employeeId, scan.date)">Lembur?</button><span class="badge" :class="attendancePerluCek(scan) ? 'badge-red' : (attendanceLate(employee(scan.employeeId), scan.date) ? 'badge-yellow' : 'badge-slate')" x-text="attendancePerluCek(scan) ? 'Perlu cek' : (attendanceLate(employee(scan.employeeId), scan.date) ? 'Telat' : '—')"></span></td>
+                  <th class="frozen-col frozen-nip" style="min-width:92px">NIP</th>
+                  <th class="frozen-col frozen-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
+                  <template x-for="date in hrPeriodDays(attendancePeriod)" :key="date">
+                    <th class="matrix-day text-center" style="min-width:34px" :class="isWeeklyOffDate(date) || isHolidayDate(date) ? 'off' : ''" x-text="date.slice(-2)"></th>
+                  </template>
+                  <th class="matrix-sum matrix-start num">Hadir</th><th class="matrix-sum num">Izin</th><th class="matrix-sum num">Sakit</th><th class="matrix-sum num">Cuti</th><th class="matrix-sum num">Alfa</th><th class="matrix-sum num">Lembur</th><th class="matrix-sum num">Telat</th><th class="matrix-sum num">HK</th>
                 </tr>
-              </template>
-              <tr x-show="attendanceScanRows.length === 0"><td colspan="7"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calendar"></use></svg><div class="font-semibold mt-2">Belum ada scan</div><div class="text-xs text-slate-400">Import data mesin finger untuk periode ini.</div></div></td></tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <template x-for="row in attendanceRecapRows" :key="row.employee.id">
+                  <tr>
+                    <td class="frozen-col frozen-nip font-semibold" x-text="row.employee.nip"></td>
+                    <td class="frozen-col frozen-nama" style="box-shadow:2px 0 0 #e2e8f0"><div class="font-semibold" x-text="row.employee.name"></div><span class="sub" x-text="row.employee.group + ' • ' + row.employee.position"></span></td>
+                    <template x-for="day in row.days" :key="day.date">
+                      <td class="matrix-day text-center cursor-pointer p-1" :class="isWeeklyOffDate(day.date) || isHolidayDate(day.date) ? 'off' : ''" @click="openActionMenu($event, 'attendance-cell', { id: row.employee.id + '|' + day.date, employeeId: row.employee.id, date: day.date })" :title="day.scan ? ('Scan ' + day.scan.scan1 + (day.scan.scan2 ? ' / ' + day.scan.scan2 : '')) : (day.notes.map(n => attendanceTypeLabel(n.type)).join(', ') || attendanceStatusLabel(day.status))">
+                        <div class="relative inline-flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold" :class="attendanceStatusClass(day.status)">
+                          <span x-text="day.status"></span>
+                          <span x-show="day.late" class="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                          <span x-show="day.perluCek" class="absolute -right-2 -top-2 text-[9px] font-bold text-red-500">!</span>
+                        </div>
+                      </td>
+                    </template>
+                    <td class="matrix-sum matrix-start num" x-text="row.summary.hadir"></td><td class="matrix-sum num" x-text="row.summary.izin"></td><td class="matrix-sum num" x-text="row.summary.sakit"></td><td class="matrix-sum num" x-text="row.summary.cuti"></td><td class="matrix-sum num text-yellow-700" x-text="row.summary.alfa"></td><td class="matrix-sum num" x-text="row.summary.lembur"></td><td class="matrix-sum num" x-text="row.summary.telat"></td><td class="matrix-sum num font-semibold" x-text="row.summary.hkDibayar"></td>
+                  </tr>
+                </template>
+                <tr x-show="attendanceRecapRows.length === 0"><td :colspan="hrPeriodDays(attendancePeriod).length + 10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calendar"></use></svg><div class="font-semibold mt-2">Belum ada pegawai</div><div class="text-xs text-slate-400">Ubah filter department atau kata kunci pencarian.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div x-show="attendanceTab === 'scans'" class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>PIN</th><th>NIP</th><th>Nama</th><th>Tanggal</th><th>Scan 1</th><th>Scan 2</th><th>Status</th></tr></thead>
+              <tbody>
+                <template x-for="scan in attendanceScanRows" :key="scan.id">
+                  <tr>
+                    <td x-text="scan.pin || '-'"></td><td x-text="scan.nip || '-'"></td><td class="font-semibold" x-text="employeeName(scan.employeeId) || scan.name"></td><td x-text="dateShort(scan.date)"></td><td x-text="scan.scan1 || '-'"></td><td x-text="scan.scan2 || '-'"></td>
+                    <td><button x-show="(isWeeklyOffDate(scan.date) || isHolidayDate(scan.date)) && !attendanceNoteFor(scan.employeeId, scan.date, ['lembur'])" class="badge badge-blue hover:underline" @click="openOvertimeEntry(scan.employeeId, scan.date)">Lembur?</button><span class="badge" :class="attendancePerluCek(scan) ? 'badge-red' : (attendanceLate(employee(scan.employeeId), scan.date) ? 'badge-yellow' : 'badge-slate')" x-text="attendancePerluCek(scan) ? 'Perlu cek' : (attendanceLate(employee(scan.employeeId), scan.date) ? 'Telat' : '—')"></span></td>
+                  </tr>
+                </template>
+                <tr x-show="attendanceScanRows.length === 0"><td colspan="7"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-calendar"></use></svg><div class="font-semibold mt-2">Belum ada scan</div><div class="text-xs text-slate-400">Import data mesin finger untuk periode ini.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
+
+      <!-- ATTENDANCE RECAP CREATE MODAL -->
+      <div x-show="attendanceRecapModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="attendanceRecapModalOpen = false">
+        <div class="modal-panel modal-md">
+          <div class="modal-head"><div><div class="modal-title">Buat Rekap Absensi</div><div class="modal-desc">Pilih periode rekap yang akan dibuat.</div></div><button class="icon-btn" @click="attendanceRecapModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+          <div class="modal-body space-y-4">
+            <div><label class="label">Periode <span class="req">*</span></label><input type="month" class="input" x-model="attendanceRecapPeriod"></div>
+            <div class="text-[11px] text-slate-500">Setelah dibuat, gunakan tombol Import untuk mengunggah data mesin, lalu Simpan.</div>
+          </div>
+          <div class="modal-foot"><button class="btn btn-outline" @click="attendanceRecapModalOpen = false">Batal</button><button class="btn btn-primary" @click="createAttendanceRecap()">Buat Rekap</button></div>
+        </div>
+      </div>
 
       <!-- ATTENDANCE NOTE MODAL -->
       <div x-show="attendanceNoteOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="attendanceNoteOpen = false">
         <div class="modal-panel modal-md">
-          <div class="modal-head"><div><div class="modal-title" x-text="attendanceNoteEditKey ? 'Edit Perizinan' : 'Tambah Keterangan Absensi'"></div><div class="modal-desc">Izin, sakit, cuti, lembur, atau dispensasi telat.</div></div><button class="icon-btn" @click="attendanceNoteOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+          <div class="modal-head"><div><div class="modal-title" x-text="attendanceNoteEditKey ? 'Edit Perizinan' : 'Tambah Perizinan'"></div><div class="modal-desc">Izin, sakit, cuti, alfa, atau keterangan lainnya.</div></div><button class="icon-btn" @click="attendanceNoteOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
           <div class="modal-body space-y-4">
             <div><label class="label">Pegawai <span class="req">*</span></label><select class="select" x-model="attendanceNoteForm.employeeId"><template x-for="employee in employeesActive" :key="employee.id"><option :value="employee.id" x-text="employee.nip + ' — ' + employee.name"></option></template></select></div>
             <div class="grid grid-cols-2 gap-3"><div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="attendanceNoteForm.date"></div><div><label class="label">Sampai Tanggal</label><input type="date" class="input" x-model="attendanceNoteForm.dateEnd"></div></div>
-            <div><label class="label">Jenis <span class="req">*</span></label><select class="select" x-model="attendanceNoteForm.type"><option value="izin">Izin</option><option value="sakit">Sakit/Urgent</option><option value="cuti">Cuti</option><option value="alfa">Alfa</option><option value="lembur">Lembur</option><option value="dispensasi">Dispensasi Telat</option><option value="resign">Resign</option></select></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="label">Jenis <span class="req">*</span></label><select class="select" x-model="attendanceNoteForm.type"><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="cuti">Cuti</option><option value="alfa">Alfa</option><option value="lainnya">Lainnya</option></select></div>
+              <div><label class="label">Potongan Gaji</label><select class="select" x-model="attendanceNoteForm.deductionType"><option value="daily">Potong gaji harian</option><option value="none">Tanpa potong gaji</option><option value="manual">Potongan manual</option></select></div>
+            </div>
+            <div x-show="attendanceNoteForm.deductionType === 'daily'" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+              <div x-text="attendanceNoteDays + ' hari × ' + rp(attendanceNoteDailyRate) + ' = ' + rp(attendanceNoteDeductionPreview)"></div>
+              <div class="text-blue-600 mt-1">Mengurangi gaji pokok dan uang makan.</div>
+            </div>
+            <div x-show="attendanceNoteForm.deductionType === 'manual'"><label class="label">Nominal Potongan Manual</label><div class="input-group"><input type="number" min="0" class="input text-right" x-model.number="attendanceNoteForm.deductionAmount"><span class="addon">Rp</span></div><div class="text-[10px] text-slate-400 mt-1">Berlaku total untuk seluruh rentang tanggal.</div></div>
+            <div x-show="attendanceNoteForm.deductionType === 'none'" class="text-[11px] text-slate-500">Tidak ada potongan gaji untuk perizinan ini.</div>
             <div><label class="label">Catatan</label><textarea class="textarea" x-model="attendanceNoteForm.note" placeholder="Opsional"></textarea></div>
             <div class="rounded-xl border border-slate-200 p-3">
-              <div class="text-xs font-semibold mb-2">Keterangan pada tanggal ini</div>
+              <div class="text-xs font-semibold mb-2">Perizinan pada tanggal ini</div>
               <template x-for="note in attendanceNotesFor(attendanceNoteForm.employeeId, attendanceNoteForm.date)" :key="note.id">
                 <div class="flex items-center justify-between gap-2 border-b border-slate-100 py-1 text-xs last:border-0"><span><b x-text="attendanceTypeLabel(note.type)"></b> <span class="text-slate-400" x-text="note.note"></span></span><button class="text-red-600 hover:underline" @click="deleteAttendanceNote(note)">Hapus</button></div>
               </template>
               <div x-show="attendanceNotesFor(attendanceNoteForm.employeeId, attendanceNoteForm.date).length === 0" class="text-xs text-slate-400">Belum ada keterangan.</div>
             </div>
           </div>
-          <div class="modal-foot"><button class="btn btn-outline" @click="attendanceNoteOpen = false">Batal</button><button class="btn btn-primary" @click="saveAttendanceNote()">Simpan Keterangan</button></div>
+          <div class="modal-foot"><button class="btn btn-outline" @click="attendanceNoteOpen = false">Batal</button><button class="btn btn-primary" @click="saveAttendanceNote()">Simpan Perizinan</button></div>
+        </div>
+      </div>
+
+      <!-- OVERTIME MODAL -->
+      <div x-show="overtimeModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="overtimeModalOpen = false">
+        <div class="modal-panel modal-md">
+          <div class="modal-head"><div><div class="modal-title" x-text="overtimeEditKey ? 'Edit Lembur' : 'Tambah Lembur'"></div><div class="modal-desc">Nominal lembur mengikuti gaji pokok + uang makan per hari.</div></div><button class="icon-btn" @click="overtimeModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+          <div class="modal-body space-y-4">
+            <div><label class="label">Pegawai <span class="req">*</span></label><select class="select" x-model="overtimeForm.employeeId"><template x-for="employee in employeesActive" :key="employee.id"><option :value="employee.id" x-text="employee.nip + ' — ' + employee.name"></option></template></select></div>
+            <div class="grid grid-cols-2 gap-3"><div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="overtimeForm.date"></div><div><label class="label">Sampai Tanggal</label><input type="date" class="input" x-model="overtimeForm.dateEnd"></div></div>
+            <div><label class="label">Tipe Nominal</label><select class="select" x-model="overtimeForm.overtimeType"><option value="daily">1 hari kerja (Gaji + Uang Makan)</option><option value="custom">Nominal khusus</option></select></div>
+            <div x-show="overtimeForm.overtimeType === 'daily'" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+              <div x-text="overtimeDays + ' hari × ' + rp(overtimeDailyRate) + ' = ' + rp(overtimePreviewAmount)"></div>
+              <div class="text-blue-600 mt-1">Nominal disimpan sebagai snapshot saat lembur dibuat.</div>
+            </div>
+            <div x-show="overtimeForm.overtimeType === 'custom'"><label class="label">Nominal Lembur</label><div class="input-group"><input type="number" min="0" class="input text-right" x-model.number="overtimeForm.overtimeAmount"><span class="addon">Rp</span></div></div>
+            <div><label class="label">Catatan</label><textarea class="textarea" x-model="overtimeForm.note" placeholder="Opsional"></textarea></div>
+          </div>
+          <div class="modal-foot"><button class="btn btn-outline" @click="overtimeModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveOvertimeEntry()">Simpan Lembur</button></div>
         </div>
       </div>
 
@@ -3276,7 +3403,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Tanggal</th><th>Sampai</th><th>Pegawai</th><th>Jenis</th><th>Catatan</th><th>Input by</th><th>Dibuat</th><th class="actions">Action</th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Sampai</th><th>Pegawai</th><th>Jenis</th><th>Potongan</th><th>Catatan</th><th>Input by</th><th>Dibuat</th><th class="actions">Action</th></tr></thead>
             <tbody>
               <template x-for="group in filteredAttendanceNoteGroups" :key="group.key">
                 <tr>
@@ -3284,6 +3411,12 @@
                   <td x-text="group.end && group.end !== group.start ? dateShort(group.end) : '-'"></td>
                   <td><div class="font-semibold" x-text="employeeName(group.employeeId)"></div><span class="sub" x-text="employee(group.employeeId).nip || ''"></span></td>
                   <td><span class="badge" :class="attendanceTypeBadge(group.type)" x-text="attendanceTypeLabel(group.type)"></span></td>
+                  <td>
+                    <span x-show="group.deductionType === 'daily'" class="badge badge-blue" x-text="'Harian ' + group.dates.length + ' hari'"></span>
+                    <span x-show="group.deductionType === 'none'" class="badge badge-slate">Tanpa potong</span>
+                    <span x-show="group.deductionType === 'manual'" class="badge badge-amber" x-text="'Manual ' + rp(group.deductionAmount)"></span>
+                    <span x-show="!group.deductionType" class="text-slate-400">-</span>
+                  </td>
                   <td class="max-w-[280px] whitespace-normal" x-text="group.note || '-'"></td>
                   <td x-text="group.by || '-'"></td>
                   <td x-text="group.createdAt ? dateShort(group.createdAt) : '-'"></td>
@@ -3293,7 +3426,44 @@
                   </td>
                 </tr>
               </template>
-              <tr x-show="filteredAttendanceNoteGroups.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-clipboard"></use></svg><div class="font-semibold mt-2">Belum ada perizinan</div><div class="text-xs text-slate-400">Tambahkan izin, sakit, cuti, lembur, atau keterangan lainnya.</div></div></td></tr>
+              <tr x-show="filteredAttendanceNoteGroups.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-clipboard"></use></svg><div class="font-semibold mt-2">Belum ada perizinan</div><div class="text-xs text-slate-400">Tambahkan izin, sakit, cuti, lembur, atau keterangan lainnya.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- LEMBUR -->
+      <section x-show="page === 'lembur'">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari pegawai / catatan..." x-model="overtimeSearch"></div>
+            <select class="select w-48" x-model="overtimeEmployeeFilter"><option value="">Semua Pegawai</option><template x-for="employee in employeesActive" :key="employee.id"><option :value="employee.id" x-text="employee.nip + ' — ' + employee.name"></option></template></select>
+            <input type="date" class="input w-40" x-model="overtimeFrom" title="Dari tanggal">
+            <input type="date" class="input w-40" x-model="overtimeTo" title="Sampai tanggal">
+          </div>
+          <button class="btn btn-primary" @click="openOvertimeEntry()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Lembur</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th>Sampai</th><th>Pegawai</th><th>Tipe Nominal</th><th class="num">Nominal</th><th>Catatan</th><th>Input by</th><th>Dibuat</th><th class="actions">Action</th></tr></thead>
+            <tbody>
+              <template x-for="group in filteredOvertimeNoteGroups" :key="group.key">
+                <tr>
+                  <td x-text="dateShort(group.start)"></td>
+                  <td x-text="group.end && group.end !== group.start ? dateShort(group.end) : '-'"></td>
+                  <td><div class="font-semibold" x-text="employeeName(group.employeeId)"></div><span class="sub" x-text="employee(group.employeeId).nip || ''"></span></td>
+                  <td><span class="badge" :class="group.overtimeType === 'custom' ? 'badge-purple' : group.overtimeType === 'daily' ? 'badge-blue' : 'badge-slate'" x-text="group.overtimeType === 'custom' ? 'Nominal khusus' : group.overtimeType === 'daily' ? '1 hari kerja' : 'Legacy'"></span></td>
+                  <td class="num font-semibold" x-text="group.overtimeType ? rp(group.overtimeAmount) : '-'"></td>
+                  <td class="max-w-[260px] whitespace-normal" x-text="group.note || '-'"></td>
+                  <td x-text="group.by || '-'"></td>
+                  <td x-text="group.createdAt ? dateShort(group.createdAt) : '-'"></td>
+                  <td class="actions">
+                    <button class="icon-btn icon-btn-sm" @click="editOvertimeGroup(group)" title="Edit"><svg class="icon icon-sm"><use href="#i-pencil"></use></svg></button>
+                    <button class="icon-btn icon-btn-sm icon-btn-danger" @click="deleteOvertimeGroup(group)" title="Hapus"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredOvertimeNoteGroups.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-clock"></use></svg><div class="font-semibold mt-2">Belum ada lembur</div><div class="text-xs text-slate-400">Tambahkan lembur untuk menghitung nominalnya.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -3393,7 +3563,7 @@
                 <tr>
                   <th class="frozen-col frozen-nip" style="min-width:92px">NIP</th>
                   <th class="frozen-col frozen-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
-                  <th>Kelompok / Posisi</th><th class="num">Gaji Pokok</th><th class="num">Gaji/Hari</th><th class="num">HK</th><th class="num">Gaji Sesuai HK</th><th class="num">Makan/Hari</th><th class="num">Hari Telat</th><th class="num">Hari Makan</th><th class="num">Tunj. Makan</th><th class="num">HK Lembur</th><th class="num">Tunj. Lembur</th><th class="num">Pot. Abs Sakit</th><th class="num">Pot. Hutang</th><th class="num">Pot. Telat</th><th class="num">Pot. BPJS Ket</th><th class="num">Penyesuaian</th><th class="num">Total Diterima</th><th>Catatan</th>
+                  <th>Kelompok / Posisi</th><th class="num">Gaji Pokok</th><th class="num">Gaji/Hari</th><th class="num">HK</th><th class="num">Gaji Sesuai HK</th><th class="num">Makan/Hari</th><th class="num">Hari Telat</th><th class="num">Hari Makan</th><th class="num">Tunj. Makan</th><th class="num">HK Lembur</th><th class="num">Tunj. Lembur</th><th class="num">Pot. Abs Sakit</th><th class="num">Pot. Hutang</th><th class="num">Pot. Telat</th><th class="num">Pot. BPJS Ket</th><th class="num">Pot. Perizinan</th><th class="num">Penyesuaian</th><th class="num">Total Diterima</th><th>Catatan</th>
                 </tr>
               </thead>
               <tbody>
@@ -3410,12 +3580,13 @@
                     <td class="num" x-text="row.hariTelat"></td>
                     <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hariMakan" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num" x-text="rp(payrollRowCalc(row).tunjMakan)"></td>
-                    <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hkLembur" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num"><input type="number" min="0" class="input input-sm w-20 text-right" x-model.number="row.hkLembur" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc) || row.lemburAmountSet" :title="row.lemburAmountSet ? 'Nominal diatur dari menu Lembur' : ''"></td>
                     <td class="num" x-text="rp(payrollRowCalc(row).tunjLembur)"></td>
                     <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potAbsSakit" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potHutang" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potTelat" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potBpjsKet" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
+                    <td class="num" x-text="rp(row.potPerizinan || 0)"></td>
                     <td class="num"><input type="number" class="input input-sm w-24 text-right" x-model.number="row.penyesuaian" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num font-bold" x-text="rp(payrollRowCalc(row).totalDiterima)"></td>
                     <td><input class="input input-sm w-48" x-model="row.note" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)" placeholder="Opsional"></td>
@@ -3424,7 +3595,7 @@
                 <tr class="bg-slate-100 font-bold sticky bottom-0 z-20">
                   <td class="sticky left-0 z-30 bg-slate-100" colspan="2">TOTAL</td>
                   <td x-text="payrollTotals.employees + ' pegawai'"></td>
-                  <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td></td>
+                  <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.potPerizinan)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td></td>
                 </tr>
               </tbody>
             </table>
@@ -5675,7 +5846,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261127d"></script>
+<script src="assets/app.js?v=20261127e"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
