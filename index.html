@@ -5047,10 +5047,7 @@
       </div>
       <div class="modal-body space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="text-[11px] text-slate-500">
-            Centang barang yang akan dipesan ke <b x-text="poForm.supplierId ? supplierName(poForm.supplierId) : 'supplier yang dipilih'"></b>.
-            <span x-show="!poForm.supplierId" class="text-amber-600">Supplier belum dipilih.</span>
-          </div>
+          <div class="text-[11px] text-slate-500">Centang barang yang akan dipesan.</div>
           <div class="flex items-center gap-2">
             <button class="btn btn-outline btn-sm" @click="setAllPoPrPicker(true)">Pilih Semua</button>
             <button class="btn btn-outline btn-sm" @click="setAllPoPrPicker(false)">Kosongkan</button>
@@ -5606,7 +5603,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261127a"></script>
+<script src="assets/app.js?v=20261127b"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>
