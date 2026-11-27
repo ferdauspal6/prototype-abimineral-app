@@ -57,6 +57,7 @@
   { "id": "stock-material-variance", "name": "Selisih Bahan Baku", "group": "logistik", "groupName": "Logistik", "page": "stock", "state": { "stockView": "material", "materialStockTab": "selisih" } },
   { "id": "employees", "name": "Data Pegawai", "group": "hr", "groupName": "HR", "page": "employees" },
   { "id": "attendance", "name": "Rekap Absensi", "group": "hr", "groupName": "HR", "page": "attendance" },
+  { "id": "perizinan", "name": "Perizinan", "group": "hr", "groupName": "HR", "page": "perizinan" },
   { "id": "payroll", "name": "Payroll", "group": "hr", "groupName": "HR", "page": "payroll" },
   { "id": "production-modal", "name": "Buat Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-modal" },
   { "id": "production-detail", "name": "Detail Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-detail" },

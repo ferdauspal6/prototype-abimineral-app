@@ -102,6 +102,9 @@ Purchase Order (L3):
 - Semua PO memerlukan approval Manager; Admin/Developer tidak approve.
 - Jika pembuat PO adalah Manager, Submit—termasuk langsung dari halaman Buat PO—langsung `approved` dan menjalankan reservasi qty PR (auto approve).
 - Harga awal diambil dari harga beli rata-rata Master Barang dan dapat diubah pada PO. PO tidak mengubah harga master.
+- Harga PO masih dapat diubah selama **belum ada penerimaan barang** melalui aksi **Ubah Harga**.
+- Hanya **Manager** dan **Admin** yang dapat mengubah harga. Perubahan oleh Manager tidak mengubah status; perubahan oleh Admin pada PO `approved`/`sent` mengembalikan status ke **Belum disetujui** untuk approval ulang.
+- Setelah ada penerimaan, harga PO terkunci.
 - **Referensi PR** di halaman Buat PO berupa dropdown. Pilihan hanya PR berstatus `approved`/`processing` yang masih punya sisa qty; PR yang sudah dialokasikan penuh tidak ditampilkan.
 - Memilih PR membuka **modal checklist barang**. Hanya barang yang dicentang yang masuk ke PO.
 - Modal menampilkan Qty PR, Sudah Dialokasikan, Sisa, dan Qty PO yang bisa disesuaikan (default = sisa).
@@ -285,6 +288,7 @@ Aturan utama:
 - Return dibuat dari PO yang sudah memiliki penerimaan `posted`.
 - Flow: **Buat Return → Pilih Purchase Order → isi qty, kondisi, tindakan, keterangan → Posting**.
 - Satu return memakai satu gudang asal; gudang diambil dari penerimaan PO.
+- Harga return **tidak dapat diedit**; nilainya mengikuti harga item PO dan disimpan sebagai snapshot saat return dibuat.
 - Setiap baris memiliki:
   - qty return,
   - kondisi `Bagus` / `Rusak`,
@@ -606,7 +610,9 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 5. Jika promo bonus produk, baris bonus ditambahkan dengan harga 0 dan diskon 100%.
 6. Diskon khusus (jika berizin) mengurangi total.
 7. Tidak ada PPN pada prototype ini; total order = total harga − diskon.
-8. Kredit hanya tersedia mulai order ke-3 pelanggan (order ke-1 dan ke-2 wajib Tunai/Transfer).
+8. Kredit mengikuti setting pelanggan:
+   - **Minimal 2x order** → order ke-1 dan ke-2 wajib Tunai/Transfer, Kredit aktif mulai order ke-3.
+   - **Langsung bisa kredit** → Kredit aktif sejak order pertama (untuk pelanggan lama yang baru didaftarkan).
 9. Order dari role Admin masuk status **Belum disetujui** dan menunggu Manager; role lain langsung **Belum diproses**.
 10. Pelanggan dengan piutang aktif mendapat peringatan sebelum kamera. Jika tetap order, status menjadi **Belum disetujui**.
 11. Admin mengonfirmasi order yang sudah disetujui → status `already`, `due_date` diisi +2 minggu.
@@ -667,7 +673,7 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 
 ### 7.5a HR
 
-1. **Data Pegawai**: NIP, PIN mesin, nama, kelompok, posisi, gaji pokok, uang makan per hari, status, dan rekening.
+1. **Data Pegawai**: NIP, PIN mesin, nama, kelompok, posisi, **jenis kontrak** (Tetap/Kontrak/Harian), gaji pokok, uang makan per hari, status, dan rekening.
    - Tombol **Export** membuka modal pilihan format CSV/Excel.
 2. **Rekap Absensi**:
    - Matriks harian dengan kode H/I/S/C/A/L/·.
@@ -676,6 +682,7 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Titik telat dan penanda perlu cek menempel pada sel tanggal sehingga ikut bergeser saat scroll.
    - Import file mesin `.xls/.xlsx/.csv` dengan pencocokan PIN/NIP/nama.
    - Keterangan manual izin, sakit, cuti, alfa, lembur, resign, dan dispensasi telat.
+   - Menu **Perizinan** khusus berisi tabel riwayat izin/keterangan dengan kolom Jenis, filter pegawai/jenis/periode, serta aksi tambah, edit, dan hapus.
    - Pengaturan jam masuk, toleransi, libur mingguan, libur nasional, dan aturan potong HK per jenis keterangan.
    - Alfa otomatis untuk hari kerja tanpa scan dan tanpa keterangan.
 3. **Payroll**:
@@ -691,6 +698,8 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - HK, hari telat, hari makan, dan HK lembur terisi dari rekap absensi.
    - Rumus: gaji/hari = gaji pokok ÷ HK standar; gaji sesuai HK = gaji/hari × HK; tunjangan makan = uang makan × hari makan; lembur = HK lembur × (gaji/hari + uang makan/hari).
    - Potongan BPJS karyawan diinput manual dan di-prefill dari payroll terakhir.
+   - Kolom **BPJS Perusahaan** tidak ditampilkan lagi di payroll dan export.
+   - Komponen **BPJS** di HPP memakai total **Pot. BPJS Ket** (BPJS Ketenagakerjaan).
    - Payroll **tidak lagi mengirim langsung ke HPP**; integrasi dilakukan dari form HPP Harian dengan memilih payroll Diposting pada baris Gaji Produksi.
 4. **Export**: satu tombol **Export** membuka modal format CSV/Excel untuk pegawai, rekap absensi, dan payroll. Export rekap absensi memakai pilihan rentang tanggal (bisa lintas bulan) dan menyertakan sheet Data Scan pada rentang yang sama.
 5. **Self-test HR**: T1, T2, T3, T4, T5, T7. Dijalankan dari console developer; tidak lagi memakai tombol di halaman Data Pegawai.

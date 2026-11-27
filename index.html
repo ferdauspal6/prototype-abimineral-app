@@ -616,7 +616,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>ID</th><th>Nama Pelanggan</th><th>Alamat</th><th>Channel</th><th>Sales</th><th>Pekan</th><th>Hari</th><th>Jenis Harga</th><th class="actions">Action</th></tr></thead>
+            <thead><tr><th>#</th><th>ID</th><th>Nama Pelanggan</th><th>Alamat</th><th>Channel</th><th>Sales</th><th>Pekan</th><th>Hari</th><th>Jenis Harga</th><th>Kredit</th><th class="actions">Action</th></tr></thead>
             <tbody>
               <template x-for="(c, i) in filteredCustomers" :key="c.id">
                 <tr>
@@ -629,12 +629,13 @@
                   <td><span class="badge" :class="c.week === 'Genap' ? 'badge-blue' : 'badge-yellow'" x-text="c.week"></span></td>
                   <td x-text="c.day"></td>
                   <td><span class="badge badge-slate" x-text="priceTypeName(customerPriceTypeId(c))"></span></td>
+                  <td><span class="badge" :class="customerCreditStart(c) === 'first' ? 'badge-green' : 'badge-slate'" x-text="customerCreditStart(c) === 'first' ? 'Langsung' : 'Min 2x'"></span></td>
                   <td class="actions">
                     <button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'customers', c)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button>
                   </td>
                 </tr>
               </template>
-              <tr x-show="filteredCustomers.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Data Tidak Ditemukan</div><div class="text-xs text-slate-400">Coba ubah filter atau tambahkan pelanggan baru.</div></div></td></tr>
+              <tr x-show="filteredCustomers.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Data Tidak Ditemukan</div><div class="text-xs text-slate-400">Coba ubah filter atau tambahkan pelanggan baru.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -803,7 +804,7 @@
               <div class="card-header"><div class="section-title">Ringkasan Order</div><span class="badge badge-slate" x-text="cartCount + ' item'"></span></div>
               <div class="card-body pt-0 space-y-3">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div><label class="label">Metode Pembayaran <span class="req">*</span></label><select class="select" x-model="paymentMethod"><option value="">Pilih metode</option><option>Tunai</option><option value="Kredit" :disabled="!creditAvailable">Kredit</option><option>Transfer</option></select><div class="mt-1 text-[10px] text-amber-600" x-show="!creditAvailable">Kredit tersedia mulai order ke-3.</div></div>
+                  <div><label class="label">Metode Pembayaran <span class="req">*</span></label><select class="select" x-model="paymentMethod"><option value="">Pilih metode</option><option>Tunai</option><option value="Kredit" :disabled="!creditAvailable">Kredit</option><option>Transfer</option></select><div class="mt-1 text-[10px]" :class="creditAvailable ? 'text-emerald-600' : 'text-amber-600'" x-text="customerCreditStart(customer(selectedCustomerId)) === 'first' ? 'Kredit aktif sejak order pertama.' : (creditAvailable ? 'Kredit tersedia.' : 'Kredit tersedia mulai order ke-3.')"></div></div>
                   <div x-show="role === 'Admin'"><label class="label">Diskon Khusus (%)</label><div class="input-group"><input type="number" min="0" max="100" class="input" x-model.number="customDiscount"><span class="addon"><svg class="icon icon-xs"><use href="#i-percent"></use></svg></span></div></div>
                 </div>
                 <div class="table-wrap">
@@ -3074,7 +3075,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>NIP</th><th>Nama</th><th>Kelompok</th><th>Posisi</th><th class="num">Gaji Pokok</th><th>Status</th><th class="actions">Aksi</th></tr></thead>
+            <thead><tr><th>NIP</th><th>Nama</th><th>Kelompok</th><th>Posisi</th><th>Kontrak</th><th class="num">Gaji Pokok</th><th>Status</th><th class="actions">Aksi</th></tr></thead>
             <tbody>
               <template x-for="employee in filteredEmployees" :key="employee.id">
                 <tr>
@@ -3082,12 +3083,13 @@
                   <td><div class="font-semibold" x-text="employee.name"></div><span class="sub" x-text="'PIN ' + (employee.pin || '-')"></span></td>
                   <td><span class="badge badge-slate" x-text="employee.group"></span></td>
                   <td x-text="employee.position"></td>
+                  <td><span class="badge" :class="employee.contractType === 'Harian' ? 'badge-yellow' : employee.contractType === 'Kontrak' ? 'badge-blue' : 'badge-green'" x-text="employee.contractType || 'Tetap'"></span></td>
                   <td class="num" x-text="rp(employee.basicSalary)"></td>
                   <td><span class="badge" :class="employee.status ? 'badge-green' : 'badge-stone'" x-text="employee.status ? 'Aktif' : 'Nonaktif'"></span></td>
                   <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'employees', employee)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
                 </tr>
               </template>
-              <tr x-show="filteredEmployees.length === 0"><td colspan="7"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-users"></use></svg><div class="font-semibold mt-2">Belum ada pegawai</div><div class="text-xs text-slate-400">Tambahkan data pegawai untuk memulai HR.</div></div></td></tr>
+              <tr x-show="filteredEmployees.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-users"></use></svg><div class="font-semibold mt-2">Belum ada pegawai</div><div class="text-xs text-slate-400">Tambahkan data pegawai untuk memulai HR.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -3108,7 +3110,8 @@
               <div><label class="label">Posisi <span class="req">*</span></label><input class="input" list="hr-positions" x-model="employeeForm.position" placeholder="Operator Mesin"><datalist id="hr-positions"><template x-for="position in employeePositions" :key="position"><option :value="position"></option></template></datalist></div>
               <div><label class="label">Tanggal Masuk</label><input type="date" class="input" x-model="employeeForm.joinDate"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div><label class="label">Jenis Kontrak</label><select class="select" x-model="employeeForm.contractType"><option>Tetap</option><option>Kontrak</option><option>Harian</option></select></div>
               <div><label class="label">Gaji Pokok</label><input type="number" min="0" class="input text-right" x-model.number="employeeForm.basicSalary"></div>
               <div><label class="label">Uang Makan / Hari</label><input type="number" min="0" class="input text-right" x-model.number="employeeForm.mealPerDay"></div>
               <div><label class="label">Status</label><div class="flex gap-4 text-sm pt-2"><label class="flex items-center gap-2"><input type="radio" class="radio" :value="true" x-model="employeeForm.status"> Aktif</label><label class="flex items-center gap-2"><input type="radio" class="radio" :value="false" x-model="employeeForm.status"> Nonaktif</label></div></div>
@@ -3200,7 +3203,7 @@
       <!-- ATTENDANCE NOTE MODAL -->
       <div x-show="attendanceNoteOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="attendanceNoteOpen = false">
         <div class="modal-panel modal-md">
-          <div class="modal-head"><div><div class="modal-title">Tambah Keterangan Absensi</div><div class="modal-desc">Izin, sakit, cuti, lembur, atau dispensasi telat.</div></div><button class="icon-btn" @click="attendanceNoteOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+          <div class="modal-head"><div><div class="modal-title" x-text="attendanceNoteEditKey ? 'Edit Perizinan' : 'Tambah Keterangan Absensi'"></div><div class="modal-desc">Izin, sakit, cuti, lembur, atau dispensasi telat.</div></div><button class="icon-btn" @click="attendanceNoteOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
           <div class="modal-body space-y-4">
             <div><label class="label">Pegawai <span class="req">*</span></label><select class="select" x-model="attendanceNoteForm.employeeId"><template x-for="employee in employeesActive" :key="employee.id"><option :value="employee.id" x-text="employee.nip + ' — ' + employee.name"></option></template></select></div>
             <div class="grid grid-cols-2 gap-3"><div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="attendanceNoteForm.date"></div><div><label class="label">Sampai Tanggal</label><input type="date" class="input" x-model="attendanceNoteForm.dateEnd"></div></div>
@@ -3258,6 +3261,43 @@
           </div>
         </div>
       </div>
+
+      <!-- PERIZINAN -->
+      <section x-show="page === 'perizinan'">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari pegawai / catatan..." x-model="perizinanSearch"></div>
+            <select class="select w-48" x-model="perizinanEmployee"><option value="">Semua Pegawai</option><template x-for="employee in employeesActive" :key="employee.id"><option :value="employee.id" x-text="employee.nip + ' — ' + employee.name"></option></template></select>
+            <select class="select w-44" x-model="perizinanType"><option value="">Semua Jenis</option><option value="izin">Izin</option><option value="sakit">Sakit/Urgent</option><option value="cuti">Cuti</option><option value="alfa">Alfa</option><option value="lembur">Lembur</option><option value="dispensasi">Dispensasi Telat</option><option value="resign">Resign</option></select>
+            <input type="date" class="input w-40" x-model="perizinanFrom" title="Dari tanggal">
+            <input type="date" class="input w-40" x-model="perizinanTo" title="Sampai tanggal">
+          </div>
+          <button class="btn btn-primary" @click="openAttendanceNote()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Perizinan</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th>Sampai</th><th>Pegawai</th><th>Jenis</th><th>Catatan</th><th>Input by</th><th>Dibuat</th><th class="actions">Action</th></tr></thead>
+            <tbody>
+              <template x-for="group in filteredAttendanceNoteGroups" :key="group.key">
+                <tr>
+                  <td x-text="dateShort(group.start)"></td>
+                  <td x-text="group.end && group.end !== group.start ? dateShort(group.end) : '-'"></td>
+                  <td><div class="font-semibold" x-text="employeeName(group.employeeId)"></div><span class="sub" x-text="employee(group.employeeId).nip || ''"></span></td>
+                  <td><span class="badge" :class="attendanceTypeBadge(group.type)" x-text="attendanceTypeLabel(group.type)"></span></td>
+                  <td class="max-w-[280px] whitespace-normal" x-text="group.note || '-'"></td>
+                  <td x-text="group.by || '-'"></td>
+                  <td x-text="group.createdAt ? dateShort(group.createdAt) : '-'"></td>
+                  <td class="actions">
+                    <button class="icon-btn icon-btn-sm" @click="editAttendanceNoteGroup(group)" title="Edit"><svg class="icon icon-sm"><use href="#i-pencil"></use></svg></button>
+                    <button class="icon-btn icon-btn-sm icon-btn-danger" @click="deleteAttendanceNoteGroup(group)" title="Hapus"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredAttendanceNoteGroups.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-clipboard"></use></svg><div class="font-semibold mt-2">Belum ada perizinan</div><div class="text-xs text-slate-400">Tambahkan izin, sakit, cuti, lembur, atau keterangan lainnya.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- PAYROLL -->
       <section x-show="page === 'payroll'">
@@ -3353,7 +3393,7 @@
                 <tr>
                   <th class="frozen-col frozen-nip" style="min-width:92px">NIP</th>
                   <th class="frozen-col frozen-nama" style="min-width:170px;box-shadow:2px 0 0 #e2e8f0">Nama</th>
-                  <th>Kelompok / Posisi</th><th class="num">Gaji Pokok</th><th class="num">Gaji/Hari</th><th class="num">HK</th><th class="num">Gaji Sesuai HK</th><th class="num">Makan/Hari</th><th class="num">Hari Telat</th><th class="num">Hari Makan</th><th class="num">Tunj. Makan</th><th class="num">HK Lembur</th><th class="num">Tunj. Lembur</th><th class="num">Pot. Abs Sakit</th><th class="num">Pot. Hutang</th><th class="num">Pot. Telat</th><th class="num">Pot. BPJS Ket</th><th class="num">Penyesuaian</th><th class="num">Total Diterima</th><th class="num">BPJS Perusahaan</th><th>Catatan</th>
+                  <th>Kelompok / Posisi</th><th class="num">Gaji Pokok</th><th class="num">Gaji/Hari</th><th class="num">HK</th><th class="num">Gaji Sesuai HK</th><th class="num">Makan/Hari</th><th class="num">Hari Telat</th><th class="num">Hari Makan</th><th class="num">Tunj. Makan</th><th class="num">HK Lembur</th><th class="num">Tunj. Lembur</th><th class="num">Pot. Abs Sakit</th><th class="num">Pot. Hutang</th><th class="num">Pot. Telat</th><th class="num">Pot. BPJS Ket</th><th class="num">Penyesuaian</th><th class="num">Total Diterima</th><th>Catatan</th>
                 </tr>
               </thead>
               <tbody>
@@ -3378,14 +3418,13 @@
                     <td class="num"><input type="number" min="0" class="input input-sm w-24 text-right" x-model.number="row.potBpjsKet" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num"><input type="number" class="input input-sm w-24 text-right" x-model.number="row.penyesuaian" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td class="num font-bold" x-text="rp(payrollRowCalc(row).totalDiterima)"></td>
-                    <td class="num"><input type="number" min="0" class="input input-sm w-28 text-right" x-model.number="row.bpjsPerusahaan" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)"></td>
                     <td><input class="input input-sm w-48" x-model="row.note" @change="onPayrollRowChange()" :disabled="!payrollEditable(payrollDoc)" placeholder="Opsional"></td>
                   </tr>
                 </template>
                 <tr class="bg-slate-100 font-bold sticky bottom-0 z-20">
                   <td class="sticky left-0 z-30 bg-slate-100" colspan="2">TOTAL</td>
                   <td x-text="payrollTotals.employees + ' pegawai'"></td>
-                  <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td class="num" x-text="rp(payrollTotals.bpjsPerusahaan)"></td><td></td>
+                  <td class="num" x-text="rp(payrollTotals.basicSalary)"></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.gajiSesuaiHK)"></td><td></td><td></td><td></td><td class="num" x-text="rp(payrollTotals.tunjMakan)"></td><td></td><td class="num" x-text="rp(payrollTotals.tunjLembur)"></td><td class="num" x-text="rp(payrollTotals.potAbsSakit)"></td><td class="num" x-text="rp(payrollTotals.potHutang)"></td><td class="num" x-text="rp(payrollTotals.potTelat)"></td><td class="num" x-text="rp(payrollTotals.potBpjsKet)"></td><td class="num" x-text="rp(payrollTotals.penyesuaian)"></td><td class="num" x-text="rp(payrollTotals.totalDiterima)"></td><td></td>
                 </tr>
               </tbody>
             </table>
@@ -3430,7 +3469,7 @@
             <div x-show="payrollDoc && payrollWarnings().length" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800"><b>Perhatian:</b> <span x-text="payrollDoc ? payrollWarnings().join(' • ') : ''"></span></div>
             <div>
               <div class="section-title mb-2">Ringkasan per Kelompok</div>
-              <div class="table-wrap"><table class="data-table"><thead><tr><th>Kelompok</th><th class="num">Pegawai</th><th class="num">Gaji Pokok</th><th class="num">Tunj. Makan</th><th class="num">Total Diterima</th><th class="num">BPJS Perusahaan</th></tr></thead><tbody><template x-for="group in payrollByGroup" :key="group.group"><tr><td class="font-semibold" x-text="group.group"></td><td class="num" x-text="group.employees"></td><td class="num" x-text="rp(group.basicSalary)"></td><td class="num" x-text="rp(group.tunjMakan)"></td><td class="num font-semibold" x-text="rp(group.totalDiterima)"></td><td class="num" x-text="rp(group.bpjsPerusahaan)"></td></tr></template></tbody></table></div>
+              <div class="table-wrap"><table class="data-table"><thead><tr><th>Kelompok</th><th class="num">Pegawai</th><th class="num">Gaji Pokok</th><th class="num">Tunj. Makan</th><th class="num">Total Diterima</th></tr></thead><tbody><template x-for="group in payrollByGroup" :key="group.group"><tr><td class="font-semibold" x-text="group.group"></td><td class="num" x-text="group.employees"></td><td class="num" x-text="rp(group.basicSalary)"></td><td class="num" x-text="rp(group.tunjMakan)"></td><td class="num font-semibold" x-text="rp(group.totalDiterima)"></td></tr></template></tbody></table></div>
             </div>
             <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700" x-text="role === 'Manager' ? 'Payroll akan langsung disetujui dan diposting karena Anda Manager.' : 'Payroll akan dikunci dengan status Belum disetujui.'"></div>
           </div>
@@ -3995,7 +4034,7 @@
         </div>
         <div class="table-wrap" style="overflow: visible">
           <table class="data-table">
-            <thead><tr><th>#</th><th style="width:22%">Barang</th><th class="num" style="width:9%">Sisa Retur</th><th class="num" style="width:9%">Qty</th><th class="num" style="width:10%">Harga</th><th style="width:11%">Kondisi</th><th style="width:13%">Tindakan</th><th>Keterangan</th><th class="num" style="width:11%">Subtotal</th></tr></thead>
+            <thead><tr><th>#</th><th style="width:22%">Barang</th><th class="num" style="width:9%">Sisa Retur</th><th class="num" style="width:9%">Qty</th><th class="num" style="width:10%">Harga PO</th><th style="width:11%">Kondisi</th><th style="width:13%">Tindakan</th><th>Keterangan</th><th class="num" style="width:11%">Subtotal</th></tr></thead>
             <tbody>
               <template x-for="(item, index) in purchaseReturnForm.items" :key="index">
                 <tr>
@@ -4003,7 +4042,7 @@
                   <td><div class="font-semibold" x-text="materialName(item.materialId)"></div><span class="sub" x-text="(materials.find(m => m.id === item.materialId) || {}).code || ''"></span></td>
                   <td class="num text-slate-500" x-text="fmt(purchaseReturnMaxQty(item.materialId))"></td>
                   <td class="num"><input type="number" min="0" :max="purchaseReturnMaxQty(item.materialId)" class="input input-sm w-20 text-right" x-model.number="item.qty"></td>
-                  <td class="num"><input type="number" min="0" class="input input-sm w-28 text-right" x-model.number="item.price"></td>
+                  <td class="num text-slate-600" x-text="rp(item.price)"></td>
                   <td><select class="select input-sm" x-model="item.condition"><option value="damaged">Rusak</option><option value="good">Bagus</option></select></td>
                   <td><select class="select input-sm" x-model="item.action"><option value="replace">Ganti Barang</option><option value="credit">Ganti Biaya</option></select></td>
                   <td><input class="input input-sm" x-model="item.note" placeholder="Keterangan barang"></td>
@@ -4533,6 +4572,7 @@
             <div><label class="label">Hari <span class="req">*</span></label><select class="select" x-model="customerForm.day"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select></div>
           </div>
           <div><label class="label">Jenis Harga <span class="req">*</span></label><select class="select" x-model="customerForm.priceTypeId"><template x-for="type in activePriceTypes" :key="type.id"><option :value="type.id" x-text="type.name"></option></template></select></div>
+          <div><label class="label">Syarat Kredit</label><select class="select" x-model="customerForm.creditStart"><option value="after2">Minimal 2x order</option><option value="first">Langsung bisa kredit</option></select><div class="mt-1 text-[10px] text-slate-400">Pelanggan lama yang belum tercatat bisa langsung diaktifkan kredit.</div></div>
           <div><label class="label">Nomor Telepon <span class="req">*</span></label><input class="input" x-model="customerForm.phone" placeholder="081234567890"></div>
           <div><label class="label">Keterangan</label><textarea class="textarea" x-model="customerForm.description" placeholder="Keterangan"></textarea></div>
         </div>
@@ -5024,6 +5064,7 @@
         <div class="modal-actions modal-actions-right">
           <button class="btn btn-outline" @click="startPOPreview(selectedPO)"><svg class="icon icon-sm"><use href="#i-printer"></use></svg> Preview A4</button>
           <button x-show="selectedPO.status === 'draft'" class="btn btn-outline" @click="startPOEdit(selectedPO); poDetailOpen = false">Edit Draft</button>
+          <button x-show="canEditPoPrice && !['draft'].includes(selectedPO.status) && poPriceEditable(selectedPO)" class="btn btn-outline" @click="openPoPriceEdit(selectedPO); poDetailOpen = false">Ubah Harga</button>
           <button x-show="selectedPO.status === 'approved'" class="btn btn-outline" @click="sendPO(selectedPO)">Tandai Terkirim</button>
           <button x-show="['approved','sent','partially_received'].includes(selectedPO.status)" class="btn btn-primary" @click="openReceiptCreate(selectedPO); poDetailOpen = false">Terima Barang</button>
           <button x-show="['approved','sent','partially_received','fully_received'].includes(selectedPO.status)" class="btn btn-outline" @click="closePO(selectedPO)">Tutup PO</button>
@@ -5086,6 +5127,37 @@
         <button class="btn btn-outline" @click="cancelPoPrPicker()">Batal</button>
         <button class="btn btn-primary" @click="confirmPoPrPicker()">Gunakan Item Terpilih</button>
       </div>
+    </div>
+  </div>
+
+  <!-- PO PRICE EDIT MODAL -->
+  <div x-show="poPriceModalOpen" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="poPriceModalOpen = false">
+    <div class="modal-panel modal-xl">
+      <div class="modal-head"><div><div class="modal-title">Ubah Harga PO</div><div class="modal-desc" x-text="(poPriceEditPO.code || '-') + ' • ' + supplierName(poPriceEditPO.supplierId)"></div></div><button class="icon-btn" @click="poPriceModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-3">
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Harga hanya dapat diubah selama belum ada penerimaan barang. Perubahan akan tercatat di riwayat PO.</div>
+        <div x-show="role === 'Admin'" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">Perubahan harga oleh Admin pada PO yang sudah disetujui/dikirim akan mengembalikan status ke <b>Belum disetujui</b>.</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>Barang</th><th class="num">Qty</th><th class="num">Harga Lama</th><th class="num">Harga Baru</th><th class="num">Subtotal</th></tr></thead>
+            <tbody>
+              <template x-for="(row, index) in poPriceRows" :key="row.materialId">
+                <tr>
+                  <td x-text="index + 1"></td>
+                  <td><div class="font-semibold" x-text="materialName(row.materialId)"></div><span class="sub" x-text="(materials.find(m => m.id === row.materialId) || {}).code || ''"></span></td>
+                  <td class="num" x-text="fmt(row.qty)"></td>
+                  <td class="num text-slate-500" x-text="rp(row.oldPrice)"></td>
+                  <td class="num"><input type="number" min="0" class="input input-sm w-32 text-right" x-model.number="row.price"></td>
+                  <td class="num font-semibold" x-text="rp((Number(row.qty) || 0) * (Number(row.price) || 0))"></td>
+                </tr>
+              </template>
+              <tr class="bg-slate-50 font-bold"><td colspan="5" class="text-right">Subtotal Barang</td><td class="num" x-text="rp(poPriceRowsTotal)"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div><label class="label">Catatan Perubahan</label><textarea class="textarea" x-model="poPriceNote" placeholder="Contoh: koreksi harga dari supplier"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="poPriceModalOpen = false">Batal</button><button class="btn btn-primary" @click="savePoPriceEdit()">Simpan Harga</button></div>
     </div>
   </div>
 
@@ -5603,7 +5675,7 @@
 <input type="file" id="import-file" accept="application/json,.json" class="hidden" @change="handleImport($event)">
 
 <script src="assets/vendor/xlsx.full.min.js"></script>
-<script src="assets/app.js?v=20261127b"></script>
+<script src="assets/app.js?v=20261127d"></script>
 <script defer src="assets/vendor/alpine.min.js"></script>
 </body>
 </html>

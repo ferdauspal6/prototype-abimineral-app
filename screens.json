@@ -1478,6 +1478,17 @@
       "previewH": 900
     },
     {
+      "id": "perizinan",
+      "name": "Perizinan",
+      "src": "index.html?canvas=perizinan",
+      "group": "hr",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/perizinan.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
       "id": "payroll",
       "name": "Payroll",
       "src": "index.html?canvas=payroll",

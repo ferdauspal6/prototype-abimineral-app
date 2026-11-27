@@ -58,6 +58,7 @@ const PAGE_PERMISSION = {
   'hpp-detail': 'Laporan Keuangan',
   'employees': 'Data Pegawai',
   'attendance': 'Rekap Absensi',
+  'perizinan': 'Rekap Absensi',
   'payroll': 'Payroll',
   'hpp-bulanan-create': 'Laporan Keuangan',
   'hpp-bulanan-detail': 'Laporan Keuangan',
@@ -1635,6 +1636,7 @@ function app() {
         { title: 'HR', items: [
           { page: 'employees', label: 'Data Pegawai', icon: 'i-users', match: ['employees'] },
           { page: 'attendance', label: 'Rekap Absensi', icon: 'i-calendar', match: ['attendance'] },
+          { page: 'perizinan', label: 'Perizinan', icon: 'i-clipboard', match: ['perizinan'] },
           { page: 'payroll', label: 'Payroll', icon: 'i-banknote', match: ['payroll'] }
         ]},
         { title: 'Pembelian', items: [
@@ -1709,6 +1711,7 @@ function app() {
         materials: { title: 'Master Barang', crumb: 'Master Barang' },
         employees: { title: 'Data Pegawai', crumb: 'HR / Data Pegawai' },
         attendance: { title: 'Rekap Absensi', crumb: 'HR / Rekap Absensi' },
+        perizinan: { title: 'Perizinan', crumb: 'HR / Perizinan' },
         payroll: { title: 'Payroll', crumb: 'HR / Payroll' },
         suppliers: { title: 'Supplier', crumb: 'Pembelian / Supplier' },
         'purchase-requests': { title: 'Purchase Request', crumb: 'Pembelian / Purchase Request' },
@@ -2536,6 +2539,7 @@ function app() {
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPO(row) },
           { label:'Preview A4', icon:'i-printer', run:() => this.startPOPreview(row) },
           { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startPOEdit(row) },
+          { label:'Ubah Harga', icon:'i-pencil', show:this.canEditPoPrice && !['draft'].includes(row.status) && this.poPriceEditable(row), run:() => this.openPoPriceEdit(row) },
           { label:'Submit', icon:'i-send', show:row.status === 'draft', run:() => this.submitPO(row) },
           { label:'Setujui', icon:'i-check', show:this.canApprovePO && row.status === 'pending_approval' && row.createdById !== this.currentUserId, run:() => this.approvePO(row) },
           { label:'Tolak', icon:'i-x', danger:true, show:this.canApprovePO && row.status === 'pending_approval' && row.createdById !== this.currentUserId, run:() => this.openRejectPO(row) },
@@ -2948,6 +2952,11 @@ function app() {
         this.attendanceNotes = (this.attendanceNotes || []).filter(note => note.id !== id);
         this.persist();
         this.notify('Keterangan absensi dihapus');
+      }
+      if (action === 'delete-attendance-note-group') {
+        this.attendanceNotes = (this.attendanceNotes || []).filter(note => this.attendanceNoteGroupKey(note) !== id);
+        this.persist();
+        this.notify('Riwayat perizinan dihapus');
       }
       if (action === 'payroll-approve') {
         this.commitPayrollApprove();
@@ -3553,7 +3562,7 @@ function app() {
     /* ---------- CUSTOMER ---------- */
     customerSearch: '', customerChannel: '', customerSales: '', customerWeek: '', customerDay: '', customerPrice: '',
     customerModalOpen: false, customerEditId: null,
-    customerForm: { name:'', address:'', channel:'Grosir', sales:'Fahri', week:'Genap', day:'Senin', priceTypeId:'', phone:'', description:'' },
+    customerForm: { name:'', address:'', channel:'Grosir', sales:'Fahri', week:'Genap', day:'Senin', priceTypeId:'', phone:'', description:'', creditStart:'after2' },
     get filteredCustomers() {
       const q = this.customerSearch.toLowerCase();
       return this.customers.filter(c => {
@@ -3570,8 +3579,8 @@ function app() {
     openCustomer(c = null) {
       this.customerEditId = c ? c.id : null;
       this.customerForm = c
-        ? { name:c.name, address:c.address, channel:c.channel, sales:c.sales, week:c.week, day:c.day, priceTypeId:this.customerPriceTypeId(c), phone:c.phone, description:c.description }
-        : { name:'', address:'', channel:'Grosir', sales:this.role === 'Sales' ? this.currentUser : 'Fahri', week:'Genap', day:'Senin', priceTypeId:this.defaultPriceTypeId, phone:'', description:'' };
+        ? { name:c.name, address:c.address, channel:c.channel, sales:c.sales, week:c.week, day:c.day, priceTypeId:this.customerPriceTypeId(c), phone:c.phone, description:c.description, creditStart:this.customerCreditStart(c) }
+        : { name:'', address:'', channel:'Grosir', sales:this.role === 'Sales' ? this.currentUser : 'Fahri', week:'Genap', day:'Senin', priceTypeId:this.defaultPriceTypeId, phone:'', description:'', creditStart:'after2' };
       this.customerModalOpen = true;
     },
     saveCustomer() {
@@ -4391,6 +4400,7 @@ function app() {
     /* ---------- PURCHASE ORDER ---------- */
     poSearch: '', poStatus: '', poSupplier: '',
     poSelectedId: null, poDetailOpen: false, poRejectOpen: false, poRejectId: null, poRejectReason: '',
+    poPriceModalOpen: false, poPriceEditId: null, poPriceRows: [], poPriceNote: '',
     poEditId: null,
     poPrSelectValue: '', poPrPickerOpen: false, poPrPickerPrId: null, poPrPickerRows: [],
     poForm: { date:todayISO(), supplierId:'', prId:'', paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
@@ -4434,6 +4444,20 @@ function app() {
       return rows.length > 0 && rows.every(row => row.include);
     },
     get canApprovePO() { return this.role === 'Manager'; },
+    get canEditPoPrice() { return ['Manager','Admin'].includes(this.role); },
+    poPriceEditable(po) {
+      if (!po || !po.id) return false;
+      if (['cancelled','rejected','closed'].includes(po.status)) return false;
+      if ((po.items || []).some(item => Number(item.receivedQty || 0) > 0)) return false;
+      if ((this.receipts || []).some(receipt => receipt.poId === po.id && receipt.status === 'posted')) return false;
+      return true;
+    },
+    get poPriceRowsTotal() {
+      return (this.poPriceRows || []).reduce((sum, row) => sum + (Number(row.qty) || 0) * (Number(row.price) || 0), 0);
+    },
+    get poPriceEditPO() {
+      return (this.purchaseOrders || []).find(po => po.id === this.poPriceEditId) || {};
+    },
     get poSubtotal() {
       return (this.poForm.items || [])
         .filter(item => item.include !== false)
@@ -4684,6 +4708,65 @@ function app() {
         additionalCosts:(po.additionalCosts || []).map(row => ({ description:row.description || '', amount:Number(row.amount) || 0, qty:Number(row.qty) || 1 }))
       };
       this.go('purchase-order-create');
+    },
+    openPoPriceEdit(po) {
+      if (!this.canEditPoPrice) { this.notify('Hanya Manager atau Admin yang dapat mengubah harga PO', 'error'); return; }
+      if (!this.poPriceEditable(po)) { this.notify('Harga PO tidak dapat diubah karena barang sudah diterima', 'error'); return; }
+      this.poPriceEditId = po.id;
+      this.poPriceRows = (po.items || []).map(item => ({
+        materialId:item.materialId,
+        qty:Number(item.qty) || 0,
+        oldPrice:Number(item.price) || 0,
+        price:Number(item.price) || 0
+      }));
+      this.poPriceNote = '';
+      this.poPriceModalOpen = true;
+    },
+    savePoPriceEdit() {
+      const po = this.purchaseOrders.find(item => item.id === this.poPriceEditId);
+      if (!po || !this.canEditPoPrice) return;
+      if (!this.poPriceEditable(po)) { this.notify('Harga PO tidak dapat diubah karena barang sudah diterima', 'error'); return; }
+      const invalid = (this.poPriceRows || []).find(row => Number(row.price) < 0);
+      if (invalid) { this.notify('Harga tidak boleh negatif', 'error'); return; }
+      const changed = (this.poPriceRows || []).some(row => Number(row.price) !== Number(row.oldPrice));
+      if (!changed) { this.notify('Belum ada perubahan harga', 'error'); return; }
+      (po.items || []).forEach(item => {
+        const row = (this.poPriceRows || []).find(candidate => candidate.materialId === item.materialId);
+        if (row) item.price = Number(row.price) || 0;
+      });
+      po.subtotal = (po.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
+      po.total = po.subtotal + (Number(po.additionalTotal) || 0);
+      po.history = po.history || [];
+      po.history.unshift({
+        action:'price-edit', by:this.currentUser, byRole:this.role, at:todayISO(),
+        note:this.poPriceNote ? String(this.poPriceNote).trim() : 'Harga PO diperbarui'
+      });
+      let reopened = false;
+      if (this.role === 'Admin' && ['approved','sent'].includes(po.status)) {
+        const pr = po.prId ? (this.purchaseRequests || []).find(item => item.id === po.prId) : null;
+        if (pr) {
+          (po.items || []).forEach(poItem => {
+            const prItem = (pr.items || []).find(item => item.materialId === poItem.materialId);
+            if (prItem) prItem.orderedQty = Math.max(0, Number(prItem.orderedQty || 0) - (Number(poItem.qty) || 0));
+          });
+          this.updatePRStatus(pr);
+        }
+        po.status = 'pending_approval';
+        po.approvedBy = '';
+        po.approvedAt = '';
+        po.rejectReason = '';
+        reopened = true;
+        po.history.unshift({
+          action:'price-edit-reopen', by:this.currentUser, byRole:this.role, at:todayISO(),
+          note:'Perubahan harga oleh Admin memerlukan persetujuan ulang Manager'
+        });
+      }
+      this.poPriceModalOpen = false;
+      this.poPriceEditId = null;
+      this.poPriceRows = [];
+      this.poPriceNote = '';
+      this.persist();
+      this.notify(reopened ? 'Harga diperbarui dan PO menunggu persetujuan ulang' : 'Harga PO berhasil diperbarui');
     },
     poValidationError(items) {
       if (!this.poForm.supplierId) return 'Supplier wajib dipilih';
@@ -5528,7 +5611,7 @@ function app() {
         .map(item => ({
           materialId:item.materialId,
           qty:Number(item.qty),
-          price:Number(item.price) || 0,
+          price:Number(((po && po.items || []).find(row => row.materialId === item.materialId) || {}).price) || 0,
           condition:item.condition,
           action:item.action,
           note:String(item.note || '').trim()
@@ -6427,9 +6510,11 @@ function app() {
     employeeModalOpen: false, employeeEditId: null,
     exportModalOpen: false, exportKind: 'employees', exportFormat: 'csv', exportFrom: '', exportTo: '',
     navCollapsedGroups: [],
-    employeeForm: { nip:'', pin:'', name:'', group:'Produksi', position:'Operator Mesin', joinDate:todayISO(), status:true, resignDate:'', basicSalary:0, mealPerDay:20000, bank:'', accountNumber:'', note:'' },
+    employeeForm: { nip:'', pin:'', name:'', group:'Produksi', position:'Operator Mesin', contractType:'Tetap', joinDate:todayISO(), status:true, resignDate:'', basicSalary:0, mealPerDay:20000, bank:'', accountNumber:'', note:'' },
     attendancePeriod: previousMonthKey(todayISO().slice(0, 7)),
     attendanceTab: 'recap',
+    perizinanSearch: '', perizinanEmployee: '', perizinanType: '', perizinanFrom: '', perizinanTo: '',
+    attendanceNoteEditKey: null,
     attendanceSearch: '', attendanceEmployeeFilter: '',
     attendanceImportOpen: false, attendanceImportStep: 1, attendanceImportRows: [], attendanceImportFileName: '', attendanceImportPeriod: '',
     attendanceNoteOpen: false, attendanceNoteForm: { employeeId:'', date:todayISO(), dateEnd:'', type:'izin', note:'' },
@@ -8237,8 +8322,8 @@ function app() {
     openEmployee(employee = null) {
       this.employeeEditId = employee ? employee.id : null;
       this.employeeForm = employee
-        ? { nip:employee.nip, pin:employee.pin || '', name:employee.name, group:employee.group, position:employee.position, joinDate:employee.joinDate || todayISO(), status:employee.status !== false, resignDate:employee.resignDate || '', basicSalary:Number(employee.basicSalary) || 0, mealPerDay:Number(employee.mealPerDay) || Number(this.hrSettings.mealDefault) || 20000, bank:employee.bank || '', accountNumber:employee.accountNumber || '', note:employee.note || '' }
-        : { nip:'', pin:'', name:'', group:'Produksi', position:'Operator Mesin', joinDate:todayISO(), status:true, resignDate:'', basicSalary:0, mealPerDay:Number(this.hrSettings.mealDefault) || 20000, bank:'', accountNumber:'', note:'' };
+        ? { nip:employee.nip, pin:employee.pin || '', name:employee.name, group:employee.group, position:employee.position, contractType:employee.contractType || 'Tetap', joinDate:employee.joinDate || todayISO(), status:employee.status !== false, resignDate:employee.resignDate || '', basicSalary:Number(employee.basicSalary) || 0, mealPerDay:Number(employee.mealPerDay) || Number(this.hrSettings.mealDefault) || 20000, bank:employee.bank || '', accountNumber:employee.accountNumber || '', note:employee.note || '' }
+        : { nip:'', pin:'', name:'', group:'Produksi', position:'Operator Mesin', contractType:'Tetap', joinDate:todayISO(), status:true, resignDate:'', basicSalary:0, mealPerDay:Number(this.hrSettings.mealDefault) || 20000, bank:'', accountNumber:'', note:'' };
       this.employeeModalOpen = true;
     },
     saveEmployee() {
@@ -8251,6 +8336,7 @@ function app() {
       if ((Number(form.basicSalary) || 0) < 0) { this.notify('Gaji pokok tidak boleh negatif', 'error'); return; }
       const payload = {
         nip, pin, name:String(form.name).trim(), group:form.group, position:String(form.position || '').trim() || '-',
+        contractType:['Tetap','Kontrak','Harian'].includes(form.contractType) ? form.contractType : 'Tetap',
         joinDate:form.joinDate || todayISO(), status:form.status !== false,
         resignDate:form.status === false ? (form.resignDate || todayISO()) : '',
         basicSalary:Number(form.basicSalary) || 0,
@@ -8399,33 +8485,103 @@ function app() {
         .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.name || '').localeCompare(String(b.name || '')));
     },
     openAttendanceNote(employeeId = '', date = '') {
-      this.attendanceNoteForm = { employeeId:employeeId || (this.attendanceEmployees[0] || {}).id || '', date:date || this.attendancePeriod + '-01', dateEnd:'', type:'izin', note:'' };
+      this.attendanceNoteEditKey = null;
+      this.attendanceNoteForm = { employeeId:employeeId || (this.attendanceEmployees[0] || {}).id || '', date:date || todayISO(), dateEnd:'', type:'izin', note:'' };
       this.attendanceNoteOpen = true;
+    },
+    attendanceNoteGroupKey(note) {
+      if (!note) return '';
+      return note.groupId || [note.employeeId, note.type, note.note || '', note.createdAt || note.date].join('|');
+    },
+    get attendanceNoteGroups() {
+      const map = new Map();
+      (this.attendanceNotes || []).forEach(note => {
+        const key = this.attendanceNoteGroupKey(note);
+        const current = map.get(key) || {
+          key,
+          employeeId:note.employeeId,
+          type:note.type,
+          note:note.note || '',
+          by:note.by || '',
+          createdAt:note.createdAt || note.date || '',
+          dates:[]
+        };
+        current.dates.push(note.date);
+        if (note.createdAt && !current.createdAt) current.createdAt = note.createdAt;
+        map.set(key, current);
+      });
+      return [...map.values()].map(group => {
+        const dates = [...new Set(group.dates.filter(Boolean))].sort();
+        return { ...group, dates, start:dates[0] || '', end:dates[dates.length - 1] || '' };
+      }).sort((a, b) => String(b.start).localeCompare(String(a.start)) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    },
+    get filteredAttendanceNoteGroups() {
+      const q = String(this.perizinanSearch || '').toLowerCase();
+      return this.attendanceNoteGroups.filter(group => {
+        if (this.perizinanEmployee && group.employeeId !== this.perizinanEmployee) return false;
+        if (this.perizinanType && group.type !== this.perizinanType) return false;
+        if (this.perizinanFrom && group.end < this.perizinanFrom) return false;
+        if (this.perizinanTo && group.start > this.perizinanTo) return false;
+        if (q) {
+          const employee = this.employee(group.employeeId);
+          const haystack = [employee.nip, employee.name, group.note, this.attendanceTypeLabel(group.type), group.by].join(' ').toLowerCase();
+          if (!haystack.includes(q)) return false;
+        }
+        return true;
+      });
+    },
+    editAttendanceNoteGroup(group) {
+      if (!group) return;
+      this.attendanceNoteEditKey = group.key;
+      this.attendanceNoteForm = {
+        employeeId:group.employeeId,
+        date:group.start,
+        dateEnd:group.end !== group.start ? group.end : '',
+        type:group.type,
+        note:group.note || ''
+      };
+      this.attendanceNoteOpen = true;
+    },
+    deleteAttendanceNoteGroup(group) {
+      if (!group) return;
+      this.askConfirm(
+        'delete-attendance-note-group',
+        group.key,
+        'Hapus perizinan?',
+        'Riwayat ' + this.attendanceTypeLabel(group.type) + ' untuk ' + this.employeeName(group.employeeId) + ' (' + this.dateShort(group.start) + (group.end !== group.start ? ' s/d ' + this.dateShort(group.end) : '') + ') akan dihapus.'
+      );
     },
     saveAttendanceNote() {
       const form = this.attendanceNoteForm;
       const employee = this.employee(form.employeeId);
       if (!employee.id || !form.date) { this.notify('Pegawai dan tanggal wajib diisi', 'error'); return; }
+      const editKey = this.attendanceNoteEditKey;
+      if (editKey) {
+        this.attendanceNotes = (this.attendanceNotes || []).filter(note => this.attendanceNoteGroupKey(note) !== editKey);
+      }
       const end = form.dateEnd && form.dateEnd >= form.date ? form.dateEnd : form.date;
       const dates = [];
       let cursor = form.date;
       while (cursor <= end) { dates.push(cursor); cursor = shiftISO(cursor, 1); if (dates.length > 62) break; }
+      const groupId = 'ng' + Date.now() + Math.random().toString(16).slice(2);
       dates.forEach(date => {
         const existing = this.attendanceNoteFor(employee.id, date, [form.type]);
         if (existing) {
           existing.note = form.note || existing.note;
           existing.by = this.currentUser;
+          existing.groupId = existing.groupId || groupId;
           return;
         }
         (this.attendanceNotes = this.attendanceNotes || []).push({
           id:'note' + Date.now() + Math.random().toString(16).slice(2),
           employeeId:employee.id, date, type:form.type, note:form.note || '',
-          by:this.currentUser, createdAt:todayISO()
+          by:this.currentUser, createdAt:todayISO(), groupId
         });
       });
+      this.attendanceNoteEditKey = null;
       this.attendanceNoteOpen = false;
       this.persist();
-      this.notify('Keterangan absensi disimpan');
+      this.notify('Perizinan disimpan');
     },
     addAttendanceLembur(employeeId, date) {
       if (this.attendanceNoteFor(employeeId, date, ['lembur'])) return;
@@ -8435,10 +8591,11 @@ function app() {
     },
     deleteAttendanceNote(note) {
       if (!note) return;
-      this.askConfirm('delete-attendance-note', note.id, 'Hapus keterangan?', 'Keterangan ' + this.attendanceStatusLabel(this.attendanceTypeCode(note.type)) + ' pada ' + dateShort(note.date) + ' akan dihapus.');
+      this.askConfirm('delete-attendance-note', note.id, 'Hapus keterangan?', 'Keterangan ' + this.attendanceStatusLabel(this.attendanceTypeCode(note.type)) + ' pada ' + this.dateShort(note.date) + ' akan dihapus.');
     },
     attendanceTypeCode(type) { return { izin:'I', sakit:'S', cuti:'C', alfa:'A', lembur:'L', dispensasi:'H', resign:'H' }[type] || type; },
     attendanceTypeLabel(type) { return { izin:'Izin', sakit:'Sakit/Urgent', cuti:'Cuti', alfa:'Alfa', lembur:'Lembur', dispensasi:'Dispensasi Telat', resign:'Resign' }[type] || type; },
+    attendanceTypeBadge(type) { return { izin:'badge-blue', sakit:'badge-amber', cuti:'badge-purple', alfa:'badge-yellow', lembur:'badge-cyan', dispensasi:'badge-orange', resign:'badge-red' }[type] || 'badge-slate'; },
     openAttendanceSettings() {
       const settings = this.hrSettings || {};
       this.attendanceSettingsForm = {
@@ -8684,20 +8841,19 @@ function app() {
     get payrollTotals() {
       return this.payrollComputedRows.reduce((totals, row) => {
         totals.employees += 1;
-        ['basicSalary','gajiSesuaiHK','tunjMakan','tunjLembur','potAbsSakit','potHutang','potTelat','potBpjsKet','penyesuaian','totalDiterima','bpjsPerusahaan'].forEach(key => { totals[key] += Number(row[key]) || 0; });
+        ['basicSalary','gajiSesuaiHK','tunjMakan','tunjLembur','potAbsSakit','potHutang','potTelat','potBpjsKet','penyesuaian','totalDiterima'].forEach(key => { totals[key] += Number(row[key]) || 0; });
         return totals;
-      }, { employees:0, basicSalary:0, gajiSesuaiHK:0, tunjMakan:0, tunjLembur:0, potAbsSakit:0, potHutang:0, potTelat:0, potBpjsKet:0, penyesuaian:0, totalDiterima:0, bpjsPerusahaan:0 });
+      }, { employees:0, basicSalary:0, gajiSesuaiHK:0, tunjMakan:0, tunjLembur:0, potAbsSakit:0, potHutang:0, potTelat:0, potBpjsKet:0, penyesuaian:0, totalDiterima:0 });
     },
     get payrollByGroup() {
       const map = {};
       this.payrollComputedRows.forEach(row => {
         const key = row.group || '-';
-        map[key] = map[key] || { group:key, employees:0, basicSalary:0, tunjMakan:0, totalDiterima:0, bpjsPerusahaan:0 };
+        map[key] = map[key] || { group:key, employees:0, basicSalary:0, tunjMakan:0, totalDiterima:0 };
         map[key].employees += 1;
         map[key].basicSalary += Number(row.basicSalary) || 0;
         map[key].tunjMakan += Number(row.tunjMakan) || 0;
         map[key].totalDiterima += Number(row.totalDiterima) || 0;
-        map[key].bpjsPerusahaan += Number(row.bpjsPerusahaan) || 0;
       });
       return Object.values(map).sort((a, b) => String(a.group).localeCompare(String(b.group)));
     },
@@ -8843,8 +8999,6 @@ function app() {
         return sum + this.hrPeriodDays(doc.attendancePeriod).filter(date => this.attendanceStatus(employee, date) === 'A').length;
       }, 0);
       if (autoAlfa > 0) warnings.push(autoAlfa + ' hari alfa otomatis belum dikonfirmasi');
-      const zeroBpjs = this.payrollComputedRows.filter(row => row.group === 'Produksi' && !(Number(row.bpjsPerusahaan) > 0)).length;
-      if (zeroBpjs > 0) warnings.push(zeroBpjs + ' pegawai Produksi belum punya BPJS perusahaan');
       const zeroSalary = this.payrollComputedRows.filter(row => !(Number(row.basicSalary) > 0)).length;
       if (zeroSalary > 0) warnings.push(zeroSalary + ' pegawai belum punya gaji pokok');
       return warnings;
@@ -9007,14 +9161,14 @@ function app() {
       this.exportModalOpen = false;
     },
     getPayrollSummaryForDoc(doc, group = 'Produksi', basisOverride = '') {
-      if (!doc) return { gaji:0, uangMakan:0, lembur:0, bpjsPerusahaan:0, headcount:0 };
+      if (!doc) return { gaji:0, uangMakan:0, lembur:0, bpjs:0, headcount:0 };
       const rows = (doc.rows || []).filter(row => row.group === group).map(row => ({ ...row, ...this.payrollRowCalc(row) }));
       const basis = basisOverride || this.hrSettings.hppSalaryBasis || 'before';
       return {
         gaji:rows.reduce((sum, row) => sum + (basis === 'after' ? row.totalDiterima : row.gajiSesuaiHK + row.tunjLembur), 0),
         uangMakan:rows.reduce((sum, row) => sum + row.tunjMakan, 0),
         lembur:rows.reduce((sum, row) => sum + row.tunjLembur, 0),
-        bpjsPerusahaan:rows.reduce((sum, row) => sum + (Number(row.bpjsPerusahaan) || 0), 0),
+        bpjs:rows.reduce((sum, row) => sum + (Number(row.potBpjsKet) || 0), 0),
         headcount:rows.length
       };
     },
@@ -9036,7 +9190,7 @@ function app() {
         const summary = this.getPayrollSummaryForDoc(doc, group, this.hrSettings.hppSalaryBasis || 'before');
         totals.gaji += summary.gaji;
         totals.uangMakan += summary.uangMakan;
-        totals.bpjs += summary.bpjsPerusahaan;
+        totals.bpjs += summary.bpjs;
         totals.headcount += summary.headcount;
         return totals;
       }, { gaji:0, uangMakan:0, bpjs:0, headcount:0 });
@@ -9154,8 +9308,8 @@ function app() {
       this.downloadBlob(baseName + '.csv', '\ufeff' + lines.join('\r\n'), 'text/csv;charset=utf-8');
     },
     exportEmployees(format = 'csv') {
-      const headers = ['NIP','Nama','Kelompok','Posisi','Gaji Pokok','Uang Makan/Hari','Status','Tanggal Masuk','Bank','No. Rekening'];
-      const rows = this.filteredEmployees.map(employee => [employee.nip, employee.name, employee.group, employee.position, Number(employee.basicSalary) || 0, Number(employee.mealPerDay) || 0, employee.status ? 'Aktif' : 'Nonaktif', employee.joinDate || '', employee.bank || '', employee.accountNumber || '']);
+      const headers = ['NIP','Nama','Kelompok','Posisi','Jenis Kontrak','Gaji Pokok','Uang Makan/Hari','Status','Tanggal Masuk','Bank','No. Rekening'];
+      const rows = this.filteredEmployees.map(employee => [employee.nip, employee.name, employee.group, employee.position, employee.contractType || 'Tetap', Number(employee.basicSalary) || 0, Number(employee.mealPerDay) || 0, employee.status ? 'Aktif' : 'Nonaktif', employee.joinDate || '', employee.bank || '', employee.accountNumber || '']);
       this.exportRows('pegawai-' + todayISO(), headers, rows, format);
     },
     exportAttendance(format = 'csv', from = '', to = '') {
@@ -9173,12 +9327,12 @@ function app() {
     exportPayroll(format = 'csv') {
       const doc = this.payrollDoc;
       if (!doc) { this.notify('Belum ada payroll', 'error'); return; }
-      const headers = ['NIP','Nama','Kelompok','Posisi','Gaji Pokok','Gaji/Hari','HK','Gaji Sesuai HK','Uang Makan/Hari','Hari Telat','Hari Makan','Tunj. Makan','HK Lembur','Tunj. Lembur','Pot. Abs Sakit','Pot. Hutang','Pot. Telat','Pot. BPJS Ket','Penyesuaian','Total Diterima','BPJS Perusahaan','Catatan'];
-      const rows = this.payrollComputedRows.map(row => [row.nip, row.name, row.group, row.position, row.basicSalary, Math.round(row.gajiPerHari), row.hk, row.gajiSesuaiHK, row.mealPerDay, row.hariTelat, row.hariMakan, row.tunjMakan, row.hkLembur, row.tunjLembur, row.potAbsSakit, row.potHutang, row.potTelat, row.potBpjsKet, row.penyesuaian, row.totalDiterima, row.bpjsPerusahaan, row.note]);
+      const headers = ['NIP','Nama','Kelompok','Posisi','Gaji Pokok','Gaji/Hari','HK','Gaji Sesuai HK','Uang Makan/Hari','Hari Telat','Hari Makan','Tunj. Makan','HK Lembur','Tunj. Lembur','Pot. Abs Sakit','Pot. Hutang','Pot. Telat','Pot. BPJS Ket','Penyesuaian','Total Diterima','Catatan'];
+      const rows = this.payrollComputedRows.map(row => [row.nip, row.name, row.group, row.position, row.basicSalary, Math.round(row.gajiPerHari), row.hk, row.gajiSesuaiHK, row.mealPerDay, row.hariTelat, row.hariMakan, row.tunjMakan, row.hkLembur, row.tunjLembur, row.potAbsSakit, row.potHutang, row.potTelat, row.potBpjsKet, row.penyesuaian, row.totalDiterima, row.note]);
       const totals = this.payrollTotals;
-      rows.push(['TOTAL','','','', totals.basicSalary, '', '', totals.gajiSesuaiHK, '', '', '', totals.tunjMakan, '', totals.tunjLembur, totals.potAbsSakit, totals.potHutang, totals.potTelat, totals.potBpjsKet, totals.penyesuaian, totals.totalDiterima, totals.bpjsPerusahaan, '']);
-      const groupRows = this.payrollByGroup.map(group => [group.group, group.employees, group.basicSalary, group.tunjMakan, group.totalDiterima, group.bpjsPerusahaan]);
-      this.exportRows('payroll-' + doc.period, headers, rows, format, [{ name:'Ringkasan Kelompok', headers:['Kelompok','Jumlah Pegawai','Gaji Pokok','Tunj. Makan','Total Diterima','BPJS Perusahaan'], rows:groupRows }]);
+      rows.push(['TOTAL','','','', totals.basicSalary, '', '', totals.gajiSesuaiHK, '', '', '', totals.tunjMakan, '', totals.tunjLembur, totals.potAbsSakit, totals.potHutang, totals.potTelat, totals.potBpjsKet, totals.penyesuaian, totals.totalDiterima, '']);
+      const groupRows = this.payrollByGroup.map(group => [group.group, group.employees, group.basicSalary, group.tunjMakan, group.totalDiterima]);
+      this.exportRows('payroll-' + doc.period, headers, rows, format, [{ name:'Ringkasan Kelompok', headers:['Kelompok','Jumlah Pegawai','Gaji Pokok','Tunj. Makan','Total Diterima'], rows:groupRows }]);
     },
     /* ---------- LEDGER & TRIAL BALANCE ---------- */
     ledgerAccountId: 'acc1', ledgerFrom: '', ledgerTo: todayISO(),
@@ -9537,7 +9691,13 @@ function app() {
     customerOrderCount(customerId) {
       return this.orders.filter(o => o.customerId === customerId && !['cancel','failed','rejected'].includes(o.status)).length;
     },
-    get creditAvailable() { return this.customerOrderCount(this.selectedCustomerId) >= 2; },
+    customerCreditStart(customer) {
+      return (customer && customer.creditStart) === 'first' ? 'first' : 'after2';
+    },
+    get creditAvailable() {
+      const customer = this.customer(this.selectedCustomerId);
+      return this.customerCreditStart(customer) === 'first' || this.customerOrderCount(this.selectedCustomerId) >= 2;
+    },
     customerUnpaidOrders(customerId) {
       return this.receivables.filter(rec => rec.customerId === customerId && Number(rec.unpaid) > 0);
     },
