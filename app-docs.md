@@ -127,6 +127,7 @@ Purchase Order (L3):
   - `Cr Uang Muka Pembelian` sebesar DP yang diterapkan
 - Seluruh DP dipakai pada penerimaan pertama. Jika nilai DP melebihi nilai penerimaan pertama, sisanya otomatis dipakai pada penerimaan berikutnya.
 - Master Supplier menyimpan default **skema pembayaran, DP nominal, dan termin**. Nilai ini hanya prefill dan tetap bisa diubah di PO.
+- Daftar PO memiliki kolom **Down Payment** setelah Total: menampilkan status DP dan nominal target, atau `-` untuk PO Tempo.
 - Edit PO dan **Ubah Harga** dikunci setelah ada pembayaran awal.
 - PO dapat dibatalkan pada status `draft`, `pending_approval`, `approved`, dan `sent` selama belum ada penerimaan.
 - Jika PO sudah dibayar DP/lunas, popup pembatalan menawarkan **refund**:

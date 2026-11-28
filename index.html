@@ -2152,7 +2152,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>No. PO</th><th>Tanggal</th><th>Supplier</th><th>Referensi PR</th><th class="num">Item</th><th class="num">Total</th><th>Status</th><th class="actions">Action</th></tr></thead>
+            <thead><tr><th>#</th><th>No. PO</th><th>Tanggal</th><th>Supplier</th><th>Referensi PR</th><th class="num">Item</th><th class="num">Total</th><th>Down Payment</th><th>Status</th><th class="actions">Action</th></tr></thead>
             <tbody>
               <template x-for="(po, i) in filteredPurchaseOrders" :key="po.id">
                 <tr>
@@ -2163,18 +2163,22 @@
                   <td x-text="po.prCode || 'Manual'"></td>
                   <td class="num" x-text="(po.items || []).length"></td>
                   <td class="num font-semibold" x-text="rp(po.total)"></td>
+                  <td class="num">
+                    <div x-show="poPaymentScheme(po) !== 'credit'">
+                      <span class="badge" :class="poPaymentStatusBadge(po)" x-text="poPaymentStatusLabel(po)"></span>
+                      <div class="sub" x-text="rp(poPaymentTarget(po))"></div>
+                    </div>
+                    <span x-show="poPaymentScheme(po) === 'credit'" class="text-slate-400">-</span>
+                  </td>
                   <td>
                     <span class="badge" :class="poStatusBadge(po.status)" x-text="poStatusLabel(po.status)"></span>
-                    <div class="mt-1" x-show="poPaymentScheme(po) !== 'credit'">
-                      <span class="badge" :class="poPaymentStatusBadge(po)" x-text="poPaymentStatusLabel(po)"></span>
-                    </div>
                   </td>
                   <td class="actions">
                     <button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'purchase-orders', po)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button>
                   </td>
                 </tr>
               </template>
-              <tr x-show="filteredPurchaseOrders.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada Purchase Order</div><div class="text-xs text-slate-400">Buat PO dari PR yang disetujui atau secara manual.</div></div></td></tr>
+              <tr x-show="filteredPurchaseOrders.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada Purchase Order</div><div class="text-xs text-slate-400">Buat PO dari PR yang disetujui atau secara manual.</div></div></td></tr>
             </tbody>
           </table>
         </div>
