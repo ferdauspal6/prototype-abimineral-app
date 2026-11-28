@@ -528,6 +528,7 @@ function cheatCardEl(screen){
     return '<div class="cheat-month"><h4>' + esc(month.title) + '</h4>' + steps + '</div>';
   }).join('');
   var coa = (cheat.coa || []).map(function(item){ return '<span>' + esc(item) + '</span>'; }).join('');
+  var flowHref = cheat.flowHref ? new URL(cheat.flowHref, ROOT).href : '';
   el.innerHTML =
     '<div class="cheat-top"><span class="cheat-eyebrow">' + esc(cheat.eyebrow || 'Cheat Sheet') + '</span>' +
     '<span class="cheat-page">' + esc(screen.name) + '</span></div>' +
@@ -537,7 +538,7 @@ function cheatCardEl(screen){
     (cheat.formula ? '<div class="cheat-formula"><b>Rumus</b><code>' + esc(cheat.formula) + '</code></div>' : '') +
     (cheat.note ? '<div class="cheat-note">' + esc(cheat.note) + '</div>' : '') +
     (coa ? '<div class="cheat-coa">' + coa + '</div>' : '') +
-    (cheat.flowHref ? '<a class="cheat-link" href="' + esc(cheat.flowHref) + '" target="_blank" rel="noopener"><span>' + esc(cheat.flowLabel || 'Buka di Flow') + '</span><span>→</span></a>' : '');
+    (flowHref ? '<a class="cheat-link" href="' + esc(flowHref) + '" target="_blank" rel="noopener"><span>' + esc(cheat.flowLabel || 'Buka di Flow') + '</span><span>→</span></a>' : '');
   return el;
 }
 
