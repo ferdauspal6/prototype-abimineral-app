@@ -122,8 +122,6 @@
     nodesEl.innerHTML = DATA.nodes.map(nodeMarkup).join('');
     $$('.flow-node', nodesEl).forEach(el => {
       el.addEventListener('pointerdown', onNodePointerDown);
-      el.addEventListener('pointerenter', () => highlightNode(el.dataset.id));
-      el.addEventListener('pointerleave', clearHighlight);
     });
     applyVisibility();
   }
@@ -339,30 +337,9 @@
     viewport.addEventListener('pointercancel', up);
   }
 
-  function highlightNode(id) {
-    const related = new Set([id]);
-    DATA.edges.forEach(edge => {
-      if (!edgeVisible(edge)) return;
-      if (edge.from === id) related.add(edge.to);
-      if (edge.to === id) related.add(edge.from);
-    });
-    $$('.flow-node', nodesEl).forEach(el => {
-      if (el.style.display === 'none') return;
-      el.classList.toggle('is-dimmed', !related.has(el.dataset.id));
-    });
-    $$('.flow-edge', edgesEl).forEach(el => {
-      const active = el.dataset.from === id || el.dataset.to === id;
-      el.classList.toggle('is-dimmed', !active);
-    });
-    $$('.flow-edge-label', edgesEl).forEach(el => {
-      el.style.opacity = '0.35';
-    });
-  }
-
   function clearHighlight() {
-    $$('.flow-node.is-dimmed', nodesEl).forEach(el => el.classList.remove('is-dimmed'));
+    $$('.flow-node', nodesEl).forEach(el => el.classList.remove('is-dimmed', 'search-hit'));
     $$('.flow-edge.is-dimmed', edgesEl).forEach(el => el.classList.remove('is-dimmed'));
-    $$('.flow-edge-label', edgesEl).forEach(el => { el.style.opacity = ''; });
   }
 
   function openDrawer(id) {
