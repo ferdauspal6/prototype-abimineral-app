@@ -113,6 +113,7 @@ Purchase Order (L3):
 - Sisa qty PR memperhitungkan PO **draft**, **menunggu persetujuan**, dan **disetujui**, sehingga dua PO tidak bisa mengalokasikan qty melebihi PR.
 - PR detail menampilkan semua PO terkait beserta supplier dan statusnya.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
+- Setiap baris PO memiliki field **Catatan**; tampil di form, detail, preview, dan cetak PO.
 - Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.
 - **Skema pembayaran PO**:
   - **Tempo** — utang penuh terbentuk saat penerimaan.
@@ -213,7 +214,21 @@ Permission: `Laporan Keuangan` (Admin, Manager, Developer).
 - Saldo awal hanya boleh satu yang posted; untuk mengubah, gunakan **Batalkan Saldo Awal** lalu posting ulang.
 - Jurnal saldo awal menyimpan pembuat dan waktu posting.
 
-### 2.6.2 HPP Harian
+### 2.6.2 Pengaturan Pajak
+
+Menu: **Keuangan → Pengaturan Pajak**.
+Permission: `Laporan Keuangan`.
+
+- Toggle aktif/nonaktif PPN.
+- Rate PPN global, default **11%**.
+- Hanya pelanggan dengan checkbox **Kena PPN** yang dikenakan PPN.
+- Akun sistem **2-1200 PPN Keluaran**.
+- Perhitungan: DPP = total − diskon; PPN = pembulatan DPP × rate; total = DPP + PPN.
+- Invoice menampilkan DPP, PPN, dan Grand Total.
+- Jurnal penjualan: Dr Kas/Bank/Piutang total, Cr Pendapatan DPP, Cr PPN Keluaran.
+- Dashboard dan laporan memakai pendapatan neto (DPP).
+
+### 2.6.3 HPP Harian
 
 Menu: **Keuangan → HPP**.
 Permission: `Laporan Keuangan` (Admin, Manager, Developer).
@@ -228,12 +243,23 @@ Aturan utama:
 
 - Satuan memakai **Krt**.
 - Hasil produksi diambil dari dokumen Produksi posted, bukan diketik.
-- HPP per Krt = bahan baku per Krt + biaya produksi per Krt.
+- HPP per Krt = bahan baku per Krt + biaya produksi per Krt + penyesuaian manual per Krt.
 - Bahan selalu memakai qty aktual dari PRD (tanpa mode Standar).
 - Harga bahan memakai rata-rata bergerak per tanggal produksi, bisa dioverride dengan alasan. Jika belum ada pergerakan sebelum tanggal produksi, dipakai harga beli awal Master Barang.
 - Biaya produksi diisi langsung pada form **HPP Harian** (tab Biaya Bulanan sudah dihapus).
 - Setiap form memiliki **Periode Biaya**; nilai komponen disimpan juga ke pool biaya bulanan periode tersebut agar HPP Bulanan per produk tetap berjalan.
-- Sumber **Gaji Produksi** dapat Manual atau **Payroll** Diposting (maksimal 3 periode terbaru ≤ periode biaya). Memilih payroll otomatis mengisi Uang Makan dan BPJS Produksi serta mengunci ketiganya.
+- Sumber **Gaji Produksi, Uang Makan Produksi, dan BPJS Produksi** dapat **Payroll** atau **Manual** per dokumen HPP.
+- Mode **Payroll**:
+  - dropdown hanya berisi **3 payroll Posted terakhir** dan user memilih satu periode,
+  - Gaji, Uang Makan, dan BPJS terisi otomatis dan read-only,
+  - checklist **Departemen** disimpan per dokumen HPP, default **Produksi**,
+  - total dihitung dari departemen yang dicentang.
+- Mode **Manual**:
+  - Gaji, Uang Makan, dan BPJS diisi manual,
+  - tetap dapat disimpan sebagai draft maupun final.
+- Default form baru: Payroll jika ada payroll Posted, selain itu Manual.
+- **Penyesuaian HPP / Krt** adalah nominal opsional, boleh positif atau negatif, dan langsung menambah/mengurangi HPP akhir.
+- Nilai reject produksi ditampilkan sebagai bagian biaya bahan; HPP Bulanan dapat mengambil reject produksi lewat tombol **Sinkron dari Produksi**.
 - **Listrik Produksi** hanya bersumber dari Manual atau Jurnal. Jurnal mengambil total debit jurnal posted ke akun `5-1600 Beban Listrik Produksi`; akun `5-1610 Beban Listrik Kantor` tidak masuk HPP.
 - **Air** dan **Overhead** diisi manual **per Krt**, **Penyusutan** diisi manual sebagai total per dokumen. Nilai Air/Overhead harian tidak menimpa pool HPP Bulanan.
 - Biaya produksi per Krt = `(nilai bulanan ÷ hari kerja ÷ hasil produksi) × alokasi%`.
@@ -303,7 +329,9 @@ Aturan utama:
 ### 2.8 L5 — Return Pembelian
 
 - Return dibuat dari PO yang sudah memiliki penerimaan `posted`.
-- Flow: **Buat Return → Pilih Purchase Order → isi qty, kondisi, tindakan, keterangan → Posting**.
+- Flow: **Buat Return → Pilih Purchase Order → isi qty, kondisi, tindakan, keterangan → Ajukan Return → Setujui & Posting oleh Manager**.
+- Return berstatus `pending_approval` dan belum mengubah stok/jurnal/utang.
+- Manager dapat menyetujui atau menolak dengan alasan. Return buatan Manager otomatis disetujui.
 - Satu return memakai satu gudang asal; gudang diambil dari penerimaan PO.
 - Harga return **tidak dapat diedit**; nilainya mengikuti harga item PO dan disimpan sebagai snapshot saat return dibuat.
 - Setiap baris memiliki:
@@ -312,11 +340,11 @@ Aturan utama:
   - tindakan `Ganti Barang` / `Ganti Biaya`,
   - keterangan bebas.
 - Qty return dibatasi oleh `receivedQty - returnedQty` dan stok gudang asal.
-- Saat posting:
+- Saat disetujui dan diposting:
   - stok material berkurang dan `stockMovements` mencatat qty negatif,
   - `returnedQty` PO bertambah,
   - **Ganti Barang** → `Dr Piutang Supplier / Cr Persediaan`,
-  - **Ganti Biaya** → `Dr Utang Usaha / Cr Persediaan` dan payable PO dikurangi,
+  - **Ganti Biaya** → `Dr Utang Usaha / Cr Persediaan` (atau `Cr Peralatan` untuk alat) dan payable PO dikurangi,
   - jurnal otomatis dibuat dengan source `purchase-return`.
 - Aksi **Terima Ganti Barang** menambah stok pengganti dan mengurangi Piutang Supplier.
 - Return posted dapat dibatalkan selama penggantian belum diterima; pembatalan mengembalikan stok, `returnedQty`, payable, dan mem-void jurnal.
@@ -351,14 +379,19 @@ Aturan utama:
 - Tambah/Edit Produk memakai halaman penuh karena form dan resep cukup panjang.
 - Resep disimpan di `recipes` dan tidak menimpa Harga Modal.
 - Buat Produksi mengurangi stok bahan baku dan menambah stok produk jadi.
-- Pemakaian bahan mengikuti standar resep × qty hasil, tetapi dapat diedit manual.
-- Setiap produksi menyimpan snapshot bahan, harga, standar, dan pemakaian.
+- **Buat Produksi memakai halaman penuh**, bukan modal.
+- Standar bahan dihitung otomatis dari resep × hasil produksi.
+- User hanya mengisi **Selisih**; pemakaian aktual = standar + selisih.
+- Selisih negatif berarti hemat, selisih positif otomatis dihitung sebagai **Reject**.
+- Nilai reject = qty reject × harga rata-rata bahan.
+- Setiap produksi menyimpan snapshot bahan, harga, standar, selisih, reject, dan pemakaian.
 - Nomor produksi memakai format `PRD-YYYY-0001`.
 - Produksi menghasilkan dua pergerakan stok: hasil produk (+) dan pemakaian bahan (-).
 - Koreksi produksi hanya mengubah hasil dan pemakaian; standar snapshot tetap.
 - Koreksi menyesuaikan stok sebesar selisih dan tercatat di `productionLogs`.
 - Tab Produksi menyediakan daftar, detail, dan riwayat perubahan.
 - Stok Barang memiliki tab Riwayat untuk pemakaian bahan baku.
+- Barang jenis **Alat** tidak muncul di resep maupun pemakaian bahan produksi.
 
 ---
 
@@ -545,6 +578,7 @@ Setiap label grup dapat diklik untuk **expand/collapse**. Chevron berputar saat 
 | Return | `/dashboard/order/retur` | `Order Admin` |
 | Stock Produk | `/dashboard/inventory/stock-product` | `Stock` |
 | Stock Barang | `/dashboard/inventory/stock-material` | `Stock` |
+| Buat Produksi | `/dashboard/inventory/stock-product/production-create` | `Stock` |
 | Stock Aktif | `/dashboard/inventory/stock` | `Stock` |
 | Riwayat Stock | `/dashboard/inventory/history` | `Stock` |
 | Stock Opname | `/dashboard/inventory/opname` | `Stock` + `Stock Opname` |
@@ -553,6 +587,7 @@ Setiap label grup dapat diklik untuk **expand/collapse**. Chevron berputar saat 
 | Master Keuangan | `/dashboard/finance/master/income` dan `/expense` | `Master Keuangan` |
 | Pendapatan Lainnya | `/dashboard/finance/income` | `Pendapatan Lainnya` |
 | Pengeluaran Lainnya | `/dashboard/finance/expense` | `Pengeluaran Lainnya` |
+| Pengaturan Pajak | `/dashboard/finance/tax-settings` | `Laporan Keuangan` |
 | Piutang Aktif | `/dashboard/piutang` | `Piutang` |
 | Penagihan | `/dashboard/piutang/penagihan` | `Piutang` |
 | Buat Penagihan | `/dashboard/piutang/penagihan/create` | `Piutang` |
@@ -634,10 +669,17 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
 4. Diskon aktif dihitung otomatis (satu promo terbaik per produk per tipe).
 5. Jika promo bonus produk, baris bonus ditambahkan dengan harga 0 dan diskon 100%.
 6. Diskon khusus (jika berizin) mengurangi total.
-7. Tidak ada PPN pada prototype ini; total order = total harga − diskon.
-8. Kredit mengikuti setting pelanggan:
-   - **Minimal 2x order** → order ke-1 dan ke-2 wajib Tunai/Transfer, Kredit aktif mulai order ke-3.
-   - **Langsung bisa kredit** → Kredit aktif sejak order pertama (untuk pelanggan lama yang baru didaftarkan).
+7. PPN hanya dikenakan pada pelanggan yang ditandai **Kena PPN**:
+   - rate global di **Keuangan → Pengaturan Pajak**, default 11%,
+   - DPP = total harga − diskon,
+   - PPN = pembulatan rupiah dari DPP × rate,
+   - total order = DPP + PPN,
+   - jurnal penjualan memisahkan Cr Pendapatan (DPP) dan Cr PPN Keluaran.
+8. Kredit mengikuti **Syarat Kredit** berupa angka:
+   - default 3,
+   - sisa order dihitung dari jumlah order aktual,
+   - jika sisa 0, Kredit aktif,
+   - jika diisi 0, Kredit langsung aktif.
 9. Order dari role Admin masuk status **Belum disetujui** dan menunggu Manager; role lain langsung **Belum diproses**.
 10. Pelanggan dengan piutang aktif mendapat peringatan sebelum kamera. Jika tetap order, status menjadi **Belum disetujui**.
 11. Admin mengonfirmasi order yang sudah disetujui → status `already`, `due_date` diisi +2 minggu.
@@ -655,7 +697,7 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - Tunai otomatis masuk akun **Kas**.
    - Transfer memilih **akun bank tujuan per order**.
    - Submit → delivery `success`, order `success`/`paid` atau `partial`, piutang dibuat bila ada sisa.
-   - Jurnal penjualan dan HPP dibuat otomatis: Dr Kas/Bank/Piutang, Cr Pendapatan; Dr HPP, Cr Persediaan.
+   - Jurnal penjualan dan HPP dibuat otomatis: Dr Kas/Bank/Piutang total, Cr Pendapatan (DPP), Cr PPN Keluaran (jika ada); Dr HPP, Cr Persediaan.
 7. Jika dihapus, stok dikembalikan dan order kembali `already`.
 
 ### 7.3 Piutang → Penagihan → Pembayaran
@@ -674,9 +716,11 @@ Role tidak otomatis memiliki permission; permission diatur per role melalui hala
    - **Ganti Barang** → status akhir `discard` (stok tidak dikembalikan pada proses ini).
    - **Potong Harga** → status akhir `return` dan stok dikembalikan.
 3. Kondisi barang: bagus/rusak.
-4. Return berstatus `pending` hingga diproses.
-5. Aksi **Proses** mengubah total order/piutang/stok sesuai jenis return.
-6. Return pending dapat dibatalkan/dihapus.
+4. Return berstatus `pending_approval` hingga disetujui Manager.
+5. Manager dapat menyetujui atau menolak dengan alasan; return buatan Manager otomatis disetujui.
+6. Setelah disetujui, status menjadi `pending` (Siap Diproses).
+7. Aksi **Proses** mengubah total order/piutang/stok sesuai jenis return.
+8. Return yang belum disetujui atau ditolak dapat dibatalkan/dihapus.
 
 ### 7.5 Stock
 
@@ -690,10 +734,12 @@ Tab **Produk / Barang** di dalam halaman dihapus.
 2. **Produksi**: membuat produk jadi dari bahan baku berdasarkan resep; standar dapat disesuaikan dengan pemakaian aktual.
 3. **Riwayat**: pergerakan stock masuk, produksi, koreksi produksi; nomor PRD dapat diklik menuju detail.
 4. **Opname**: penyesuaian stok per produk/gudang; qty positif menambah, negatif mengurangi.
-5. **Stock Barang → Stock Aktif**: qty dan nilai bahan per gudang.
-6. **Stock Barang → Riwayat**: pergerakan bahan baku dari penerimaan, return, produksi, dan opname.
-7. **Stock Barang → Opname**: penyesuaian stok bahan baku per gudang; qty positif menambah, negatif mengurangi; tersimpan sebagai pergerakan `opname`.
-8. **Master Barang**: status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
+5. **Stock Barang → Stock Aktif**: qty dan nilai **Bahan Baku dan Alat** per gudang, dengan kolom dan filter **Jenis**.
+6. **Stock Barang → Riwayat**: pergerakan bahan baku dan alat dari penerimaan, return, produksi, dan opname.
+7. **Stock Barang → Opname**: penyesuaian stok bahan baku/alat per gudang; qty positif menambah, negatif mengurangi; tersimpan sebagai pergerakan `opname`.
+8. **Master Barang**: field **Jenis Barang** (Bahan Baku / Alat), status aktif/nonaktif; barang yang dipakai resep tidak dapat dihapus.
+   - **Alat** tidak muncul di resep/produksi/HPP.
+   - Pembelian alat lewat PO/Penerimaan dan masuk akun **Peralatan**.
 9. **Master Gudang**: kode otomatis `ST-0001`.
 10. **Stock Barang → Selisih**: analisis pemakaian bahan baku per tanggal, produk, bahan, dan gudang.
     - Selisih = qty aktual dipakai − qty standar resep.
@@ -724,6 +770,7 @@ Tab **Produk / Barang** di dalam halaman dihapus.
    - Jenis: **Izin, Sakit, Cuti, Alfa, Lainnya**.
    - Potongan gaji:
      - **Potong gaji harian** → jumlah hari dari rentang tanggal, mengurangi HK (gaji pokok + uang makan).
+     - **Potong setengah hari** → 0,5 HK per hari; nilainya 50% dari (gaji harian + uang makan).
      - **Tanpa potong gaji**.
      - **Potongan manual** → nominal total per rentang.
    - Filter pegawai, jenis, periode, dan search.
@@ -1612,7 +1659,7 @@ Layout: heading "Pengaturan", sidebar kiri (Profil, Kata sandi, Otentikasi 2FA, 
 | Delivery | `id`, `delivery_id` (`DO/YYYY/MM/0001`), `status`, `driver`, `car`, `warehouse`, `start_date`, `end_date`, `total_amount`, `orders[]`, `order_by` |
 | DeliveryOrder | `id`, `order_id`, `delivery_id`, `driver`, `car`, `price_type`, `custom_discount`, `original_amount`, `total_amount`, `total_cash`, `total_transfer`, `total_receivable`, `order`, `items[]` |
 | DeliveryItem | `id`, `delivery_order_id`, `product_order_id`, `product_id`, `name`, `unit`, `cost`, `price`, `disc_percent`, `disc_amount`, `qty_total`, `qty_sent`, `qty_hold`, `total_amount` |
-| ReturnOrder | `id`, `return_id` (`RTN/YYYY/MM/0001`), `order_id`, `name`, `qty`, `price`, `type` (`change`/`cut`), `condition` (`good`/`bad`), `action` (`return`/`discard`), `status` (`pending`/`return`/`discard`), `description`, `product`, `customer`, `user` |
+| ReturnOrder | `id`, `return_id` (`RTN/YYYY/MM/0001`), `order_id`, `name`, `qty`, `netPrice`, `taxRate`, `taxAmount`, `price`, `type` (`change`/`cut`), `condition` (`good`/`bad`), `action` (`return`/`discard`), `status` (`pending_approval`/`rejected`/`pending`/`return`/`discard`), `approvedBy`, `approvedAt`, `rejectReason`, `description`, `product`, `customer`, `user` |
 | Piutang | `id`, `order_code`, `delivery_code`, `invoice_date`, `schedule_date`, `due_date`, `total_amount`, `total_transfer`, `total_cash`, `total_unpaid`, `sales`, `customer`, `order` |
 | Debt | `id`, `debt_id` (`CL/YYYY/MM/0001`), `debt_date`, `sales`, `orders[]` |
 | DebtOrder | `id`, `status` (`pending`/`processing`/`success`), `total_unpaid`, `total_transfer`, `total_cash`, `total_amount`, `start_date`, `end_date`, `order_id`, `piutang`, `customer` |
@@ -1869,8 +1916,8 @@ Semua template memakai:
 Bagian ini penting agar prototype tidak "memperbaiki" hal yang justru menjadi ciri aplikasi, atau agar tim sadar jika ingin merapikannya.
 
 1. **Custom discount**
-   - Diskon khusus dihitung sebelum grand total.
-   - Tidak ada PPN pada prototype ini.
+   - Diskon khusus dihitung sebelum DPP.
+   - PPN hanya untuk pelanggan bertanda **Kena PPN**; rate global di Pengaturan Pajak.
 
 2. **Beberapa label copy-paste di modul keuangan**
    - Dialog edit pengeluaran memakai label "Jenis Pendapatan" dan "ID Transaksi".

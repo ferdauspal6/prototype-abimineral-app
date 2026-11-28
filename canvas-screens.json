@@ -519,7 +519,7 @@
     "name": "Buat Produksi",
     "group": "logistik",
     "groupName": "Logistik",
-    "page": "stock",
+    "page": "production-create",
     "setup": "production-modal"
   },
   {
@@ -543,7 +543,7 @@
     "name": "Koreksi Produksi",
     "group": "logistik",
     "groupName": "Logistik",
-    "page": "stock",
+    "page": "production-create",
     "setup": "production-correction"
   },
   {
@@ -854,6 +854,13 @@
     "groupName": "Keuangan",
     "page": "reports",
     "setup": "report-balance"
+  },
+  {
+    "id": "tax-settings",
+    "name": "Pengaturan Pajak",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "tax-settings"
   },
   {
     "id": "payables",

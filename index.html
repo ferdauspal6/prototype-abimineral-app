@@ -629,7 +629,7 @@
                   <td><span class="badge" :class="c.week === 'Genap' ? 'badge-blue' : 'badge-yellow'" x-text="c.week"></span></td>
                   <td x-text="c.day"></td>
                   <td><span class="badge badge-slate" x-text="priceTypeName(customerPriceTypeId(c))"></span></td>
-                  <td><span class="badge" :class="customerCreditStart(c) === 'first' ? 'badge-green' : 'badge-slate'" x-text="customerCreditStart(c) === 'first' ? 'Langsung' : 'Min 2x'"></span></td>
+                  <td><div class="flex flex-wrap items-center gap-1"><span class="badge" :class="customerCreditBadge(c)" x-text="customerCreditLabel(c)"></span><span x-show="c.ppnEnabled" class="badge badge-purple">PPN</span></div></td>
                   <td class="actions">
                     <button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'customers', c)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button>
                   </td>
@@ -804,7 +804,7 @@
               <div class="card-header"><div class="section-title">Ringkasan Order</div><span class="badge badge-slate" x-text="cartCount + ' item'"></span></div>
               <div class="card-body pt-0 space-y-3">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div><label class="label">Metode Pembayaran <span class="req">*</span></label><select class="select" x-model="paymentMethod"><option value="">Pilih metode</option><option>Tunai</option><option value="Kredit" :disabled="!creditAvailable">Kredit</option><option>Transfer</option></select><div class="mt-1 text-[10px]" :class="creditAvailable ? 'text-emerald-600' : 'text-amber-600'" x-text="customerCreditStart(customer(selectedCustomerId)) === 'first' ? 'Kredit aktif sejak order pertama.' : (creditAvailable ? 'Kredit tersedia.' : 'Kredit tersedia mulai order ke-3.')"></div></div>
+                  <div><label class="label">Metode Pembayaran <span class="req">*</span></label><select class="select" x-model="paymentMethod"><option value="">Pilih metode</option><option>Tunai</option><option value="Kredit" :disabled="!creditAvailable">Kredit</option><option>Transfer</option></select><div class="mt-1 text-[10px]" :class="creditAvailable ? 'text-emerald-600' : 'text-amber-600'" x-text="creditAvailable ? 'Kredit aktif.' : 'Kredit tersedia setelah ' + customerCreditRemaining(customer(selectedCustomerId)) + ' order lagi.'"></div></div>
                   <div x-show="role === 'Admin'"><label class="label">Diskon Khusus (%)</label><div class="input-group"><input type="number" min="0" max="100" class="input" x-model.number="customDiscount"><span class="addon"><svg class="icon icon-xs"><use href="#i-percent"></use></svg></span></div></div>
                 </div>
                 <div class="table-wrap">
@@ -825,6 +825,8 @@
                   <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(cartSubtotal)"></span></div>
                   <div class="flex justify-between"><span class="text-slate-500">Diskon</span><span class="text-red-600" x-text="'- ' + rp(cartDiscount)"></span></div>
                   <div class="flex justify-between" x-show="customDiscountValue > 0"><span class="text-slate-500">Diskon Khusus</span><span class="text-red-600" x-text="'- ' + rp(customDiscountValue)"></span></div>
+                  <div class="flex justify-between" x-show="cartTax > 0"><span class="text-slate-500">DPP</span><span x-text="rp(cartDpp)"></span></div>
+                  <div class="flex justify-between" x-show="cartTax > 0"><span class="text-slate-500">PPN <span x-text="(taxSettings.ppnRate || 0) + '%'"></span></span><span x-text="rp(cartTax)"></span></div>
                   <div class="flex justify-between border-t border-slate-200 pt-2 mt-2 text-base font-bold"><span>Grand Total</span><span x-text="rp(cartTotal)"></span></div>
                 </div>
                 <button class="btn btn-primary w-full" @click="openOrderPreview()" :disabled="cartCount === 0">Preview Order <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
@@ -1012,6 +1014,8 @@
                 <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(selectedOrder.subtotal)"></span></div>
                 <div class="flex justify-between"><span class="text-slate-500">Discount</span><span class="text-red-600" x-text="'- ' + rp(selectedOrder.discount)"></span></div>
                 <div class="flex justify-between" x-show="selectedOrder.customDiscount > 0"><span class="text-slate-500">Discount Khusus</span><span class="text-red-600" x-text="'- ' + rp((selectedOrder.subtotal - selectedOrder.discount) * selectedOrder.customDiscount / 100)"></span></div>
+                <div class="flex justify-between" x-show="Number(selectedOrder.tax) > 0"><span class="text-slate-500">DPP</span><span x-text="rp(selectedOrder.dpp || (selectedOrder.total - selectedOrder.tax))"></span></div>
+                <div class="flex justify-between" x-show="Number(selectedOrder.tax) > 0"><span class="text-slate-500">PPN <span x-text="(selectedOrder.taxRate || 0) + '%'"></span></span><span x-text="rp(selectedOrder.tax)"></span></div>
                 <div class="flex justify-between border-t border-slate-300 pt-2 mt-2 font-bold text-base"><span>Grand Total</span><span x-text="rp(selectedOrder.total)"></span></div>
                 <div class="text-[10px] text-slate-500 italic text-right">*** nilai sesuai grand total</div>
               </div>
@@ -1076,6 +1080,8 @@
                   <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(order.subtotal)"></span></div>
                   <div class="flex justify-between"><span class="text-slate-500">Discount</span><span class="text-red-600" x-text="'- ' + rp(order.discount)"></span></div>
                   <div class="flex justify-between" x-show="order.customDiscount > 0"><span class="text-slate-500">Discount Khusus</span><span class="text-red-600" x-text="'- ' + rp((order.subtotal - order.discount) * order.customDiscount / 100)"></span></div>
+                  <div class="flex justify-between" x-show="Number(order.tax) > 0"><span class="text-slate-500">DPP</span><span x-text="rp(order.dpp || (order.total - order.tax))"></span></div>
+                  <div class="flex justify-between" x-show="Number(order.tax) > 0"><span class="text-slate-500">PPN <span x-text="(order.taxRate || 0) + '%'"></span></span><span x-text="rp(order.tax)"></span></div>
                   <div class="flex justify-between border-t border-slate-300 pt-2 mt-2 font-bold text-base"><span>Grand Total</span><span x-text="rp(order.total)"></span></div>
                 </div>
               </div>
@@ -1297,7 +1303,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari return..." x-model="returnSearch"></div>
-          <select class="select w-40" x-model="returnStatus"><option value="">Semua Status</option><option value="pending">Belum diproses</option><option value="return">Masuk stok</option><option value="discard">Dihapus</option></select>
+          <select class="select w-40" x-model="returnStatus"><option value="">Semua Status</option><option value="pending_approval">Menunggu Persetujuan</option><option value="pending">Siap Diproses</option><option value="return">Masuk stok</option><option value="discard">Dihapus</option><option value="rejected">Ditolak</option></select>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -1313,7 +1319,7 @@
                   <td class="num" x-text="rp(r.price)"></td>
                   <td><span class="flex items-center gap-2"><span class="avatar" x-text="initials(r.by)"></span><span x-text="r.by"></span></span></td>
                   <td><span class="badge" :class="r.type === 'change' ? 'badge-blue' : 'badge-red'" x-text="r.type === 'change' ? 'Ganti Barang' : 'Potong Harga'"></span></td>
-                  <td><span class="badge" :class="statusBadge(r.status)" x-text="statusLabel(r.status)"></span></td>
+                  <td><span class="badge" :class="returnStatusBadge(r.status)" x-text="returnStatusLabel(r.status)"></span><div x-show="r.status === 'rejected' && r.rejectReason" class="sub mt-1 text-red-600" x-text="r.rejectReason"></div></td>
                   <td class="actions">
                     <button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'returns', r)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button>
                   </td>
@@ -1324,6 +1330,88 @@
           </table>
         </div>
       </section>
+
+  <!-- PRODUCTION CREATE PAGE -->
+  <section x-show="page === 'production-create'">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <div class="flex items-center gap-2">
+        <button class="icon-btn" @click="go('stock-product')"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
+        <div>
+          <div class="section-title" x-text="productionCorrection ? 'Koreksi Produksi' : 'Buat Produksi'"></div>
+          <div class="text-[11px] text-slate-400">Standar bahan dihitung otomatis. Isi selisih pemakaian; selisih positif otomatis menjadi reject.</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="btn btn-outline" @click="go('stock-product')">Batal</button>
+        <button class="btn btn-primary" @click="saveProduction()" :disabled="productionHasShortage" x-text="productionCorrection ? 'Simpan Koreksi' : 'Simpan Produksi'"></button>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <div class="section-title mb-3">Data Produksi</div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div><label class="label">Gudang <span class="req">*</span></label><select class="select" x-model="productionForm.warehouseId" :disabled="productionCorrection"><template x-for="w in warehouses" :key="w.id"><option :value="w.id" x-text="w.name"></option></template></select></div>
+        <div><label class="label">Produk <span class="req">*</span></label><select class="select" x-model="productionForm.productId" @change="onProductionProductChange()" :disabled="productionCorrection"><template x-for="p in productionProductOptions" :key="p.id"><option :value="p.id" x-text="p.name + ' — ' + p.code"></option></template></select></div>
+        <div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="productionForm.date" :disabled="productionCorrection"></div>
+        <div><label class="label">Hasil produksi <span class="req">*</span></label><div class="input-group"><input type="number" min="1" class="input" x-model.number="productionForm.qty" @input="onProductionQtyChange()"><span class="addon" x-text="product(productionForm.productId).unit || 'Krt'"></span></div></div>
+      </div>
+      <div class="mt-3"><label class="label">Keterangan</label><input class="input" x-model="productionForm.description" placeholder="Contoh: Shift 1 / batch pagi" :disabled="productionCorrection"></div>
+      <div x-show="productionCorrection" class="mt-3"><label class="label">Alasan Koreksi <span class="req">*</span></label><input class="input" x-model="productionForm.correctionReason" placeholder="Contoh: salah hitung reject"></div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <div>
+        <div class="section-title">Pemakaian Bahan Baku</div>
+        <div class="text-[11px] text-slate-400">Standar = resep × hasil produksi. Aktual = standar + selisih. Selisih negatif berarti hemat, positif berarti reject.</div>
+      </div>
+      <button x-show="!productionCorrection" class="btn btn-outline btn-sm" @click="addProductionMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Bahan Lain</button>
+    </div>
+    <div class="table-wrap production-material-wrap" style="overflow: visible">
+      <table class="data-table">
+        <thead><tr><th>Bahan</th><th class="num" title="Jumlah bahan hasil hitungan resep x hasil produksi">Standar</th><th class="num" title="Isi selisih pemakaian. Positif = lebih boros / reject, negatif = lebih hemat">Selisih</th><th class="num" title="Standar + selisih">Aktual</th><th class="num">Stok Tersedia</th><th class="num" title="Selisih positif otomatis dianggap reject">Reject</th><th>Catatan</th><th class="actions" style="width:60px">Aksi</th></tr></thead>
+        <tbody>
+          <template x-for="(row, index) in productionForm.materials" :key="index">
+            <tr>
+              <td>
+                <template x-if="row.fromRecipe || productionCorrection">
+                  <div><div class="font-semibold" x-text="materialName(row.materialId)"></div><span class="sub" x-text="(material(row.materialId).code || '') + ' • ' + (material(row.materialId).unit || '')"></span></div>
+                </template>
+                <template x-if="!row.fromRecipe && !productionCorrection">
+                  <div class="relative" @click.outside="row.materialOpen = false">
+                    <button type="button" class="input input-sm w-full flex items-center justify-between gap-2 text-left" :class="row.materialId ? 'text-slate-800' : 'text-slate-400'" @click="row.materialOpen = !row.materialOpen"><span class="truncate" x-text="row.materialId ? materialLabel(row.materialId) : 'Pilih barang'"></span><svg class="icon icon-xs text-slate-400"><use href="#i-chevron-down"></use></svg></button>
+                    <div x-show="row.materialOpen" x-cloak class="absolute left-0 right-0 z-40 mt-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                      <div class="input-icon mb-2"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input input-sm" placeholder="Cari kode / nama barang..." x-model="row.materialSearch" @click.stop></div>
+                      <div class="max-h-48 overflow-y-auto space-y-0.5"><template x-for="material in productionMaterialOptions(index)" :key="material.id"><button type="button" class="w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-slate-50" @click="selectProductionMaterial(index, material)"><b class="block truncate" x-text="material.name"></b><span class="text-[10px] text-slate-400" x-text="material.code + ' • ' + material.unit"></span></button></template><div x-show="productionMaterialOptions(index).length === 0" class="px-2 py-3 text-center text-xs text-slate-400">Barang tidak ditemukan</div></div>
+                    </div>
+                  </div>
+                </template>
+              </td>
+              <td class="num text-slate-500" x-text="fmt(row.standardQty)"></td>
+              <td class="num"><input type="number" step="0.01" class="input input-sm w-28 text-right" :value="row.varianceQty" @input="setProductionVariance(index, $event.target.value)" placeholder="0"></td>
+              <td class="num font-semibold" x-text="fmt(row.qty)"></td>
+              <td class="num"><span class="font-semibold" :class="Number(row.qty) > productionRowAvailable(row) ? 'text-red-600' : ''" x-text="fmt(productionRowAvailable(row))"></span><span x-show="Number(row.qty) > productionRowAvailable(row)" class="badge badge-red ml-1">Stok kurang</span></td>
+              <td class="num"><span class="font-semibold" :class="productionRowRejectQty(row) > 0 ? 'text-red-600' : 'text-slate-400'" x-text="fmt(productionRowRejectQty(row))"></span><div class="sub" x-show="productionRowRejectQty(row) > 0" x-text="rp(productionRowRejectValue(row))"></div></td>
+              <td><input class="input input-sm" x-model="row.note" placeholder="Opsional"></td>
+              <td class="actions"><button x-show="!productionCorrection && !row.fromRecipe" class="icon-btn icon-btn-sm icon-btn-danger" @click="removeProductionMaterial(index)" title="Hapus bahan"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button></td>
+            </tr>
+          </template>
+          <tr x-show="productionForm.materials.length === 0"><td colspan="8"><div class="empty py-6"><div class="font-semibold">Produk ini belum punya resep</div><div class="text-xs text-slate-400">Tambahkan bahan manual atau atur resep di Master Produk.</div><button class="btn btn-outline btn-xs mt-2" @click="go('products')">Buka Master Produk</button></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div x-show="productionHasShortage" class="mt-2 text-xs text-red-600">Ada bahan yang melebihi stok tersedia. Kurangi qty, koreksi pemakaian, atau pilih gudang lain.</div>
+
+    <div class="card p-4 bg-slate-50 mt-4">
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs">
+        <div><div class="text-slate-400">Hasil Produksi</div><div class="font-bold mt-1" x-text="fmt(productionForm.qty) + ' ' + (product(productionForm.productId).unit || '')"></div></div>
+        <div><div class="text-slate-400">Jenis Bahan</div><div class="font-bold mt-1" x-text="productionForm.materials.filter(row => Number(row.qty) > 0).length"></div></div>
+        <div><div class="text-slate-400">Total Biaya Bahan</div><div class="font-bold mt-1" x-text="rp(productionTotalCost)"></div></div>
+        <div><div class="text-slate-400">Biaya per <span x-text="product(productionForm.productId).unit || 'Krt'"></span></div><div class="font-bold mt-1" x-text="rp(productionCostPerUnit)"></div></div>
+        <div><div class="text-slate-400">Qty Reject</div><div class="font-bold mt-1 text-red-600" x-text="fmt(productionRejectQtyTotal)"></div></div>
+        <div><div class="text-slate-400">Nilai Reject</div><div class="font-bold mt-1 text-red-600" x-text="rp(productionRejectTotal)"></div></div>
+      </div>
+    </div>
+  </section>
 
       <!-- STOCK -->
       <section x-show="['stock','stock-product','stock-material'].includes(page)">
@@ -1377,7 +1465,7 @@
                     <td class="num font-semibold" x-text="fmt(prd.qty) + ' ' + (product(prd.productId).unit || '')"></td>
                     <td x-text="warehouseName(prd.warehouseId)"></td>
                     <td><span class="flex items-center gap-2"><span class="avatar" x-text="initials(prd.createdBy)"></span><span x-text="userRoleLabel(prd.createdBy, prd.createdByRole)"></span></span></td>
-                    <td><span class="badge" :class="productionChangedCount(prd) ? 'badge-yellow' : 'badge-slate'" x-text="productionDifferenceLabel(prd)"></span></td>
+                    <td><span class="badge" :class="productionChangedCount(prd) ? 'badge-yellow' : 'badge-slate'" x-text="productionDifferenceLabel(prd)"></span><div x-show="Number(prd.rejectTotalValue) > 0" class="sub mt-1 text-red-600" x-text="'Reject ' + rp(prd.rejectTotalValue)"></div></td>
                     <td class="actions" @click.stop><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'productions', prd)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
                   </tr>
                 </template>
@@ -1449,6 +1537,7 @@
           <div class="flex flex-wrap items-center gap-2 mb-3" x-show="materialStockTab !== 'selisih'">
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari kode / nama barang..." x-model="materialStockSearch"></div>
             <select class="select w-44" x-model="materialStockWarehouse"><option value="">Semua Gudang</option><template x-for="w in warehouses" :key="w.id"><option :value="w.id" x-text="w.name"></option></template></select>
+            <select class="select w-40" x-model="materialStockItemType"><option value="">Semua Jenis</option><option value="material">Bahan Baku</option><option value="tool">Alat</option></select>
             <span class="text-[11px] text-slate-500 ml-auto" x-show="['active','history'].includes(materialStockTab)">Stok barang bertambah dari Penerimaan Barang.</span>
             <button class="btn btn-primary ml-auto" x-show="materialStockTab === 'opname'" @click="openMaterialOpname()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Opname</button>
           </div>
@@ -1490,18 +1579,18 @@
           </div>
           <div x-show="materialStockTab === 'active'" class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Gudang</th><th class="num">Qty</th><th class="num">Nilai</th><th class="num" title="Rata-rata bergerak global perusahaan">Rata-rata</th><th class="num">Min</th><th>Status</th></tr></thead>
+              <thead><tr><th>Kode</th><th>Nama Barang</th><th>Jenis</th><th>Gudang</th><th class="num">Qty</th><th class="num">Nilai</th><th class="num" title="Rata-rata bergerak global perusahaan">Rata-rata</th><th class="num">Min</th><th>Status</th></tr></thead>
               <tbody>
                 <template x-for="row in filteredMaterialStocks" :key="row.materialId + '-' + row.warehouseId">
-                  <tr><td class="font-semibold" x-text="row.code"></td><td x-text="row.name"></td><td x-text="row.warehouse"></td><td class="num font-semibold" :class="row.qty <= row.minStock ? 'text-red-600' : ''" x-text="fmt(row.qty)"></td><td class="num" x-text="rp(row.value)"></td><td class="num" x-text="rp(row.avgCost)"></td><td class="num text-slate-500" x-text="fmt(row.minStock)"></td><td><span class="badge" :class="row.status ? 'badge-green' : 'badge-stone'" x-text="row.status ? 'Aktif' : 'Nonaktif'"></span></td></tr>
+                  <tr><td class="font-semibold" x-text="row.code"></td><td x-text="row.name"></td><td><span class="badge" :class="row.itemType === 'tool' ? 'badge-purple' : 'badge-cyan'" x-text="row.itemType === 'tool' ? 'Alat' : 'Bahan Baku'"></span></td><td x-text="row.warehouse"></td><td class="num font-semibold" :class="row.qty <= row.minStock ? 'text-red-600' : ''" x-text="fmt(row.qty)"></td><td class="num" x-text="rp(row.value)"></td><td class="num" x-text="rp(row.avgCost)"></td><td class="num text-slate-500" x-text="fmt(row.minStock)"></td><td><span class="badge" :class="row.status ? 'badge-green' : 'badge-stone'" x-text="row.status ? 'Aktif' : 'Nonaktif'"></span></td></tr>
                 </template>
-                <tr x-show="filteredMaterialStocks.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada stok barang</div><div class="text-xs text-slate-400">Stok akan muncul setelah penerimaan barang diposting.</div></div></td></tr>
+                <tr x-show="filteredMaterialStocks.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada stok barang</div><div class="text-xs text-slate-400">Stok akan muncul setelah penerimaan barang diposting.</div></div></td></tr>
               </tbody>
             </table>
           </div>
           <div x-show="materialStockTab === 'history'" class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>#</th><th>Tanggal</th><th>Jenis</th><th>Barang</th><th>Gudang</th><th class="num">Qty</th><th class="num">Nilai</th><th>Referensi</th></tr></thead>
+              <thead><tr><th>#</th><th>Tanggal</th><th>Jenis</th><th>Barang</th><th>Kategori Barang</th><th>Gudang</th><th class="num">Qty</th><th class="num">Nilai</th><th>Referensi</th></tr></thead>
               <tbody>
                 <template x-for="(mv, i) in filteredMaterialMovements" :key="mv.id">
                   <tr>
@@ -1509,13 +1598,14 @@
                     <td x-text="dateShort(mv.date)"></td>
                     <td><span class="badge badge-slate" x-text="materialMovementLabel(mv.type)"></span></td>
                     <td class="font-semibold" x-text="materialName(mv.materialId)"></td>
+                    <td><span class="badge" :class="(material(mv.materialId).itemType || 'material') === 'tool' ? 'badge-purple' : 'badge-cyan'" x-text="(material(mv.materialId).itemType || 'material') === 'tool' ? 'Alat' : 'Bahan Baku'"></span></td>
                     <td x-text="warehouseName(mv.warehouseId)"></td>
                     <td class="num font-semibold" :class="mv.qty < 0 ? 'text-red-600' : 'text-emerald-600'" x-text="(mv.qty > 0 ? '+' : '') + fmt(mv.qty)"></td>
                     <td class="num" x-text="rp(mv.value)"></td>
                     <td><button x-show="mv.refType === 'production'" class="font-semibold text-blue-600 hover:underline" @click="openProductionByRef(mv.refId)" x-text="mv.refNumber || '-'"></button><span x-show="mv.refType !== 'production'" x-text="mv.refNumber || '-'"></span></td>
                   </tr>
                 </template>
-                <tr x-show="filteredMaterialMovements.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada riwayat barang</div><div class="text-xs text-slate-400">Riwayat muncul setelah penerimaan, return, atau produksi.</div></div></td></tr>
+                <tr x-show="filteredMaterialMovements.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada riwayat barang</div><div class="text-xs text-slate-400">Riwayat muncul setelah penerimaan, return, atau produksi.</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -1833,17 +1923,19 @@
             <div class="flex flex-wrap items-center gap-2">
               <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari barang..." x-model="materialSearch"></div>
               <select class="select w-40" x-model="materialCategory"><option value="">Semua Kategori</option><template x-for="c in materialCategories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template></select>
+              <select class="select w-40" x-model="materialItemType"><option value="">Semua Jenis</option><option value="material">Bahan Baku</option><option value="tool">Alat</option></select>
               <select class="select w-40" x-model="materialStatus"><option value="">Semua Status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
             </div>
             <button class="btn btn-primary" @click="openMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Barang</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>#</th><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Satuan</th><th class="num">Harga Beli (Rata-rata)</th><th>Dipakai di</th><th>Status</th><th class="actions">Action</th></tr></thead>
+              <thead><tr><th>#</th><th>Kode</th><th>Nama Barang</th><th>Jenis</th><th>Kategori</th><th>Satuan</th><th class="num">Harga Beli (Rata-rata)</th><th>Dipakai di</th><th>Status</th><th class="actions">Action</th></tr></thead>
               <tbody>
                 <template x-for="(m, i) in filteredMaterials" :key="m.id">
                   <tr>
                     <td x-text="i + 1"></td><td class="font-semibold" x-text="m.code"></td><td x-text="m.name"></td>
+                    <td><span class="badge" :class="(m.itemType || 'material') === 'tool' ? 'badge-purple' : 'badge-cyan'" x-text="(m.itemType || 'material') === 'tool' ? 'Alat' : 'Bahan Baku'"></span></td>
                     <td><span class="badge badge-slate" x-text="categoryName(m.categoryId)"></span></td><td x-text="m.unit"></td>
                     <td class="num" x-text="rp(materialBuyPrice(m))"></td>
                     <td><span class="badge" :class="productsUsingMaterial(m.id).length ? 'badge-blue' : 'badge-slate'" x-text="productsUsingMaterial(m.id).length ? productsUsingMaterial(m.id).length + ' produk' : '-'"></span></td>
@@ -1851,7 +1943,7 @@
                     <td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'materials', m)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td>
                   </tr>
                 </template>
-                <tr x-show="filteredMaterials.length === 0"><td colspan="9"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div><div class="text-xs text-slate-400">Tambahkan bahan mentah atau kemasan untuk purchasing.</div></div></td></tr>
+                <tr x-show="filteredMaterials.length === 0"><td colspan="10"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div><div class="text-xs text-slate-400">Tambahkan bahan mentah, kemasan, atau alat untuk purchasing.</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -2251,9 +2343,9 @@
           <span x-text="fmt(poPrSummary ? poPrSummary.afterQty : 0)"></span>
           <span> qty</span>
         </div>
-        <div class="table-wrap" style="overflow: visible">
+        <div class="table-wrap po-items-wrap" style="overflow: visible">
           <table class="data-table">
-            <thead><tr><th style="width:40px;min-width:40px;max-width:40px" class="text-center">#</th><th style="width:auto">Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:140px">Harga</th><th class="num" style="width:140px">Subtotal</th><th class="actions" style="width:70px">Action</th></tr></thead>
+            <thead><tr><th style="width:40px;min-width:40px;max-width:40px" class="text-center">#</th><th style="width:auto">Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:140px">Harga</th><th class="num" style="width:140px">Subtotal</th><th style="width:180px">Catatan</th><th class="actions" style="width:70px">Action</th></tr></thead>
             <tbody>
               <template x-for="(item, index) in poForm.items" :key="index">
                 <tr>
@@ -2282,13 +2374,15 @@
                   <td class="num"><input type="number" min="1" class="input input-sm w-24 text-right" :max="poMaterialMaxQty(index) !== null ? poMaterialMaxQty(index) : null" x-model.number="item.qty"></td>
                   <td class="num"><input type="number" min="0" class="input input-sm w-32 text-right" x-model.number="item.price"></td>
                   <td class="num font-semibold" x-text="rp(poLineSubtotal(item))"></td>
+                  <td><input class="input input-sm" x-model="item.note" placeholder="Opsional"></td>
                   <td class="actions"><button class="icon-btn icon-btn-sm icon-btn-danger" @click="removePOLine(index)" title="Hapus baris"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button></td>
                 </tr>
               </template>
-              <tr x-show="poForm.items.length === 0"><td colspan="6"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div></div></td></tr>
+              <tr x-show="poForm.items.length === 0"><td colspan="7"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada barang</div></div></td></tr>
               <tr class="bg-slate-50 font-bold">
                 <td colspan="4" class="text-right">Subtotal Barang</td>
                 <td class="num" x-text="rp(poSubtotal)"></td>
+                <td></td>
                 <td></td>
               </tr>
             </tbody>
@@ -2389,16 +2483,16 @@
             </div>
 
             <table class="w-full text-xs border border-slate-900" style="border-collapse:collapse">
-              <thead><tr class="bg-slate-100"><th class="border border-slate-900 px-2 py-1.5 text-left">No</th><th class="border border-slate-900 px-2 py-1.5 text-left">Kode</th><th class="border border-slate-900 px-2 py-1.5 text-left">Nama Barang</th><th class="border border-slate-900 px-2 py-1.5 text-left">Satuan</th><th class="border border-slate-900 px-2 py-1.5 text-right">Qty</th><th class="border border-slate-900 px-2 py-1.5 text-right">Harga</th><th class="border border-slate-900 px-2 py-1.5 text-right">Subtotal</th></tr></thead>
+              <thead><tr class="bg-slate-100"><th class="border border-slate-900 px-2 py-1.5 text-left">No</th><th class="border border-slate-900 px-2 py-1.5 text-left">Kode</th><th class="border border-slate-900 px-2 py-1.5 text-left">Nama Barang</th><th class="border border-slate-900 px-2 py-1.5 text-left">Satuan</th><th class="border border-slate-900 px-2 py-1.5 text-right">Qty</th><th class="border border-slate-900 px-2 py-1.5 text-right">Harga</th><th class="border border-slate-900 px-2 py-1.5 text-right">Subtotal</th><th class="border border-slate-900 px-2 py-1.5 text-left">Catatan</th></tr></thead>
               <tbody>
                 <template x-for="(item, index) in (selectedPO.items || [])" :key="index">
-                  <tr><td class="border border-slate-900 px-2 py-1.5" x-text="index + 1"></td><td class="border border-slate-900 px-2 py-1.5" x-text="(materials.find(m => m.id === item.materialId) || {}).code || '-'"></td><td class="border border-slate-900 px-2 py-1.5" x-text="materialName(item.materialId)"></td><td class="border border-slate-900 px-2 py-1.5" x-text="(materials.find(m => m.id === item.materialId) || {}).unit || '-'"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="fmt(item.qty)"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(item.price)"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(item.qty * item.price)"></td></tr>
+                  <tr><td class="border border-slate-900 px-2 py-1.5" x-text="index + 1"></td><td class="border border-slate-900 px-2 py-1.5" x-text="(materials.find(m => m.id === item.materialId) || {}).code || '-'"></td><td class="border border-slate-900 px-2 py-1.5" x-text="materialName(item.materialId)"></td><td class="border border-slate-900 px-2 py-1.5" x-text="(materials.find(m => m.id === item.materialId) || {}).unit || '-'"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="fmt(item.qty)"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(item.price)"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(item.qty * item.price)"></td><td class="border border-slate-900 px-2 py-1.5 text-[10px] leading-snug" x-text="item.note || '-'"></td></tr>
                 </template>
-                <tr class="bg-slate-50 font-bold"><td colspan="6" class="border border-slate-900 px-2 py-1.5 text-right">Subtotal Barang</td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(selectedPO.subtotal || selectedPO.total)"></td></tr>
+                <tr class="bg-slate-50 font-bold"><td colspan="6" class="border border-slate-900 px-2 py-1.5 text-right">Subtotal Barang</td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(selectedPO.subtotal || selectedPO.total)"></td><td class="border border-slate-900 px-2 py-1.5"></td></tr>
                 <template x-for="(row, index) in (selectedPO.additionalCosts || [])" :key="index">
-                  <tr><td colspan="6" class="border border-slate-900 px-2 py-1.5 text-right" x-text="row.description + (Number(row.qty) > 1 ? ' (' + fmt(row.qty) + ' x ' + rp(row.amount) + ')' : '')"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(row.subtotal)"></td></tr>
+                  <tr><td colspan="6" class="border border-slate-900 px-2 py-1.5 text-right" x-text="row.description + (Number(row.qty) > 1 ? ' (' + fmt(row.qty) + ' x ' + rp(row.amount) + ')' : '')"></td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(row.subtotal)"></td><td class="border border-slate-900 px-2 py-1.5"></td></tr>
                 </template>
-                <tr class="bg-slate-100 font-bold"><td colspan="6" class="border border-slate-900 px-2 py-1.5 text-right">Total PO</td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(selectedPO.total)"></td></tr>
+                <tr class="bg-slate-100 font-bold"><td colspan="6" class="border border-slate-900 px-2 py-1.5 text-right">Total PO</td><td class="border border-slate-900 px-2 py-1.5 text-right" x-text="rp(selectedPO.total)"></td><td class="border border-slate-900 px-2 py-1.5"></td></tr>
               </tbody>
             </table>
 
@@ -2758,7 +2852,36 @@
             </div>
 
             <div>
-              <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div class="section-title">Biaya Produksi</div><span class="badge badge-slate" x-text="hppCostRows.length + ' komponen'"></span></div>
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div class="section-title">Biaya Produksi</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="seg">
+                    <button class="seg-btn" :class="{ 'active': hppForm.payrollSource === 'payroll' }" @click="setHppPayrollSource('payroll')">Payroll</button>
+                    <button class="seg-btn" :class="{ 'active': hppForm.payrollSource === 'manual' }" @click="setHppPayrollSource('manual')">Manual</button>
+                  </div>
+                  <span class="badge badge-slate" x-text="hppCostRows.length + ' komponen'"></span>
+                </div>
+              </div>
+              <div x-show="hppForm.payrollSource === 'payroll'" class="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="label">Payroll (3 periode terakhir)</label>
+                    <select class="select" x-model="hppForm.payrollPeriod" @change="setHppPayroll($event.target.value)">
+                      <template x-for="period in hppFormPayrollPeriods" :key="period"><option :value="period" x-text="'Payroll ' + monthLongLabel(period)"></option></template>
+                    </select>
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="label">Departemen</label>
+                    <div class="flex flex-wrap gap-3 pt-1 text-sm">
+                      <template x-for="group in hppPayrollGroupOptions" :key="group">
+                        <label class="flex items-center gap-2"><input type="checkbox" class="checkbox" :checked="(hppForm.payrollGroups || []).includes(group)" @change="toggleHppPayrollGroup(group, $event.target.checked)"><span x-text="group"></span></label>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[11px] text-slate-500"><span x-text="(hppForm.payrollEmployeeCount || 0) + ' karyawan masuk perhitungan'"></span><span x-show="hppFormPayrollPeriods.length === 0" class="text-amber-600"> • Belum ada payroll Posted pada 3 periode terakhir</span></div>
+              </div>
+              <div x-show="hppForm.payrollSource === 'manual'" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">Mode manual: Gaji, Uang Makan, dan BPJS diisi sendiri. Mode ini tetap bisa disimpan sebagai draft maupun final.</div>
               <div class="table-wrap">
                 <table class="data-table">
                   <thead><tr><th>Komponen</th><th>Sumber</th><th class="num">Nilai</th><th>Perhitungan</th><th class="num">Per Krt</th></tr></thead>
@@ -2768,10 +2891,7 @@
                         <td class="align-middle"><div class="font-semibold text-sm" x-text="row.label"></div><div class="text-[10px] text-slate-400" x-show="row.note" x-text="row.note"></div></td>
                         <td class="align-middle">
                           <template x-if="row.component === 'gaji'">
-                            <select class="select input-sm w-44" x-model="hppForm.payrollPeriod" @change="setHppPayroll($event.target.value)">
-                              <option value="">Manual</option>
-                              <template x-for="period in hppFormPayrollPeriods" :key="period"><option :value="period" x-text="'Payroll ' + monthLongLabel(period)"></option></template>
-                            </select>
+                            <span class="badge" :class="hppForm.payrollSource === 'payroll' ? 'badge-blue' : 'badge-slate'" x-text="hppForm.payrollSource === 'payroll' ? 'Payroll ' + monthLongLabel(hppForm.payrollPeriod) : 'Manual'"></span>
                           </template>
                           <template x-if="row.component === 'listrik'">
                             <select class="select input-sm w-32" x-model="hppForm.listrikSource" @change="setHppListrikSource($event.target.value)"><option value="manual">Manual</option><option value="jurnal">Jurnal</option></select>
@@ -2804,6 +2924,13 @@
                         <td class="num align-middle font-semibold" x-text="rp2(row.perDus)"></td>
                       </tr>
                     </template>
+                    <tr class="bg-amber-50">
+                      <td><div class="font-semibold text-sm">Penyesuaian Manual</div><div class="text-[10px] text-slate-400">Opsional, boleh negatif</div></td>
+                      <td><span class="badge badge-slate">Manual</span></td>
+                      <td class="num"><input type="number" step="0.01" class="input input-sm w-36 text-right" x-model.number="hppForm.adjustmentPerUnit"></td>
+                      <td class="text-[11px] text-slate-500">Ditambahkan langsung ke HPP per Krt.</td>
+                      <td class="num font-semibold" x-text="rp2(hppAdjustmentPerUnit)"></td>
+                    </tr>
                     <tr class="bg-slate-100 font-bold"><td colspan="4" class="text-right">Total biaya produksi / Krt</td><td class="num" x-text="rp2(hppCostTotal)"></td></tr>
                   </tbody>
                 </table>
@@ -2817,7 +2944,9 @@
             <div class="space-y-2 text-sm">
               <div class="flex justify-between"><span class="text-slate-500">Hasil produksi</span><b x-text="fmt(hppOutputQty) + ' Krt'"></b></div>
               <div class="flex justify-between"><span class="text-slate-500">Bahan baku / Krt</span><span x-text="rp2(hppMaterialTotal)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Termasuk reject</span><span class="text-red-600" x-text="rp(hppProductionRejectTotal)"></span></div>
               <div class="flex justify-between"><span class="text-slate-500">Biaya produksi / Krt</span><span x-text="rp2(hppCostTotal)"></span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Termasuk penyesuaian</span><span x-text="rp2(hppAdjustmentPerUnit)"></span></div>
               <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-bold"><span>HPP / Krt</span><span x-text="rp2(hppPerDus)"></span></div>
               <div class="flex justify-between"><span class="text-slate-500">Total HPP</span><span x-text="rp(hppTotal)"></span></div>
               <div class="flex justify-between"><span class="text-slate-500">Harga Modal saat ini</span><span x-text="rp2(hppProductCost)"></span></div>
@@ -2862,10 +2991,10 @@
           </div>
           <div>
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div class="section-title">Biaya Produksi</div><span class="badge badge-slate" x-text="(selectedHpp.costs || []).length + ' komponen'"></span></div>
-            <div class="table-wrap"><table class="data-table"><thead><tr><th>Komponen</th><th>Sumber</th><th class="num">Per Krt</th></tr></thead><tbody><template x-for="row in (selectedHpp.costs || [])" :key="row.component"><tr><td x-text="hppComponentLabel(row.component)"></td><td class="text-xs text-slate-500" x-text="hppCostSourceLabel(row)"></td><td class="num"><div x-text="rp2(row.perDus)"></div><div class="text-[10px] text-slate-400" x-show="row.note" x-text="row.note"></div></td></tr></template></tbody></table></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Komponen</th><th>Sumber</th><th class="num">Per Krt</th></tr></thead><tbody><template x-for="row in (selectedHpp.costs || [])" :key="row.component"><tr><td x-text="hppComponentLabel(row.component)"></td><td class="text-xs text-slate-500" x-text="hppCostSourceLabel(row)"></td><td class="num"><div x-text="rp2(row.perDus)"></div><div class="text-[10px] text-slate-400" x-show="row.note" x-text="row.note"></div></td></tr></template><tr x-show="Number(selectedHpp.adjustmentPerUnit) !== 0"><td>Penyesuaian Manual</td><td class="text-xs text-slate-500">Manual</td><td class="num" x-text="rp2(selectedHpp.adjustmentPerUnit)"></td></tr></tbody></table></div>
           </div>
           <div class="card">
-            <div class="card-header"><div class="section-title">Dokumen Produksi</div></div>
+            <div class="card-header"><div class="section-title">Dokumen Produksi</div><span class="badge badge-red" x-text="'Reject ' + rp((selectedHppProductionDocs || []).reduce((sum, row) => sum + (Number(row.rejectTotalValue) || 0), 0))"></span></div>
             <div class="card-body pt-0 space-y-2"><template x-for="production in selectedHppProductionDocs" :key="production.id"><div class="flex justify-between text-xs"><button class="text-blue-600 hover:underline" @click="openProductionByRef(production.id)" x-text="production.code"></button><span x-text="fmt(production.qty) + ' Krt'"></span></div></template><div x-show="!selectedHppProductionDocs.length" class="text-xs text-slate-400">Tidak ada dokumen.</div></div>
           </div>
           <div class="card">
@@ -2876,6 +3005,10 @@
               <template x-for="log in hppLog.filter(item => item.hppId === selectedHpp.id)" :key="log.id"><div class="text-xs text-slate-500"><b x-text="log.by"></b> • <span x-text="log.action"></span> • <span x-text="dateShort(log.at)"></span><div x-text="log.note"></div></div></template>
             </div>
           </div>
+        </div>
+        <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600" x-show="selectedHpp.payrollSource">
+          Sumber biaya payroll: <b x-text="selectedHpp.payrollSource === 'payroll' ? ('Payroll ' + monthLongLabel(selectedHpp.payrollPeriod) + ' • ' + (selectedHpp.payrollGroups || []).join(', ')) : 'Manual'"></b>
+          <span x-show="selectedHpp.payrollSource === 'payroll'" x-text="' • ' + (selectedHpp.payrollEmployeeCount || 0) + ' karyawan'"></span>
         </div>
         <div class="mt-3 text-[11px] text-slate-400" x-show="selectedHpp.snapshot && selectedHpp.snapshot.settings" x-text="'Pembulatan: ' + hppRoundingLabel(selectedHpp.snapshot && selectedHpp.snapshot.settings ? selectedHpp.snapshot.settings.roundingMode : 'none')"></div>
         <div class="mt-3 text-[11px] text-slate-400">Snapshot: perubahan Pengaturan, biaya produksi, harga bahan, atau resep tidak mengubah dokumen ini.</div>
@@ -2950,7 +3083,7 @@
               </div>
 
               <div x-show="hppBulananForm.rejectMode === 'detail'" class="mt-3">
-                <div class="flex items-center justify-between gap-2 mb-2"><div class="font-semibold text-sm">Rincian Reject</div><div class="flex gap-2"><button class="btn btn-outline btn-sm" @click="addHppBulananRejectFromOpname()">Ambil dari Opname</button><button class="btn btn-outline btn-sm" @click="addHppBulananRejectRow()">Tambah Baris</button></div></div>
+                <div class="flex items-center justify-between gap-2 mb-2"><div class="font-semibold text-sm">Rincian Reject</div><div class="flex flex-wrap gap-2"><button class="btn btn-outline btn-sm" @click="syncHppBulananRejectFromProduction()">Sinkron dari Produksi</button><button class="btn btn-outline btn-sm" @click="addHppBulananRejectFromOpname()">Ambil dari Opname</button><button class="btn btn-outline btn-sm" @click="addHppBulananRejectRow()">Tambah Baris</button></div></div>
                 <div class="table-wrap"><table class="data-table"><thead><tr><th>Barang</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Total</th><th>Catatan</th><th class="actions">Aksi</th></tr></thead><tbody>
                   <template x-for="(row, index) in hppBulananForm.rejectRows" :key="index">
                     <tr>
@@ -3355,11 +3488,15 @@
             <div class="grid grid-cols-2 gap-3"><div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="attendanceNoteForm.date"></div><div><label class="label">Sampai Tanggal</label><input type="date" class="input" x-model="attendanceNoteForm.dateEnd"></div></div>
             <div class="grid grid-cols-2 gap-3">
               <div><label class="label">Jenis <span class="req">*</span></label><select class="select" x-model="attendanceNoteForm.type"><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="cuti">Cuti</option><option value="alfa">Alfa</option><option value="lainnya">Lainnya</option></select></div>
-              <div><label class="label">Potongan Gaji</label><select class="select" x-model="attendanceNoteForm.deductionType"><option value="daily">Potong gaji harian</option><option value="none">Tanpa potong gaji</option><option value="manual">Potongan manual</option></select></div>
+              <div><label class="label">Potongan Gaji</label><select class="select" x-model="attendanceNoteForm.deductionType"><option value="daily">Potong gaji harian</option><option value="half">Potong setengah hari</option><option value="none">Tanpa potong gaji</option><option value="manual">Potongan manual</option></select></div>
             </div>
             <div x-show="attendanceNoteForm.deductionType === 'daily'" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
               <div x-text="attendanceNoteDays + ' hari × ' + rp(attendanceNoteDailyRate) + ' = ' + rp(attendanceNoteDeductionPreview)"></div>
               <div class="text-blue-600 mt-1">Mengurangi gaji pokok dan uang makan.</div>
+            </div>
+            <div x-show="attendanceNoteForm.deductionType === 'half'" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+              <div x-text="attendanceNoteDays + ' hari × (' + rp(attendanceNoteDailyRate) + ' × 50%) = ' + rp(attendanceNoteDeductionPreview)"></div>
+              <div class="text-blue-600 mt-1">Mengurangi setengah gaji harian dan setengah uang makan per hari.</div>
             </div>
             <div x-show="attendanceNoteForm.deductionType === 'manual'"><label class="label">Nominal Potongan Manual</label><div class="input-group"><input type="number" min="0" class="input text-right" x-model.number="attendanceNoteForm.deductionAmount"><span class="addon">Rp</span></div><div class="text-[10px] text-slate-400 mt-1">Berlaku total untuk seluruh rentang tanggal.</div></div>
             <div x-show="attendanceNoteForm.deductionType === 'none'" class="text-[11px] text-slate-500">Tidak ada potongan gaji untuk perizinan ini.</div>
@@ -3460,6 +3597,7 @@
                   <td><span class="badge" :class="attendanceTypeBadge(group.type)" x-text="attendanceTypeLabel(group.type)"></span></td>
                   <td>
                     <span x-show="group.deductionType === 'daily'" class="badge badge-blue" x-text="'Harian ' + group.dates.length + ' hari'"></span>
+                    <span x-show="group.deductionType === 'half'" class="badge badge-cyan" x-text="'Setengah hari ' + group.dates.length + 'x'"></span>
                     <span x-show="group.deductionType === 'none'" class="badge badge-slate">Tanpa potong</span>
                     <span x-show="group.deductionType === 'manual'" class="badge badge-amber" x-text="'Manual ' + rp(group.deductionAmount)"></span>
                     <span x-show="!group.deductionType" class="text-slate-400">-</span>
@@ -3828,6 +3966,20 @@
       </section>
 
       <!-- TRIAL BALANCE -->
+      <!-- TAX SETTINGS -->
+      <section x-show="page === 'tax-settings'">
+        <div class="card p-4 max-w-2xl">
+          <div class="section-title mb-1">Pengaturan PPN</div>
+          <div class="text-[11px] text-slate-400 mb-4">Rate PPN berlaku untuk semua pelanggan yang ditandai <b>Kena PPN</b> di Master Pelanggan.</div>
+          <div class="space-y-4">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox" x-model="taxSettings.ppnEnabled"> Aktifkan PPN</label>
+            <div class="max-w-xs"><label class="label">Rate PPN (%)</label><div class="input-group"><input type="number" min="0" max="100" step="0.01" class="input" x-model.number="taxSettings.ppnRate"><span class="addon">%</span></div></div>
+            <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Contoh: DPP Rp 1.000.000 dengan PPN 11% menghasilkan PPN Rp 110.000 dan total invoice Rp 1.110.000. Jurnal: Dr Piutang/Kas, Cr Pendapatan (DPP), Cr PPN Keluaran.</div>
+            <button class="btn btn-primary" @click="saveTaxSettings()">Simpan Pengaturan</button>
+          </div>
+        </div>
+      </section>
+
       <section x-show="page === 'reports'">
         <div class="card p-4 mb-4 no-print">
           <div class="flex flex-wrap items-center justify-between gap-3">
@@ -4115,7 +4267,7 @@
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="flex flex-wrap items-center gap-2">
             <div class="input-icon w-56"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input" placeholder="Cari return / PO / supplier..." x-model="purchaseReturnSearch"></div>
-            <select class="select w-40" x-model="purchaseReturnStatus"><option value="">Semua Status</option><option value="posted">Diposting</option><option value="void">Dibatalkan</option></select>
+            <select class="select w-40" x-model="purchaseReturnStatus"><option value="">Semua Status</option><option value="pending_approval">Menunggu Persetujuan</option><option value="posted">Diposting</option><option value="rejected">Ditolak</option><option value="void">Dibatalkan</option></select>
           </div>
           <button class="btn btn-primary" @click="openPurchaseReturnCreate()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Buat Return</button>
         </div>
@@ -4154,7 +4306,7 @@
       <section x-show="page === 'purchase-return-create'">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
           <button class="icon-btn" @click="go('purchase-returns')"><svg class="icon"><use href="#i-chevron-left"></use></svg></button>
-          <button class="btn btn-primary" @click="savePurchaseReturn()" :disabled="purchaseReturnFormQty === 0">Posting Return <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
+          <button class="btn btn-primary" @click="savePurchaseReturn()" :disabled="purchaseReturnFormQty === 0">Ajukan Return <svg class="icon icon-sm"><use href="#i-chevron-right"></use></svg></button>
         </div>
 
         <div class="card p-4 mb-4">
@@ -4751,7 +4903,8 @@
             <div><label class="label">Hari <span class="req">*</span></label><select class="select" x-model="customerForm.day"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select></div>
           </div>
           <div><label class="label">Jenis Harga <span class="req">*</span></label><select class="select" x-model="customerForm.priceTypeId"><template x-for="type in activePriceTypes" :key="type.id"><option :value="type.id" x-text="type.name"></option></template></select></div>
-          <div><label class="label">Syarat Kredit</label><select class="select" x-model="customerForm.creditStart"><option value="after2">Minimal 2x order</option><option value="first">Langsung bisa kredit</option></select><div class="mt-1 text-[10px] text-slate-400">Pelanggan lama yang belum tercatat bisa langsung diaktifkan kredit.</div></div>
+          <div><label class="label">Syarat Kredit (order)</label><input type="number" min="0" class="input" x-model.number="customerForm.creditMinOrders"><div class="mt-1 text-[10px] text-slate-400">Jumlah order yang harus masuk sebelum kredit aktif. Isi 0 untuk langsung mengaktifkan kredit.</div></div>
+          <div class="flex items-center gap-2 pt-6"><input type="checkbox" class="checkbox" x-model="customerForm.ppnEnabled"><span class="text-sm">Kena PPN</span><span class="text-[10px] text-slate-400" x-text="'(' + (taxSettings.ppnRate || 0) + '%)'"></span></div>
           <div><label class="label">Nomor Telepon <span class="req">*</span></label><input class="input" x-model="customerForm.phone" placeholder="081234567890"></div>
           <div><label class="label">Keterangan</label><textarea class="textarea" x-model="customerForm.description" placeholder="Keterangan"></textarea></div>
         </div>
@@ -4832,10 +4985,13 @@
   <!-- MATERIAL MODAL -->
   <div x-show="materialModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="materialModalOpen = false">
     <div class="modal-panel modal-lg">
-      <div class="modal-head"><div><div class="modal-title" x-text="materialEditId ? 'Edit Barang' : 'Tambah Barang'"></div><div class="modal-desc">Bahan mentah atau kemasan untuk purchasing.</div></div><button class="icon-btn" @click="materialModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-head"><div><div class="modal-title" x-text="materialEditId ? 'Edit Barang' : 'Tambah Barang'"></div><div class="modal-desc">Bahan baku, kemasan, atau alat untuk purchasing.</div></div><button class="icon-btn" @click="materialModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
       <div class="modal-body space-y-4">
         <div><label class="label">Status Barang <span class="req">*</span></label><div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input type="radio" class="radio" :value="true" x-model="materialForm.status"> Aktif</label><label class="flex items-center gap-2"><input type="radio" class="radio" :value="false" x-model="materialForm.status"> Nonaktif</label></div></div>
-        <div><label class="label">Nama Barang <span class="req">*</span></label><input class="input" x-model="materialForm.name" placeholder="Contoh: Botol PET 600 ml"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Jenis Barang <span class="req">*</span></label><select class="select" x-model="materialForm.itemType"><option value="material">Bahan Baku</option><option value="tool">Alat</option></select><div class="mt-1 text-[10px] text-slate-400">Alat tidak dipakai di resep produksi dan masuk ke akun Peralatan saat pembelian.</div></div>
+          <div><label class="label">Nama Barang <span class="req">*</span></label><input class="input" x-model="materialForm.name" placeholder="Contoh: Botol PET 600 ml"></div>
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="label">Kategori <span class="req">*</span></label>
@@ -4998,12 +5154,23 @@
       <div class="modal-head"><div><div class="modal-title">Proses Return</div><div class="modal-desc">Lengkapi data return barang.</div></div><button class="icon-btn" @click="returnModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
       <div class="modal-body space-y-4">
         <div><label class="label">Nama Barang <span class="req">*</span></label><select class="select" x-model="returnForm.productId" @change="returnForm.name = productName(returnForm.productId)"><template x-for="item in (order(returnForm.orderId).items || [])" :key="item.productId"><option :value="item.productId" x-text="productName(item.productId)"></option></template></select></div>
-        <div class="grid grid-cols-2 gap-3"><div><label class="label">Qty Return <span class="req">*</span></label><input type="number" min="1" class="input" x-model.number="returnForm.qty"></div><div><label class="label">Nilai Return</label><input class="input" readonly :value="rp(((order(returnForm.orderId).items || []).find(i => i.productId === returnForm.productId)?.price || 0) * returnForm.qty)"></div></div>
+        <div class="grid grid-cols-2 gap-3"><div><label class="label">Qty Return <span class="req">*</span></label><input type="number" min="1" class="input" x-model.number="returnForm.qty"></div><div><label class="label">Nilai Return</label><input class="input" readonly :value="rp(returnFormAmount)"></div></div>
         <div><label class="label">Jenis Return <span class="req">*</span></label><div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input type="radio" class="radio" value="change" x-model="returnForm.type"> Ganti Barang</label><label class="flex items-center gap-2"><input type="radio" class="radio" value="cut" x-model="returnForm.type"> Potong Harga</label></div></div>
         <div><label class="label">Kondisi Barang <span class="req">*</span></label><div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input type="radio" class="radio" value="good" x-model="returnForm.condition"> Bagus</label><label class="flex items-center gap-2"><input type="radio" class="radio" value="bad" x-model="returnForm.condition"> Rusak</label></div></div>
         <div><label class="label">Keterangan <span class="req">*</span></label><textarea class="textarea" x-model="returnForm.description"></textarea></div>
       </div>
       <div class="modal-foot"><button class="btn btn-outline" @click="returnModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveReturn()">Simpan</button></div>
+    </div>
+  </div>
+
+  <!-- RETURN REJECT MODAL -->
+  <div x-show="returnRejectOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="returnRejectOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title">Tolak Return Barang</div><div class="modal-desc">Return tidak akan mengubah stok atau piutang.</div></div><button class="icon-btn" @click="returnRejectOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div><label class="label">Alasan Penolakan <span class="req">*</span></label><textarea class="textarea" x-model="returnRejectReason" placeholder="Contoh: barang tidak sesuai atau sudah melewati batas return"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="returnRejectOpen = false">Batal</button><button class="btn btn-danger" @click="submitRejectReturn()">Tolak Return</button></div>
     </div>
   </div>
 
@@ -5071,6 +5238,8 @@
           <div class="flex justify-between"><span class="text-slate-500">Total Harga</span><span x-text="rp(cartSubtotal)"></span></div>
           <div class="flex justify-between"><span class="text-slate-500">Diskon</span><span class="text-red-600" x-text="'- ' + rp(cartDiscount)"></span></div>
           <div class="flex justify-between" x-show="customDiscountValue > 0"><span class="text-slate-500">Diskon Khusus</span><span class="text-red-600" x-text="'- ' + rp(customDiscountValue)"></span></div>
+          <div class="flex justify-between" x-show="cartTax > 0"><span class="text-slate-500">DPP</span><span x-text="rp(cartDpp)"></span></div>
+          <div class="flex justify-between" x-show="cartTax > 0"><span class="text-slate-500">PPN <span x-text="(taxSettings.ppnRate || 0) + '%'"></span></span><span x-text="rp(cartTax)"></span></div>
           <div class="flex justify-between border-t pt-2 mt-2 font-bold text-base"><span>Grand Total</span><span x-text="rp(cartTotal)"></span></div>
         </div></div>
       </div>
@@ -5224,16 +5393,16 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>Kode</th><th>Barang</th><th>Satuan</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Subtotal</th></tr></thead>
+            <thead><tr><th>#</th><th>Kode</th><th>Barang</th><th>Satuan</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Subtotal</th><th>Catatan</th></tr></thead>
             <tbody>
               <template x-for="(item, index) in (selectedPO.items || [])" :key="index">
-                <tr><td x-text="index + 1"></td><td class="font-semibold" x-text="(materials.find(m => m.id === item.materialId) || {}).code || '-'"></td><td x-text="materialName(item.materialId)"></td><td x-text="(materials.find(m => m.id === item.materialId) || {}).unit || '-'"></td><td class="num" x-text="fmt(item.qty)"></td><td class="num" x-text="rp(item.price)"></td><td class="num font-semibold" x-text="rp(item.qty * item.price)"></td></tr>
+                <tr><td x-text="index + 1"></td><td class="font-semibold" x-text="(materials.find(m => m.id === item.materialId) || {}).code || '-'"></td><td x-text="materialName(item.materialId)"></td><td x-text="(materials.find(m => m.id === item.materialId) || {}).unit || '-'"></td><td class="num" x-text="fmt(item.qty)"></td><td class="num" x-text="rp(item.price)"></td><td class="num font-semibold" x-text="rp(item.qty * item.price)"></td><td class="text-[11px] whitespace-normal" x-text="item.note || '-'"></td></tr>
               </template>
-              <tr class="bg-slate-50 font-bold"><td colspan="6" class="text-right">Subtotal Barang</td><td class="num" x-text="rp(selectedPO.subtotal || selectedPO.total)"></td></tr>
+              <tr class="bg-slate-50 font-bold"><td colspan="6" class="text-right">Subtotal Barang</td><td class="num" x-text="rp(selectedPO.subtotal || selectedPO.total)"></td><td></td></tr>
               <template x-for="(row, index) in (selectedPO.additionalCosts || [])" :key="index">
-                <tr><td colspan="6" class="text-right" x-text="row.description + (Number(row.qty) > 1 ? ' (' + fmt(row.qty) + ' x ' + rp(row.amount) + ')' : '')"></td><td class="num" x-text="rp(row.subtotal)"></td></tr>
+                <tr><td colspan="6" class="text-right" x-text="row.description + (Number(row.qty) > 1 ? ' (' + fmt(row.qty) + ' x ' + rp(row.amount) + ')' : '')"></td><td class="num" x-text="rp(row.subtotal)"></td><td></td></tr>
               </template>
-              <tr class="bg-slate-100 font-bold"><td colspan="6" class="text-right">Total PO</td><td class="num" x-text="rp(selectedPO.total)"></td></tr>
+              <tr class="bg-slate-100 font-bold"><td colspan="6" class="text-right">Total PO</td><td class="num" x-text="rp(selectedPO.total)"></td><td></td></tr>
             </tbody>
           </table>
         </div>
@@ -5438,6 +5607,17 @@
     </div>
   </div>
 
+  <!-- PURCHASE RETURN REJECT MODAL -->
+  <div x-show="purchaseReturnRejectOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="purchaseReturnRejectOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title">Tolak Return Pembelian</div><div class="modal-desc">Return tidak akan mengubah stok, jurnal, atau utang.</div></div><button class="icon-btn" @click="purchaseReturnRejectOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div><label class="label">Alasan Penolakan <span class="req">*</span></label><textarea class="textarea" x-model="purchaseReturnRejectReason" placeholder="Contoh: qty atau kondisi barang tidak sesuai"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="purchaseReturnRejectOpen = false">Batal</button><button class="btn btn-danger" @click="submitRejectPurchaseReturn()">Tolak Return</button></div>
+    </div>
+  </div>
+
   <!-- PURCHASE RETURN DETAIL MODAL -->
   <div x-show="purchaseReturnDetailOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="purchaseReturnDetailOpen = false">
     <div class="modal-panel modal-2xl">
@@ -5471,6 +5651,7 @@
           </table>
         </div>
         <div x-show="selectedPurchaseReturn.notes" class="text-xs text-slate-600"><b>Catatan:</b> <span x-text="selectedPurchaseReturn.notes"></span></div>
+        <div x-show="selectedPurchaseReturn.status === 'rejected'" class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700"><b>Ditolak:</b> <span x-text="selectedPurchaseReturn.rejectReason || '-'"></span></div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
           <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Jurnal</div><div class="font-semibold" x-text="(journals.find(j => j.id === selectedPurchaseReturn.journalId) || {}).code || '-'"></div></div>
           <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Ganti Barang</div><div class="font-semibold" x-text="rp(selectedPurchaseReturn.replaceTotal || 0)"></div></div>
@@ -5703,94 +5884,18 @@
     </div>
   </div>
 
-  <!-- PRODUCTION MODAL -->
-  <div x-show="productionModalOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="productionModalOpen = false">
-    <div class="modal-panel modal-2xl">
-      <div class="modal-head"><div><div class="modal-title" x-text="productionCorrection ? 'Koreksi Produksi' : 'Buat Produksi'"></div><div class="modal-desc">Hasil produksi menambah stok produk dan memakai bahan baku.</div></div><button class="icon-btn" @click="productionModalOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
-      <div class="modal-body space-y-5">
-        <div>
-          <div class="section-title mb-3">Data Produksi</div>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div><label class="label">Gudang <span class="req">*</span></label><select class="select" x-model="productionForm.warehouseId" :disabled="productionCorrection"><template x-for="w in warehouses" :key="w.id"><option :value="w.id" x-text="w.name"></option></template></select></div>
-            <div><label class="label">Produk <span class="req">*</span></label><select class="select" x-model="productionForm.productId" @change="onProductionProductChange()" :disabled="productionCorrection"><template x-for="p in productionProductOptions" :key="p.id"><option :value="p.id" x-text="p.name + ' — ' + p.code"></option></template></select></div>
-            <div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="productionForm.date" :disabled="productionCorrection"></div>
-            <div><label class="label">Hasil produksi <span class="req">*</span></label><div class="input-group"><input type="number" min="1" class="input" x-model.number="productionForm.qty" @input="onProductionQtyChange()"><span class="addon" x-text="product(productionForm.productId).unit || 'Krt'"></span></div></div>
-          </div>
-          <div class="mt-3"><label class="label">Keterangan</label><input class="input" x-model="productionForm.description" placeholder="Contoh: Shift 1 / batch pagi" :disabled="productionCorrection"></div>
-          <div x-show="productionCorrection" class="mt-3"><label class="label">Alasan Koreksi <span class="req">*</span></label><input class="input" x-model="productionForm.correctionReason" placeholder="Contoh: salah hitung reject"></div>
-        </div>
-
-        <div>
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <div><div class="section-title">Pemakaian Bahan Baku</div><div class="text-[11px] text-slate-400">Standar dihitung dari resep × hasil produksi. Pemakaian aktual boleh diubah.</div></div>
-            <button x-show="!productionCorrection" class="btn btn-outline btn-sm" @click="addProductionMaterial()"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Tambah Bahan Lain</button>
-          </div>
-          <div class="table-wrap" style="overflow: visible">
-            <table class="data-table">
-              <thead><tr><th>Bahan</th><th class="num" title="Jumlah bahan hasil hitungan resep x hasil produksi, sebagai acuan awal">Standar</th><th class="num" title="Jumlah bahan yang benar-benar terpakai di lapangan, boleh diubah">Dipakai</th><th class="num" title="Dipakai dikurangi Standar. Plus berarti lebih boros, minus lebih hemat">Selisih</th><th class="num">Stok Tersedia</th><th>Alasan</th><th class="actions" style="width:60px">Aksi</th></tr></thead>
-              <tbody>
-                <template x-for="(row, index) in productionForm.materials" :key="index">
-                  <tr>
-                    <td>
-                      <template x-if="row.fromRecipe || productionCorrection">
-                        <div><div class="font-semibold" x-text="materialName(row.materialId)"></div><span class="sub" x-text="(material(row.materialId).code || '') + ' • ' + (material(row.materialId).unit || '')"></span></div>
-                      </template>
-                      <template x-if="!row.fromRecipe && !productionCorrection">
-                        <div class="relative" @click.outside="row.materialOpen = false">
-                          <button type="button" class="input input-sm w-full flex items-center justify-between gap-2 text-left" :class="row.materialId ? 'text-slate-800' : 'text-slate-400'" @click="row.materialOpen = !row.materialOpen"><span class="truncate" x-text="row.materialId ? materialLabel(row.materialId) : 'Pilih barang'"></span><svg class="icon icon-xs text-slate-400"><use href="#i-chevron-down"></use></svg></button>
-                          <div x-show="row.materialOpen" x-cloak class="absolute left-0 right-0 z-40 mt-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                            <div class="input-icon mb-2"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input class="input input-sm" placeholder="Cari kode / nama barang..." x-model="row.materialSearch" @click.stop></div>
-                            <div class="max-h-48 overflow-y-auto space-y-0.5"><template x-for="material in productionMaterialOptions(index)" :key="material.id"><button type="button" class="w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-slate-50" @click="selectProductionMaterial(index, material)"><b class="block truncate" x-text="material.name"></b><span class="text-[10px] text-slate-400" x-text="material.code + ' • ' + material.unit"></span></button></template><div x-show="productionMaterialOptions(index).length === 0" class="px-2 py-3 text-center text-xs text-slate-400">Barang tidak ditemukan</div></div>
-                          </div>
-                        </div>
-                      </template>
-                    </td>
-                    <td class="num text-slate-500" x-text="fmt(row.standardQty)"></td>
-                    <td class="num">
-                      <div class="flex items-center justify-end gap-1">
-                        <input type="number" min="0" step="0.01" class="input input-sm w-24 text-right" :value="row.qty" @input="setProductionQty(index, $event.target.value)">
-                        <span x-show="row.manual" class="badge badge-yellow">Diubah</span>
-                        <button x-show="row.fromRecipe && row.manual" class="icon-btn icon-btn-sm" @click="resetProductionRow(index)" title="Kembalikan ke standar"><svg class="icon icon-xs"><use href="#i-refresh"></use></svg></button>
-                      </div>
-                    </td>
-                    <td class="num"><span class="font-semibold" :class="productionRowDifference(row) !== 0 ? 'text-slate-800' : 'text-slate-400'" x-text="(productionRowDifference(row) > 0 ? '+' : '') + fmt(productionRowDifference(row))"></span></td>
-                    <td class="num"><span class="font-semibold" :class="Number(row.qty) > productionRowAvailable(row) ? 'text-red-600' : ''" x-text="fmt(productionRowAvailable(row))"></span><span x-show="Number(row.qty) > productionRowAvailable(row)" class="badge badge-red ml-1">Stok kurang</span></td>
-                    <td><input class="input input-sm" x-model="row.note" :placeholder="productionRowNeedsReason(row) ? 'Wajib diisi' : 'Opsional'"></td>
-                    <td class="actions"><button x-show="!productionCorrection && !row.fromRecipe" class="icon-btn icon-btn-sm icon-btn-danger" @click="removeProductionMaterial(index)" title="Hapus bahan"><svg class="icon icon-sm"><use href="#i-trash"></use></svg></button></td>
-                  </tr>
-                </template>
-                <tr x-show="productionForm.materials.length === 0"><td colspan="7"><div class="empty py-6"><div class="font-semibold">Produk ini belum punya resep</div><div class="text-xs text-slate-400">Tambahkan bahan manual atau atur resep di Master Produk.</div><button class="btn btn-outline btn-xs mt-2" @click="productionModalOpen = false; go('products')">Buka Master Produk</button></div></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div x-show="productionHasShortage" class="mt-2 text-xs text-red-600">Ada bahan yang melebihi stok tersedia. Kurangi qty, koreksi pemakaian, atau pilih gudang lain.</div>
-        </div>
-
-        <div class="card p-3 bg-slate-50">
-          <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-            <div><div class="text-slate-400">Hasil Produksi</div><div class="font-bold mt-1" x-text="fmt(productionForm.qty) + ' ' + (product(productionForm.productId).unit || '')"></div></div>
-            <div><div class="text-slate-400">Jenis Bahan</div><div class="font-bold mt-1" x-text="productionForm.materials.filter(row => Number(row.qty) > 0).length"></div></div>
-            <div><div class="text-slate-400">Total Biaya Bahan</div><div class="font-bold mt-1" x-text="rp(productionTotalCost)"></div></div>
-            <div><div class="text-slate-400">Biaya per <span x-text="product(productionForm.productId).unit || 'Krt'"></span></div><div class="font-bold mt-1" x-text="rp(productionCostPerUnit)"></div></div>
-            <div><div class="text-slate-400">Baris Diubah</div><div class="font-bold mt-1" x-text="productionChangedRows"></div></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-foot"><button class="btn btn-outline" @click="productionModalOpen = false">Batal</button><button class="btn btn-primary" @click="saveProduction()" :disabled="productionHasShortage" x-text="productionCorrection ? 'Simpan Koreksi' : 'Simpan Produksi'"></button></div>
-    </div>
-  </div>
-
   <!-- PRODUCTION DETAIL MODAL -->
   <div x-show="productionDetailOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="productionDetailOpen = false">
     <div class="modal-panel modal-2xl">
       <div class="modal-head"><div><div class="modal-title" x-text="'Produksi ' + (selectedProduction.code || '')"></div><div class="modal-desc" x-text="productName(selectedProduction.productId) + ' • ' + dateShort(selectedProduction.date)"></div></div><button class="icon-btn" @click="productionDetailOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
       <div class="modal-body space-y-4">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs">
           <div><div class="text-slate-400">Hasil</div><div class="font-bold mt-1" x-text="fmt(selectedProduction.qty) + ' ' + (product(selectedProduction.productId).unit || '')"></div></div>
           <div><div class="text-slate-400">Gudang</div><div class="font-semibold mt-1" x-text="warehouseName(selectedProduction.warehouseId)"></div></div>
           <div><div class="text-slate-400">Dibuat oleh</div><div class="font-semibold mt-1" x-text="userRoleLabel(selectedProduction.createdBy, selectedProduction.createdByRole)"></div></div>
           <div><div class="text-slate-400">Total Biaya</div><div class="font-semibold mt-1" x-text="rp(selectedProduction.totalCost)"></div></div>
           <div><div class="text-slate-400">Biaya per Unit</div><div class="font-semibold mt-1" x-text="rp(selectedProduction.costPerUnit)"></div></div>
+          <div><div class="text-slate-400">Nilai Reject</div><div class="font-semibold text-red-600 mt-1" x-text="rp(selectedProduction.rejectTotalValue)"></div></div>
         </div>
         <div class="seg">
           <button class="seg-btn" :class="{ 'active': productionDetailTab === 'summary' }" @click="productionDetailTab = 'summary'">Ringkasan</button>
@@ -5800,7 +5905,7 @@
           <div x-show="selectedProduction.description" class="text-xs text-slate-600"><b>Keterangan:</b> <span x-text="selectedProduction.description"></span></div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>#</th><th>Bahan</th><th class="num" title="Jumlah bahan hasil hitungan resep x hasil produksi, sebagai acuan awal">Standar</th><th class="num" title="Jumlah bahan yang benar-benar terpakai di lapangan, boleh diubah">Dipakai</th><th class="num" title="Dipakai dikurangi Standar. Plus berarti lebih boros, minus lebih hemat">Selisih</th><th class="num">Harga</th><th class="num">Nilai</th><th>Alasan</th></tr></thead>
+              <thead><tr><th>#</th><th>Bahan</th><th class="num" title="Jumlah bahan hasil hitungan resep x hasil produksi">Standar</th><th class="num" title="Standar + selisih">Aktual</th><th class="num" title="Aktual dikurangi Standar. Plus berarti lebih boros / reject, minus lebih hemat">Selisih</th><th class="num">Harga</th><th class="num">Nilai</th><th class="num">Reject</th><th>Catatan</th></tr></thead>
               <tbody>
                 <template x-for="(row, index) in (selectedProduction.materials || [])" :key="index">
                   <tr>
@@ -5811,10 +5916,11 @@
                     <td class="num"><span class="font-semibold" :class="Number(row.qty) - Number(row.standardQty) !== 0 ? 'text-slate-800' : 'text-slate-400'" x-text="(Number(row.qty) - Number(row.standardQty) > 0 ? '+' : '') + fmt(Number(row.qty) - Number(row.standardQty))"></span></td>
                     <td class="num" x-text="rp(row.price)"></td>
                     <td class="num font-semibold" x-text="rp((Number(row.qty) || 0) * (Number(row.price) || 0))"></td>
+                    <td class="num"><div class="font-semibold text-red-600" x-text="fmt(row.rejectQty || 0)"></div><div class="sub" x-show="Number(row.rejectValue) > 0" x-text="rp(row.rejectValue)"></div></td>
                     <td class="max-w-[220px] whitespace-normal" x-text="row.note || '-'"></td>
                   </tr>
                 </template>
-                <tr class="bg-slate-50 font-bold"><td colspan="6" class="text-right">Total Biaya Bahan</td><td class="num" x-text="rp(selectedProduction.totalCost)"></td><td></td></tr>
+                <tr class="bg-slate-50 font-bold"><td colspan="6" class="text-right">Total Biaya Bahan</td><td class="num" x-text="rp(selectedProduction.totalCost)"></td><td class="num text-red-600" x-text="'Reject ' + rp(selectedProduction.rejectTotalValue)"></td><td></td></tr>
               </tbody>
             </table>
           </div>

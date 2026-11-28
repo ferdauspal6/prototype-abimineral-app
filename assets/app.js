@@ -12,7 +12,7 @@ const DOMAIN_KEYS = [
   'stockHistory', 'opnames', 'incomes', 'expenses', 'receivables',
   'collections', 'payments', 'users', 'roles', 'monthlyHistory',
   'categories', 'materials', 'suppliers', 'purchaseRequests', 'units', 'purchaseOrders',
-  'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'poAdvances', 'accounts', 'journals',
+  'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'poAdvances', 'accounts', 'journals', 'taxSettings',
   'recipes', 'productions', 'productionLogs',
   'hppSettings', 'biayaProduksiBulanan', 'hppHarian', 'hppLog', 'hppBulanan',
   'employees', 'attendanceScans', 'attendanceNotes', 'attendanceBatches', 'payrolls', 'hrSettings'
@@ -71,6 +71,8 @@ const PAGE_PERMISSION = {
   stock: 'Stock',
   'stock-product': 'Stock',
   'stock-material': 'Stock',
+  'production-create': 'Stock',
+  'tax-settings': 'Laporan Keuangan',
   receivables: 'Piutang',
   payables: 'Utang',
   'collection-create': 'Piutang',
@@ -270,6 +272,7 @@ function seedData() {
   const stockMovements = [];
   const payables = [];
   const poAdvances = [];
+  const taxSettings = { ppnEnabled:true, ppnRate:11 };
 
   const accounts = [
     { id:'acc1', code:'1-1100', name:'Kas', type:'asset', normalBalance:'debit', parentId:null, isCashBank:true, isSystem:false, isLocked:false, cashType:'cash', bankName:'', accountNumber:'', accountHolder:'', branch:'', status:true, description:'Kas tunai' },
@@ -296,7 +299,8 @@ function seedData() {
     { id:'acc25', code:'5-1600', name:'Beban Listrik Produksi', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan produksi' },
     { id:'acc26', code:'5-1610', name:'Beban Listrik Kantor', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan kantor' },
     { id:'acc27', code:'5-1700', name:'Beban Leasing', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Biaya leasing kendaraan dan peralatan' },
-    { id:'acc28', code:'1-1700', name:'Uang Muka Pembelian', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'DP dan pembayaran di awal ke supplier' }
+    { id:'acc28', code:'1-1700', name:'Uang Muka Pembelian', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'DP dan pembayaran di awal ke supplier' },
+    { id:'acc29', code:'2-1200', name:'PPN Keluaran', type:'liability', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'PPN keluaran atas penjualan' }
   ];
 
   const journals = [];
@@ -438,7 +442,7 @@ function seedData() {
     stockHistory, opnames, incomes, expenses, receivables,
     collections, payments, users, roles, monthlyHistory,
     categories, materials, suppliers, purchaseRequests, units, purchaseOrders,
-    receipts, purchaseReturns, stockMovements, payables, poAdvances, accounts, journals, permissions,
+    receipts, purchaseReturns, stockMovements, payables, poAdvances, accounts, journals, taxSettings, permissions,
     recipes, productions, productionLogs,
     hppSettings, biayaProduksiBulanan, hppHarian, hppLog, hppBulanan,
     employees, attendanceScans, attendanceNotes, attendanceBatches, payrolls, hrSettings
@@ -499,6 +503,7 @@ function app() {
     stockMovements: seed.stockMovements,
     payables: seed.payables,
     poAdvances: seed.poAdvances,
+    taxSettings: seed.taxSettings,
     recipes: seed.recipes,
     productions: seed.productions,
     productionLogs: seed.productionLogs,
@@ -1641,7 +1646,7 @@ function app() {
           { page: 'warehouses', label: 'Master Gudang', icon: 'i-warehouse', match: ['warehouses'] },
           { page: 'products', label: 'Master Produk', icon: 'i-package', match: ['products','product-create'] },
           { page: 'materials', label: 'Master Barang', icon: 'i-box', match: ['materials'] },
-          { page: 'stock-product', label: 'Stock Produk', icon: 'i-boxes', match: ['stock-product'] },
+          { page: 'stock-product', label: 'Stock Produk', icon: 'i-boxes', match: ['stock-product','production-create'] },
           { page: 'stock-material', label: 'Stock Barang', icon: 'i-box', match: ['stock-material'] }
         ]},
         { title: 'HR', items: [
@@ -1669,7 +1674,8 @@ function app() {
           { page: 'hpp', label: 'HPP', icon: 'i-calculator', match: ['hpp','hpp-create','hpp-detail','hpp-bulanan-create','hpp-bulanan-detail'] },
           { page: 'journals', label: 'Jurnal Umum', icon: 'i-file', match: ['journals','journal-create'] },
           { page: 'ledger', label: 'Buku Besar', icon: 'i-chart', match: ['ledger'] },
-          { page: 'reports', label: 'Laporan', icon: 'i-receipt', match: ['reports'] }
+          { page: 'reports', label: 'Laporan', icon: 'i-receipt', match: ['reports'] },
+          { page: 'tax-settings', label: 'Pengaturan Pajak', icon: 'i-percent', match: ['tax-settings'] }
         ]},
         { title: 'Pengguna', items: [
           { page: 'settings', label: 'Akun Saya', icon: 'i-user', match: ['settings'] },
@@ -1719,6 +1725,8 @@ function app() {
         stock: { title: 'Stock', crumb: 'Stock' },
         'stock-product': { title: 'Stock Produk', crumb: 'Logistik / Stock Produk' },
         'stock-material': { title: 'Stock Barang', crumb: 'Logistik / Stock Barang' },
+        'production-create': { title: 'Buat Produksi', crumb: 'Logistik / Stock Produk / Produksi' },
+        'tax-settings': { title: 'Pengaturan Pajak', crumb: 'Keuangan / Pengaturan Pajak' },
         warehouses: { title: 'Master Gudang', crumb: 'Master Gudang' },
         products: { title: 'Master Produk', crumb: 'Master Produk' },
         'product-create': { title: 'Form Produk', crumb: 'Master Produk / Form Produk' },
@@ -1792,6 +1800,7 @@ function app() {
     applyStockPageView(page) {
       if (page === 'stock-product') this.stockView = 'product';
       if (page === 'stock-material') this.stockView = 'material';
+      if (page === 'production-create') { this.stockView = 'product'; this.stockTab = 'production'; }
     },
     go(page) {
       if (page === 'trial-balance') page = 'reports';
@@ -2541,10 +2550,17 @@ function app() {
           { label:'Cetak Invoice', icon:'i-printer', run:() => this.openDeliveryInvoice(row.id) },
           { label:'Hapus', icon:'i-trash', danger:true, show:row.status !== 'success', run:() => this.deleteDelivery(row) }
         ];
-        case 'returns': return row.status === 'pending' ? [
-          { label:'Proses Return', icon:'i-check', run:() => this.processReturn(row) },
-          { label:'Batalkan', icon:'i-trash', danger:true, run:() => this.deleteReturn(row) }
-        ] : [{ label:'Selesai', icon:'i-circle-check', disabled:true }];
+        case 'returns': {
+          const items = [{ label:'Lihat', icon:'i-eye', run:() => this.viewOrder(row.orderId) }];
+          if (row.status === 'pending_approval' && this.canApproveReturn) {
+            items.push({ label:'Setujui', icon:'i-check', run:() => this.approveReturn(row) });
+            items.push({ label:'Tolak', icon:'i-x', danger:true, run:() => this.openRejectReturn(row) });
+          }
+          if (row.status === 'pending') items.push({ label:'Proses Return', icon:'i-check', run:() => this.processReturn(row) });
+          if (['pending_approval','rejected'].includes(row.status)) items.push({ label:'Batalkan', icon:'i-trash', danger:true, run:() => this.deleteReturn(row) });
+          if (['return','discard'].includes(row.status)) items.push({ label:'Selesai', icon:'i-circle-check', disabled:true });
+          return items;
+        }
         case 'customers': return [
           { label:'Edit', icon:'i-pencil', run:() => this.openCustomer(row) },
           { label:'Hapus', icon:'i-trash', danger:true, run:() => this.askConfirm('delete-customer', row.id, 'Hapus pelanggan?', 'Pelanggan ' + row.name + ' akan dihapus.') }
@@ -2629,6 +2645,8 @@ function app() {
         ];
         case 'purchase-returns': return [
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPurchaseReturn(row) },
+          { label:'Setujui & Posting', icon:'i-check', show:row.status === 'pending_approval' && this.canApproveReturn, run:() => this.approvePurchaseReturn(row) },
+          { label:'Tolak', icon:'i-x', danger:true, show:row.status === 'pending_approval' && this.canApproveReturn, run:() => this.openRejectPurchaseReturn(row) },
           { label:'Terima Ganti Barang', icon:'i-box', show:row.status === 'posted' && row.replacementStatus === 'pending', run:() => this.receivePurchaseReturnReplacement(row) },
           { label:'Batalkan', icon:'i-trash', danger:true, show:row.status === 'posted', run:() => this.voidPurchaseReturn(row) }
         ];
@@ -2910,6 +2928,19 @@ function app() {
         pr.history.push({ action:'cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
         this.notify('Purchase Request ' + pr.code + ' dibatalkan');
       }
+      if (action === 'approve-purchase-return') {
+        const purchaseReturn = this.purchaseReturns.find(item => item.id === id);
+        if (!purchaseReturn || purchaseReturn.status !== 'pending_approval' || !this.canApproveReturn) {
+          this.notify('Return pembelian tidak dapat disetujui', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        purchaseReturn.approvedBy = this.currentUser;
+        purchaseReturn.approvedAt = todayISO();
+        purchaseReturn.history = purchaseReturn.history || [];
+        purchaseReturn.history.push({ action:'approved', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
+        this.postPurchaseReturnDocument(purchaseReturn);
+      }
       if (action === 'receive-return-replacement') {
         const purchaseReturn = this.purchaseReturns.find(item => item.id === id);
         if (!purchaseReturn || purchaseReturn.status !== 'posted' || purchaseReturn.replacementStatus !== 'pending') {
@@ -3119,6 +3150,18 @@ function app() {
         this.expenses = this.expenses.filter(i => i.id !== id);
         this.notify('Transaksi berhasil dihapus dan jurnal di-void');
       }
+      if (action === 'approve-return') {
+        const r = this.returns.find(item => item.id === id);
+        if (!r || r.status !== 'pending_approval' || !this.canApproveReturn) {
+          this.notify('Return tidak dapat disetujui', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        r.status = 'pending';
+        r.approvedBy = this.currentUser;
+        r.approvedAt = todayISO();
+        this.notify('Return ' + r.code + ' disetujui dan siap diproses');
+      }
       if (action === 'process-return') {
         const r = this.returns.find(x => x.id === id);
         if (r) {
@@ -3135,8 +3178,25 @@ function app() {
           if (r.type === 'cut') {
             const rec = this.receivables.find(x => x.orderId === r.orderId);
             if (rec) {
+              const beforeUnpaid = Number(rec.unpaid) || 0;
+              const applied = Math.min(beforeUnpaid, Number(r.price) || 0);
               rec.total = Math.max(0, (Number(rec.total) || 0) - (Number(r.price) || 0));
-              rec.unpaid = Math.max(0, (Number(rec.unpaid) || 0) - (Number(r.price) || 0));
+              rec.unpaid = Math.max(0, beforeUnpaid - (Number(r.price) || 0));
+              if (applied > 0) {
+                const order = this.order(r.orderId);
+                const rate = Number(order.taxRate) || 0;
+                const taxPart = rate > 0 ? Math.round(applied * rate / (100 + rate)) : 0;
+                const netPart = applied - taxPart;
+                const revenueAccount = this.accountByCode('4-1000');
+                const taxAccount = this.accountByCode('2-1200');
+                const receivableAccount = this.accountByCode('1-1300');
+                const lines = [];
+                if (netPart > 0 && revenueAccount.id) lines.push({ accountId:revenueAccount.id, debit:netPart, credit:0, memo:'Retur penjualan ' + r.code });
+                if (taxPart > 0 && taxAccount.id) lines.push({ accountId:taxAccount.id, debit:taxPart, credit:0, memo:'PPN retur ' + r.code });
+                if (receivableAccount.id) lines.push({ accountId:receivableAccount.id, debit:0, credit:applied, memo:'Kurangi piutang ' + r.code });
+                const journal = this.createSystemJournal({ date:todayISO(), description:'Retur penjualan ' + r.code, source:'sales-return', sourceId:r.id, lines });
+                if (journal) r.journalId = journal.id;
+              }
             }
           }
           this.notify('Return berhasil diproses');
@@ -3289,7 +3349,7 @@ function app() {
       const key = todayISO().slice(0, 7);
       const inMonth = (date) => String(date || '').slice(0, 7) === key;
       const monthOrders = this.orders.filter(o => inMonth(o.date) && !['cancel','failed'].includes(o.status));
-      const revenue = monthOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const revenue = monthOrders.reduce((sum, o) => sum + Math.max(0, (Number(o.total) || 0) - (Number(o.tax) || 0)), 0);
       const cogs = monthOrders.reduce((sum, o) => sum + this.orderCogs(o), 0);
       const otherIncome = this.incomes.filter(i => inMonth(i.date)).reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
       const opex = this.expenses.filter(i => inMonth(i.date)).reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
@@ -3372,6 +3432,7 @@ function app() {
     },
     get lowStockMaterials() {
       return [...this.materials]
+        .filter(material => (material.itemType || 'material') !== 'tool')
         .filter(material => material.status && Number(material.stock) <= Number(material.minStock || 0))
         .sort((a, b) => a.stock - b.stock);
     },
@@ -3480,7 +3541,7 @@ function app() {
       );
       return {
         orders: rows.length,
-        revenue: rows.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+        revenue: rows.reduce((sum, o) => sum + Math.max(0, (Number(o.total) || 0) - (Number(o.tax) || 0)), 0)
       };
     },
     get myVisitsToday() {
@@ -3632,10 +3693,19 @@ function app() {
     },
     priceFor(p) { return this.productPrice(p, this.customerPriceTypeId(this.selectedCustomer)); },
 
+    saveTaxSettings() {
+      const rate = Number(this.taxSettings.ppnRate);
+      if (!(rate >= 0) || rate > 100) { this.notify('Rate PPN harus antara 0 dan 100', 'error'); return; }
+      this.taxSettings.ppnEnabled = !!this.taxSettings.ppnEnabled;
+      this.taxSettings.ppnRate = rate;
+      this.persist();
+      this.notify('Pengaturan pajak disimpan');
+    },
+
     /* ---------- CUSTOMER ---------- */
     customerSearch: '', customerChannel: '', customerSales: '', customerWeek: '', customerDay: '', customerPrice: '',
     customerModalOpen: false, customerEditId: null,
-    customerForm: { name:'', address:'', channel:'Grosir', sales:'Fahri', week:'Genap', day:'Senin', priceTypeId:'', phone:'', description:'', creditStart:'after2' },
+    customerForm: { name:'', address:'', channel:'Grosir', sales:'Fahri', week:'Genap', day:'Senin', priceTypeId:'', phone:'', description:'', creditMinOrders:3, ppnEnabled:false },
     get filteredCustomers() {
       const q = this.customerSearch.toLowerCase();
       return this.customers.filter(c => {
@@ -3652,12 +3722,15 @@ function app() {
     openCustomer(c = null) {
       this.customerEditId = c ? c.id : null;
       this.customerForm = c
-        ? { name:c.name, address:c.address, channel:c.channel, sales:c.sales, week:c.week, day:c.day, priceTypeId:this.customerPriceTypeId(c), phone:c.phone, description:c.description, creditStart:this.customerCreditStart(c) }
-        : { name:'', address:'', channel:'Grosir', sales:this.role === 'Sales' ? this.currentUser : 'Fahri', week:'Genap', day:'Senin', priceTypeId:this.defaultPriceTypeId, phone:'', description:'', creditStart:'after2' };
+        ? { name:c.name, address:c.address, channel:c.channel, sales:c.sales, week:c.week, day:c.day, priceTypeId:this.customerPriceTypeId(c), phone:c.phone, description:c.description, creditMinOrders:this.customerCreditMinOrders(c), ppnEnabled:!!c.ppnEnabled }
+        : { name:'', address:'', channel:'Grosir', sales:this.role === 'Sales' ? this.currentUser : 'Fahri', week:'Genap', day:'Senin', priceTypeId:this.defaultPriceTypeId, phone:'', description:'', creditMinOrders:3, ppnEnabled:false };
       this.customerModalOpen = true;
     },
     saveCustomer() {
       if (!this.customerForm.name || !this.customerForm.address) { this.notify('Nama dan alamat wajib diisi', 'error'); return; }
+      const creditMinOrders = Math.max(0, Number(this.customerForm.creditMinOrders) || 0);
+      this.customerForm.creditMinOrders = creditMinOrders;
+      this.customerForm.creditStart = creditMinOrders <= 0 ? 'first' : 'after2';
       if (this.customerEditId) {
         const c = this.customers.find(x => x.id === this.customerEditId);
         if (c) Object.assign(c, this.customerForm, { priceType:['pt2','pt3','pt4'].includes(this.customerForm.priceTypeId) ? 'out' : 'in' });
@@ -3849,6 +3922,7 @@ function app() {
       const query = String(row.materialSearch || '').toLowerCase();
       return this.materials.filter(material => {
         if (!material.status) return false;
+        if ((material.itemType || 'material') === 'tool') return false;
         if (selectedElsewhere.includes(material.id)) return false;
         if (!query) return true;
         return (material.code + ' ' + material.name + ' ' + material.unit).toLowerCase().includes(query);
@@ -4075,15 +4149,16 @@ function app() {
     },
 
     /* ---------- MATERIAL (Master Barang) ---------- */
-    materialTab: 'items', materialSearch: '', materialStatus: '', materialCategory: '',
+    materialTab: 'items', materialSearch: '', materialStatus: '', materialCategory: '', materialItemType: '',
     materialModalOpen: false, materialEditId: null,
-    materialForm: { name:'', categoryId:'', unit:'Pcs', purchasePrice:0, minStock:0, stock:0, status:true, description:'' },
+    materialForm: { name:'', itemType:'material', categoryId:'', unit:'Pcs', purchasePrice:0, minStock:0, stock:0, status:true, description:'' },
     get filteredMaterials() {
       const q = this.materialSearch.toLowerCase();
       return this.materials.filter(m => {
         if (q && !(m.name + ' ' + m.code).toLowerCase().includes(q)) return false;
         if (this.materialStatus && String(m.status) !== this.materialStatus) return false;
         if (this.materialCategory && m.categoryId !== this.materialCategory) return false;
+        if (this.materialItemType && this.materialItemType !== (m.itemType || 'material')) return false;
         return true;
       });
     },
@@ -4095,12 +4170,12 @@ function app() {
       this.materialEditId = material ? material.id : null;
       this.materialForm = material
         ? {
-            name:material.name, categoryId:material.categoryId || '', unit:material.unit,
+            name:material.name, itemType:material.itemType || 'material', categoryId:material.categoryId || '', unit:material.unit,
             purchasePrice:material.purchasePrice, minStock:material.minStock, stock:material.stock,
             status:material.status, description:material.description || ''
           }
         : {
-            name:'', categoryId:this.materialCategories[0]?.id || '', unit:'Pcs',
+            name:'', itemType:'material', categoryId:this.materialCategories[0]?.id || '', unit:'Pcs',
             purchasePrice:0, minStock:0, stock:0, status:true, description:''
           };
       this.materialModalOpen = true;
@@ -4109,6 +4184,7 @@ function app() {
       if (!this.materialForm.name) { this.notify('Nama barang wajib diisi', 'error'); return; }
       const data = {
         ...this.materialForm,
+        itemType:this.materialForm.itemType === 'tool' ? 'tool' : 'material',
         categoryId:this.materialForm.categoryId || null,
         purchasePrice:Number(this.materialForm.purchasePrice) || 0,
         minStock:Number(this.materialForm.minStock) || 0,
@@ -4493,7 +4569,7 @@ function app() {
     poPriceModalOpen: false, poPriceEditId: null, poPriceRows: [], poPriceNote: '',
     poEditId: null,
     poPrSelectValue: '', poPrPickerOpen: false, poPrPickerPrId: null, poPrPickerRows: [],
-    poForm: { date:todayISO(), supplierId:'', prId:'', paymentScheme:'credit', paymentDays:30, dpAmount:0, paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
+    poForm: { date:todayISO(), supplierId:'', prId:'', paymentScheme:'credit', paymentDays:30, dpAmount:0, paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, include:true, note:'', materialOpen:false, materialSearch:'' }], additionalCosts:[] },
     canvasAdvancePO() {
       const po = {
         id:'pocanvas' + Date.now(),
@@ -4508,7 +4584,7 @@ function app() {
         paymentTerms:'30 hari',
         notes:'Contoh PO dengan DP sebelum pengiriman.',
         status:'approved',
-        items:[{ materialId:'mat1', qty:1000, price:5000, receivedQty:0, returnedQty:0 }],
+        items:[{ materialId:'mat1', qty:1000, price:5000, receivedQty:0, returnedQty:0, note:'' }],
         additionalCosts:[],
         additionalTotal:0,
         subtotal:5000000,
@@ -4529,6 +4605,15 @@ function app() {
     ensurePurchasePaymentData() {
       if (!Array.isArray(this.accounts)) this.accounts = [];
       if (!Array.isArray(this.poAdvances)) this.poAdvances = [];
+      (this.materials || []).forEach(material => {
+        if (!['material','tool'].includes(material.itemType)) material.itemType = 'material';
+      });
+      if (!this.taxSettings || typeof this.taxSettings !== 'object') this.taxSettings = { ppnEnabled:true, ppnRate:11 };
+      this.taxSettings.ppnEnabled = this.taxSettings.ppnEnabled !== false;
+      this.taxSettings.ppnRate = Math.max(0, Number(this.taxSettings.ppnRate) || 0);
+      if (!this.accounts.some(account => account.code === '2-1200')) {
+        this.accounts.push({ id:'acc29', code:'2-1200', name:'PPN Keluaran', type:'liability', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'PPN keluaran atas penjualan' });
+      }
       const advanceAccount = { id:'acc28', code:'1-1700', name:'Uang Muka Pembelian', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'DP dan pembayaran di awal ke supplier' };
       const existing = this.accounts.find(account => account.code === '1-1700');
       if (!existing) this.accounts.push(advanceAccount);
@@ -4551,6 +4636,7 @@ function app() {
           po.paymentDays = match ? Number(match[1]) : 0;
         }
         po.dpAmount = Number(po.dpAmount) || 0;
+        (po.items || []).forEach(item => { item.note = item.note || ''; });
         if (!po.paymentTerms) po.paymentTerms = this.paymentTermsLabel(po.paymentScheme, po.paymentDays, po.dpAmount);
       });
       (this.payables || []).forEach(payable => { payable.advanceApplied = Number(payable.advanceApplied) || 0; });
@@ -4809,6 +4895,7 @@ function app() {
         qty:Number(row.qty) || 0,
         price:Number(row.price) || this.materialBuyPrice(row.materialId),
         include:true,
+        note:'',
         materialOpen:false,
         materialSearch:''
       }));
@@ -4875,7 +4962,7 @@ function app() {
       item.materialSearch = '';
     },
     addPOLine() {
-      this.poForm.items.push({ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' });
+      this.poForm.items.push({ materialId:'', qty:1, price:0, include:true, note:'', materialOpen:false, materialSearch:'' });
     },
     removePOLine(index) {
       this.poForm.items.splice(index, 1);
@@ -4903,6 +4990,7 @@ function app() {
             qty:row.remaining,
             price:this.materialBuyPrice(row.item.materialId),
             include:true,
+            note:'',
             materialOpen:false,
             materialSearch:''
           }));
@@ -4940,7 +5028,7 @@ function app() {
         dpAmount:supplier ? (Number(supplier.defaultDpAmount) || 0) : 0,
         paymentTerms:supplier ? supplier.paymentTerms : '',
         notes:'',
-        items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }],
+        items:[{ materialId:'', qty:1, price:0, include:true, note:'', materialOpen:false, materialSearch:'' }],
         additionalCosts:[]
       };
       this.go('purchase-order-create');
@@ -4964,6 +5052,7 @@ function app() {
           qty:item.qty,
           price:item.price,
           include:true,
+          note:item.note || '',
           materialOpen:false,
           materialSearch:''
         })),
@@ -5079,7 +5168,8 @@ function app() {
           qty:Number(item.qty),
           price:Number(item.price) || 0,
           receivedQty:0,
-          returnedQty:0
+          returnedQty:0,
+          note:String(item.note || '').trim()
         }));
       const error = this.poValidationError(items);
       if (error) { this.notify(error, 'error'); return; }
@@ -5789,9 +5879,14 @@ function app() {
             budget -= applied;
           });
       }
-      const journalLines = [
-        { accountId:'acc4', debit:receipt.total, credit:0, memo:'Persediaan ' + receipt.code }
-      ];
+      const toolReceiptTotal = (receipt.items || []).reduce((sum, item) => {
+        const material = this.material(item.materialId);
+        return (material.itemType || 'material') === 'tool' ? sum + (Number(item.qty) || 0) * (Number(item.price) || 0) : sum;
+      }, 0);
+      const materialReceiptTotal = Math.max(0, (Number(receipt.total) || 0) - toolReceiptTotal);
+      const journalLines = [];
+      if (materialReceiptTotal > 0) journalLines.push({ accountId:'acc4', debit:materialReceiptTotal, credit:0, memo:'Persediaan ' + receipt.code });
+      if (toolReceiptTotal > 0) journalLines.push({ accountId:'acc6', debit:toolReceiptTotal, credit:0, memo:'Peralatan ' + receipt.code });
       if (additionalCost > 0) {
         journalLines.push({ accountId:'acc14', debit:additionalCost, credit:0, memo:'Biaya tambahan PO ' + receipt.code });
       }
@@ -5906,7 +6001,8 @@ function app() {
           minStock:Number(material.minStock) || 0,
           avgCost:globalAvg,
           warehouse:this.warehouseName(row.warehouseId),
-          status:material.status
+          status:material.status,
+          itemType:material.itemType || 'material'
         };
       }).sort((a, b) => String(a.code).localeCompare(String(b.code)));
     },
@@ -5915,6 +6011,7 @@ function app() {
       return this.materialStockRows.filter(row => {
         if (q && !(row.code + ' ' + row.name + ' ' + row.warehouse).toLowerCase().includes(q)) return false;
         if (this.materialStockWarehouse && row.warehouseId !== this.materialStockWarehouse) return false;
+        if (this.materialStockItemType && row.itemType !== this.materialStockItemType) return false;
         return true;
       });
     },
@@ -5922,6 +6019,7 @@ function app() {
     /* ---------- PURCHASE RETURN ---------- */
     purchaseReturnSearch: '', purchaseReturnStatus: '',
     purchaseReturnDetailOpen: false, purchaseReturnSelectedId: null,
+    purchaseReturnRejectOpen: false, purchaseReturnRejectId: null, purchaseReturnRejectReason: '',
     purchaseReturnForm: { date:todayISO(), poId:'', warehouseId:'', notes:'', items:[] },
     get filteredPurchaseReturns() {
       const q = this.purchaseReturnSearch.toLowerCase();
@@ -5950,10 +6048,10 @@ function app() {
       return (this.purchaseReturnForm.items || []).reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0);
     },
     purchaseReturnStatusBadge(status) {
-      return { posted:'badge-green', void:'badge-red' }[status] || 'badge-slate';
+      return { pending_approval:'badge-yellow', posted:'badge-green', rejected:'badge-red', void:'badge-red' }[status] || 'badge-slate';
     },
     purchaseReturnStatusLabel(status) {
-      return { posted:'Diposting', void:'Dibatalkan' }[status] || status;
+      return { pending_approval:'Menunggu Persetujuan', posted:'Diposting', rejected:'Ditolak', void:'Dibatalkan' }[status] || status;
     },
     purchaseReturnConditionLabel(condition) {
       return { good:'Bagus', damaged:'Rusak' }[condition] || condition;
@@ -6090,14 +6188,64 @@ function app() {
         this.askSave(
           'save-purchase-return',
           null,
-          'Return pembelian akan diposting. Stok, jurnal, dan utang/piutang supplier akan disesuaikan. ' + po.code + ' • ' + rows.length + ' barang • total ' + this.rp(total) + '.',
-          'Posting'
+          'Return pembelian akan diajukan untuk persetujuan Manager. Stok, jurnal, dan utang belum berubah sampai disetujui. ' + po.code + ' • ' + rows.length + ' barang • total ' + this.rp(total) + '.',
+          'Ajukan'
         );
         return;
       }
       const date = this.purchaseReturnForm.date || todayISO();
       const code = docCode('PRT', date, nextDocSeq(this.purchaseReturns, 'PRT', date));
       const returnId = 'prt' + Date.now();
+      const now = todayISO();
+      const autoApprove = this.role === 'Manager';
+      const purchaseReturn = {
+        id:returnId,
+        code,
+        date,
+        poId:po.id,
+        poCode:po.code,
+        supplierId:po.supplierId,
+        warehouseId:this.purchaseReturnForm.warehouseId,
+        notes:this.purchaseReturnForm.notes || '',
+        items:rows,
+        total,
+        replaceTotal,
+        creditTotal,
+        status:'pending_approval',
+        replacementStatus:replaceTotal > 0 ? 'pending' : 'none',
+        journalId:'',
+        apAdjustments:[],
+        createdBy:this.currentUser,
+        createdById:this.currentUserId,
+        approvedBy:autoApprove ? this.currentUser : '',
+        approvedAt:autoApprove ? now : '',
+        rejectedBy:'',
+        rejectedAt:'',
+        rejectReason:'',
+        postedAt:'',
+        history:[{ action:autoApprove ? 'approved' : 'submitted', by:this.currentUser, byRole:this.role, at:now, note:autoApprove ? 'Auto approve Manager' : '' }]
+      };
+      this.purchaseReturns.unshift(purchaseReturn);
+      this.purchaseReturnSelectedId = purchaseReturn.id;
+      if (autoApprove) {
+        this.postPurchaseReturnDocument(purchaseReturn);
+        this.notify('Return pembelian ' + code + ' diajukan dan langsung disetujui Manager');
+      } else {
+        this.persist();
+        this.notify('Return pembelian ' + code + ' diajukan untuk persetujuan Manager');
+      }
+      this.go('purchase-returns');
+    },
+    postPurchaseReturnDocument(purchaseReturn) {
+      if (!purchaseReturn || purchaseReturn.status !== 'pending_approval') return;
+      const po = this.purchaseOrders.find(item => item.id === purchaseReturn.poId);
+      if (!po) { this.notify('PO sumber return tidak ditemukan', 'error'); return; }
+      const rows = purchaseReturn.items || [];
+      const total = Number(purchaseReturn.total) || 0;
+      const replaceTotal = Number(purchaseReturn.replaceTotal) || 0;
+      const creditTotal = Number(purchaseReturn.creditTotal) || 0;
+      const code = purchaseReturn.code;
+      const returnId = purchaseReturn.id;
       const now = todayISO();
       const apAdjustments = [];
       if (creditTotal > 0) this.applyPurchaseReturnCredit(po, creditTotal, code, apAdjustments);
@@ -6116,9 +6264,9 @@ function app() {
         }
         this.stockMovements.unshift({
           id:'mv' + Date.now() + Math.random().toString(16).slice(2),
-          date,
+          date:purchaseReturn.date,
           materialId:item.materialId,
-          warehouseId:this.purchaseReturnForm.warehouseId,
+          warehouseId:purchaseReturn.warehouseId,
           type:'purchase-return',
           qty:-item.qty,
           value:-(item.qty * item.price),
@@ -6132,44 +6280,58 @@ function app() {
       const journalLines = [];
       if (replaceTotal > 0) journalLines.push({ accountId:'acc5', debit:replaceTotal, credit:0, memo:'Klaim ganti barang ' + code });
       if (creditTotal > 0) journalLines.push({ accountId:'acc7', debit:creditTotal, credit:0, memo:'Potongan utang supplier ' + code });
-      journalLines.push({ accountId:'acc4', debit:0, credit:total, memo:'Persediaan keluar ' + code });
+      const toolReturnTotal = rows.reduce((sum, item) => {
+        const material = this.material(item.materialId);
+        return (material.itemType || 'material') === 'tool' ? sum + item.qty * item.price : sum;
+      }, 0);
+      const materialReturnTotal = Math.max(0, total - toolReturnTotal);
+      if (materialReturnTotal > 0) journalLines.push({ accountId:'acc4', debit:0, credit:materialReturnTotal, memo:'Persediaan keluar ' + code });
+      if (toolReturnTotal > 0) journalLines.push({ accountId:'acc6', debit:0, credit:toolReturnTotal, memo:'Peralatan keluar ' + code });
       const journal = this.createSystemJournal({
-        date,
+        date:purchaseReturn.date,
         description:'Return pembelian ' + code,
         source:'purchase-return',
         sourceId:returnId,
         lines:journalLines
       });
-      const purchaseReturn = {
-        id:returnId,
-        code,
-        date,
-        poId:po.id,
-        poCode:po.code,
-        supplierId:po.supplierId,
-        warehouseId:this.purchaseReturnForm.warehouseId,
-        notes:this.purchaseReturnForm.notes || '',
-        items:rows,
-        total,
-        replaceTotal,
-        creditTotal,
-        status:'posted',
-        replacementStatus:replaceTotal > 0 ? 'pending' : 'none',
-        journalId:journal ? journal.id : '',
-        apAdjustments,
-        createdBy:this.currentUser,
-        createdById:this.currentUserId,
-        postedAt:now,
-        history:[{ action:'posted', by:this.currentUser, byRole:this.role, at:now, note:code }]
-      };
-      this.purchaseReturns.unshift(purchaseReturn);
-      this.purchaseReturnSelectedId = purchaseReturn.id;
+      purchaseReturn.status = 'posted';
+      purchaseReturn.replacementStatus = replaceTotal > 0 ? 'pending' : 'none';
+      purchaseReturn.journalId = journal ? journal.id : '';
+      purchaseReturn.apAdjustments = apAdjustments;
+      purchaseReturn.postedAt = now;
+      purchaseReturn.history = purchaseReturn.history || [];
+      purchaseReturn.history.push({ action:'posted', by:this.currentUser, byRole:this.role, at:now, note:code });
       po.history = po.history || [];
       po.history.push({ action:'purchase-return', by:this.currentUser, byRole:this.role, at:now, note:code });
       this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Return pembelian ' + code + ' berhasil diposting');
-      this.go('purchase-returns');
+    },
+    get canApproveReturn() { return this.role === 'Manager'; },
+    approvePurchaseReturn(pr) {
+      if (!this.canApproveReturn) { this.notify('Approval return hanya dapat dilakukan oleh Manager', 'error'); return; }
+      if (!pr || pr.status !== 'pending_approval') { this.notify('Return ini tidak menunggu persetujuan', 'error'); return; }
+      this.askSave('approve-purchase-return', pr.id, 'Return pembelian ' + pr.code + ' akan disetujui dan diposting. Stok, jurnal, dan utang supplier akan disesuaikan.', 'Setujui & Posting');
+    },
+    openRejectPurchaseReturn(pr) {
+      if (!this.canApproveReturn) { this.notify('Approval return hanya dapat dilakukan oleh Manager', 'error'); return; }
+      this.purchaseReturnRejectId = pr.id;
+      this.purchaseReturnRejectReason = '';
+      this.purchaseReturnRejectOpen = true;
+    },
+    submitRejectPurchaseReturn() {
+      const pr = this.purchaseReturns.find(item => item.id === this.purchaseReturnRejectId);
+      if (!pr) return;
+      if (!String(this.purchaseReturnRejectReason || '').trim()) { this.notify('Alasan penolakan wajib diisi', 'error'); return; }
+      pr.status = 'rejected';
+      pr.rejectedBy = this.currentUser;
+      pr.rejectedAt = todayISO();
+      pr.rejectReason = String(this.purchaseReturnRejectReason).trim();
+      pr.history = pr.history || [];
+      pr.history.push({ action:'rejected', by:this.currentUser, byRole:this.role, at:todayISO(), note:pr.rejectReason });
+      this.purchaseReturnRejectOpen = false;
+      this.persist();
+      this.notify('Return pembelian ditolak');
     },
     viewPurchaseReturn(pr) {
       this.purchaseReturnSelectedId = pr.id;
@@ -7019,7 +7181,7 @@ function app() {
     hppMonthlyForm: {},
     hppSourcePeriod: '',
     hppSettingsForm: { workingDays: 26, waterLitersPerKrt: 10.5, waterPricePerM3: 7000, roundingMode:'none' },
-    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0, costPeriod:previousMonthKey(todayISO().slice(0, 7)), monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0 }, airPerDus:0, overheadPerDus:0, payrollPeriod:'', listrikSource:'manual' },
+    hppForm: { date:todayISO(), productId:'', allocationPercent:100, bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0, adjustmentPerUnit:0, costPeriod:previousMonthKey(todayISO().slice(0, 7)), monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0 }, airPerDus:0, overheadPerDus:0, payrollSource:'manual', payrollPeriod:'', payrollGroups:['Produksi'], listrikSource:'manual' },
     hppFinalizeOpen: false,
     hppEditId: null,
     hppDetailId: null,
@@ -7350,11 +7512,16 @@ function app() {
         const row = this.getBiayaBulanan(period, key);
         form.monthlyCosts[key] = row ? Number(row.value) || 0 : 0;
       });
-      const gaji = this.getBiayaBulanan(period, 'gaji');
-      form.payrollPeriod = gaji && gaji.sourceType === 'payroll' ? (gaji.sourcePayrollPeriod || period) : '';
+      const payrollPeriods = this.hppPayrollPeriodsFor();
+      if (!['payroll','manual'].includes(form.payrollSource)) form.payrollSource = payrollPeriods.length ? 'payroll' : 'manual';
+      if (!form.payrollPeriod || !payrollPeriods.includes(form.payrollPeriod)) {
+        form.payrollPeriod = payrollPeriods.length ? payrollPeriods[0] : '';
+      }
+      if (form.payrollSource === 'payroll' && !form.payrollPeriod) form.payrollSource = 'manual';
+      if (!Array.isArray(form.payrollGroups) || !form.payrollGroups.length) form.payrollGroups = [...(this.hrSettings.hppGroups || ['Produksi'])];
       const listrik = this.getBiayaBulanan(period, 'listrik');
       form.listrikSource = listrik && listrik.sourceType === 'jurnal' ? 'jurnal' : 'manual';
-      if (form.payrollPeriod) this.applyHppPayrollSource(form.payrollPeriod, { notify:false });
+      if (form.payrollSource === 'payroll' && form.payrollPeriod) this.applyHppPayrollSource(form.payrollPeriod, { notify:false });
       if (form.listrikSource === 'jurnal') form.monthlyCosts.listrik = this.listrikJournalValue(period);
       if (options.notify) this.notify('Biaya produksi ' + monthLongLabel(period) + ' dimuat');
     },
@@ -7371,30 +7538,61 @@ function app() {
         if (options.notify) this.notify('Payroll ' + monthLongLabel(period) + ' belum Posted', 'error');
         return;
       }
-      const summary = this.hppPayrollSummary(period);
+      const summary = this.hppPayrollSummary(period, form.payrollGroups);
       form.monthlyCosts.gaji = summary.gaji;
       form.monthlyCosts.uang_makan = summary.uangMakan;
       form.monthlyCosts.bpjs = summary.bpjs;
       form.payrollEmployeeCount = summary.headcount;
     },
+    hppPayrollPeriodsFor() {
+      return this.payrollPostedPeriods.slice(0, 3);
+    },
+    get hppPayrollGroupOptions() {
+      const period = this.hppForm ? this.hppForm.payrollPeriod : '';
+      const doc = period ? this.postedPayrollForPeriod(period) : null;
+      const groups = doc ? [...new Set((doc.rows || []).map(row => row.group).filter(Boolean))] : [];
+      const fallback = ['Produksi','Operasional','Manager','Supervisor'];
+      return [...new Set([...(groups.length ? groups : []), ...fallback])].sort((a, b) => a === 'Produksi' ? -1 : b === 'Produksi' ? 1 : String(a).localeCompare(String(b)));
+    },
+    setHppPayrollSource(source) {
+      if (!this.hppForm) return;
+      const mode = source === 'manual' ? 'manual' : 'payroll';
+      this.hppForm.payrollSource = mode;
+      if (mode === 'payroll') {
+        const periods = this.hppPayrollPeriodsFor();
+        if (!periods.length) { this.hppForm.payrollSource = 'manual'; this.notify('Belum ada payroll Posted pada 3 periode terakhir', 'error'); return; }
+        if (!periods.includes(this.hppForm.payrollPeriod)) this.hppForm.payrollPeriod = periods[0];
+        if (!Array.isArray(this.hppForm.payrollGroups) || !this.hppForm.payrollGroups.length) this.hppForm.payrollGroups = [...(this.hrSettings.hppGroups || ['Produksi'])];
+        this.applyHppPayrollSource(this.hppForm.payrollPeriod, { notify:true });
+      }
+    },
     setHppPayroll(period) {
       if (!this.hppForm) return;
+      this.hppForm.payrollSource = 'payroll';
       this.hppForm.payrollPeriod = period || '';
       if (period) this.applyHppPayrollSource(period, { notify:true });
+    },
+    toggleHppPayrollGroup(group, checked) {
+      if (!this.hppForm) return;
+      const groups = new Set(this.hppForm.payrollGroups || []);
+      if (checked) groups.add(group); else groups.delete(group);
+      this.hppForm.payrollGroups = [...groups];
+      if (this.hppForm.payrollSource === 'payroll' && this.hppForm.payrollPeriod) {
+        this.applyHppPayrollSource(this.hppForm.payrollPeriod, { notify:false });
+      }
     },
     setHppListrikSource(source) {
       if (!this.hppForm) return;
       this.hppForm.listrikSource = source === 'jurnal' ? 'jurnal' : 'manual';
       if (this.hppForm.listrikSource === 'jurnal') this.hppForm.monthlyCosts.listrik = this.listrikJournalValue(this.hppForm.costPeriod);
     },
-    get hppCostFollowsPayroll() { return !!(this.hppForm && this.hppForm.payrollPeriod); },
+    get hppCostFollowsPayroll() { return !!(this.hppForm && this.hppForm.payrollSource === 'payroll' && this.hppForm.payrollPeriod); },
     get hppFormPayrollPeriods() {
-      const limit = this.hppForm ? this.hppForm.costPeriod : '';
-      return this.payrollPostedPeriods.filter(period => !limit || period <= limit).slice(0, 3);
+      return this.hppPayrollPeriodsFor();
     },
     hppCostValueReadonly(component) {
       if (!this.hppForm) return false;
-      if (['gaji','uang_makan','bpjs'].includes(component) && this.hppForm.payrollPeriod) return true;
+      if (['gaji','uang_makan','bpjs'].includes(component)) return this.hppForm.payrollSource === 'payroll';
       return component === 'listrik' && this.hppForm.listrikSource === 'jurnal';
     },
     get hppCostPayrollLabel() {
@@ -7415,12 +7613,17 @@ function app() {
       this.hppEditId = null;
       this.hppForm = {
         date:todayISO(), productId:'', allocationPercent:100,
-        bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0,
+        bonusQty:0, bonusNote:'', materialOverrides:{}, depreciationTotal:0, adjustmentPerUnit:0,
         costPeriod:this.hppDefaultCostPeriod(todayISO()),
         monthlyCosts:{ gaji:0, uang_makan:0, bpjs:0, listrik:0 },
         airPerDus:this.hppDefaultAirRate(), overheadPerDus:0,
-        payrollPeriod:'', listrikSource:'manual'
+        payrollSource:'manual', payrollPeriod:'', payrollGroups:[...(this.hrSettings.hppGroups || ['Produksi'])], listrikSource:'manual'
       };
+      const initialPayrollPeriods = this.hppPayrollPeriodsFor();
+      if (initialPayrollPeriods.length) {
+        this.hppForm.payrollSource = 'payroll';
+        this.hppForm.payrollPeriod = initialPayrollPeriods[0];
+      }
       this.hppLoadMonthlyCosts(this.hppForm.costPeriod);
       this.applyHppDemoScenario();
       this.go('hpp-create');
@@ -7480,11 +7683,15 @@ function app() {
         bonusQty:Number(row.bonusQty) || 0, bonusNote:row.bonusNote || '',
         materialOverrides:overrides,
         depreciationTotal:Number(row.depreciationTotal) || 0,
+        adjustmentPerUnit:Number(row.adjustmentPerUnit) || 0,
         costPeriod,
         monthlyCosts,
         airPerDus:airCost ? Number(airCost.monthlyValue) || Number(airCost.perDus) || 0 : this.hppDefaultAirRate(),
         overheadPerDus:overheadCost ? Number(overheadCost.monthlyValue) || Number(overheadCost.perDus) || 0 : 0,
-        payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : '',
+        payrollSource:row.payrollSource === 'manual' ? 'manual' : (gajiCost && gajiCost.sourceType === 'payroll' ? 'payroll' : 'manual'),
+        payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : (row.payrollPeriod || ''),
+        payrollGroups:Array.isArray(row.payrollGroups) ? [...row.payrollGroups] : [...(this.hrSettings.hppGroups || ['Produksi'])],
+        payrollEmployeeCount:Number(row.payrollEmployeeCount) || 0,
         listrikSource:listrikCost && listrikCost.sourceType === 'jurnal' ? 'jurnal' : 'manual'
       };
       this.go('hpp-create');
@@ -7495,6 +7702,9 @@ function app() {
     },
     get hppOutputQty() { return this.hppProductionDocs.reduce((sum, row) => sum + (Number(row.qty) || 0), 0); },
     get hppProductionIds() { return this.hppProductionDocs.map(row => row.id); },
+    get hppProductionRejectTotal() {
+      return this.hppProductionDocs.reduce((sum, row) => sum + (Number(row.rejectTotalValue) || 0), 0);
+    },
     /* ---------- MATERIAL COST (MOVING AVERAGE) ---------- */
     materialLedgerRows(materialId) {
       const movements = (this.stockMovements || [])
@@ -7732,9 +7942,9 @@ function app() {
         const perDus = rounding === 'component' ? Math.round(rawPerDus) : rawPerDus;
         let sourceType = 'manual';
         let note = '';
-        if (['gaji','uang_makan','bpjs'].includes(key) && this.hppForm.payrollPeriod) {
+        if (['gaji','uang_makan','bpjs'].includes(key) && this.hppForm.payrollSource === 'payroll' && this.hppForm.payrollPeriod) {
           sourceType = 'payroll';
-          note = 'Payroll ' + monthLongLabel(this.hppForm.payrollPeriod);
+          note = 'Payroll ' + monthLongLabel(this.hppForm.payrollPeriod) + ' • ' + (this.hppForm.payrollGroups || []).join(', ');
         } else if (key === 'listrik' && this.hppForm.listrikSource === 'jurnal') {
           sourceType = 'jurnal';
           note = 'Jurnal Beban Listrik Produksi ' + monthLongLabel(this.hppForm.costPeriod);
@@ -7786,7 +7996,8 @@ function app() {
       });
       return rows;
     },
-    get hppCostTotal() { return this.hppCostRows.reduce((sum, row) => sum + row.perDus, 0); },
+    get hppAdjustmentPerUnit() { return Number(this.hppForm && this.hppForm.adjustmentPerUnit) || 0; },
+    get hppCostTotal() { return this.hppCostRows.reduce((sum, row) => sum + row.perDus, 0) + this.hppAdjustmentPerUnit; },
     get hppPerDus() {
       const raw = this.hppMaterialTotal + this.hppCostTotal;
       return this.hppRoundingMode === 'final' ? Math.round(raw) : raw;
@@ -7820,7 +8031,9 @@ function app() {
         && Number(this.hppForm.overheadPerDus) >= 0
         && Number(this.hppForm.depreciationTotal) >= 0
         && Number(this.hppForm.allocationPercent) >= 0
-        && Number(this.hppForm.allocationPercent) <= 100;
+        && Number(this.hppForm.allocationPercent) <= 100
+        && (this.hppMaterialTotal + this.hppCostTotal) >= 0
+        && (this.hppForm.payrollSource === 'manual' || (!!this.hppForm.payrollPeriod && (this.hppForm.payrollGroups || []).length > 0));
     },
     hppPayload(status) {
       const form = this.hppForm;
@@ -7844,6 +8057,11 @@ function app() {
         hppPerDus:this.hppPerDus,
         totalHpp:this.hppTotal,
         depreciationTotal:Number(form.depreciationTotal) || 0,
+        adjustmentPerUnit:Number(form.adjustmentPerUnit) || 0,
+        payrollSource:form.payrollSource || 'manual',
+        payrollPeriod:form.payrollPeriod || '',
+        payrollGroups:[...(form.payrollGroups || [])],
+        payrollEmployeeCount:Number(form.payrollEmployeeCount) || 0,
         materials:this.hppMaterialRows.map(row => ({
           materialId:row.materialId, qtyTotal:row.qtyTotal, qtyPerDus:row.qtyPerDus,
           price:row.price, priceOverridden:row.priceOverridden,
@@ -7871,7 +8089,12 @@ function app() {
           payrollPeriod:form.payrollPeriod,
           listrikSource:form.listrikSource,
           materialMode:'actual',
-          depreciationTotal:Number(form.depreciationTotal) || 0
+          depreciationTotal:Number(form.depreciationTotal) || 0,
+          adjustmentPerUnit:Number(form.adjustmentPerUnit) || 0,
+          payrollSource:form.payrollSource || 'manual',
+          payrollPeriod:form.payrollPeriod || '',
+          payrollGroups:[...(form.payrollGroups || [])],
+          payrollEmployeeCount:Number(form.payrollEmployeeCount) || 0
         })),
         createdBy:this.currentUser,
         createdById:this.currentUserId,
@@ -7917,11 +8140,11 @@ function app() {
         let sourcePayrollPeriod = '';
         let note = '';
         let employeeCount = null;
-        if (['gaji','uang_makan','bpjs'].includes(key) && form.payrollPeriod) {
+        if (['gaji','uang_makan','bpjs'].includes(key) && form.payrollSource === 'payroll' && form.payrollPeriod) {
           sourceType = 'payroll';
           sourcePayrollId = payrollDoc ? payrollDoc.id : '';
           sourcePayrollPeriod = form.payrollPeriod;
-          note = 'Payroll ' + monthLongLabel(form.payrollPeriod);
+          note = 'Payroll ' + monthLongLabel(form.payrollPeriod) + ' • ' + (form.payrollGroups || []).join(', ');
           employeeCount = payrollSummary ? payrollSummary.headcount : null;
         } else if (key === 'listrik' && form.listrikSource === 'jurnal') {
           sourceType = 'jurnal';
@@ -8057,11 +8280,15 @@ function app() {
         bonusQty:next.bonusQty, bonusNote:next.bonusNote,
         materialOverrides:overrides,
         depreciationTotal:next.depreciationTotal,
+        adjustmentPerUnit:Number(next.adjustmentPerUnit) || 0,
         costPeriod:(gajiCost && gajiCost.sourcePeriod) || next.costPeriod || this.hppDefaultCostPeriod(next.date),
         monthlyCosts,
         airPerDus:airCost ? Number(airCost.monthlyValue) || Number(airCost.perDus) || 0 : this.hppDefaultAirRate(),
         overheadPerDus:overheadCost ? Number(overheadCost.monthlyValue) || Number(overheadCost.perDus) || 0 : 0,
-        payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : '',
+        payrollSource:next.payrollSource === 'manual' ? 'manual' : (gajiCost && gajiCost.sourceType === 'payroll' ? 'payroll' : 'manual'),
+        payrollPeriod:gajiCost && gajiCost.sourceType === 'payroll' ? (gajiCost.sourcePeriod || '') : (next.payrollPeriod || ''),
+        payrollGroups:Array.isArray(next.payrollGroups) ? [...next.payrollGroups] : [...(this.hrSettings.hppGroups || ['Produksi'])],
+        payrollEmployeeCount:Number(next.payrollEmployeeCount) || 0,
         listrikSource:listrikCost && listrikCost.sourceType === 'jurnal' ? 'jurnal' : 'manual'
       };
       this.persist();
@@ -8163,11 +8390,43 @@ function app() {
         };
       });
     },
+    hppBulananProductionRejectRows(period) {
+      const totals = {};
+      (this.productions || [])
+        .filter(production => production.status === 'posted' && String(production.date || '').slice(0, 7) === period)
+        .forEach(production => {
+          (production.materials || []).forEach(row => {
+            const qty = Number(row.rejectQty) || 0;
+            if (qty <= 0) return;
+            totals[row.materialId] = (totals[row.materialId] || 0) + qty;
+          });
+        });
+      const end = periodEndDate(period);
+      return Object.keys(totals).map(materialId => {
+        const average = this.materialAveragePriceAt(materialId, end);
+        const material = this.material(materialId);
+        return {
+          materialId,
+          qty:totals[materialId],
+          price:average != null ? average : (Number(material.purchasePrice) || 0),
+          note:'Dari produksi (reject)'
+        };
+      }).filter(row => row.qty > 0);
+    },
+    syncHppBulananRejectFromProduction() {
+      if (!this.hppBulananForm) return;
+      const rows = this.hppBulananProductionRejectRows(this.hppBulananForm.period);
+      if (!rows.length) { this.notify('Tidak ada reject produksi pada periode ini', 'error'); return; }
+      this.hppBulananForm.rejectMode = 'detail';
+      this.hppBulananForm.rejectRows = rows;
+      this.notify(rows.length + ' baris reject produksi dimuat');
+    },
     startHppBulananCreate() {
       this.hppTab = 'bulanan';
       const period = todayISO().slice(0, 7);
       const costPeriod = previousMonthKey(period);
       const pool = this.defaultHppBulananPool(period, costPeriod);
+      const rejectRows = this.hppBulananProductionRejectRows(period);
       this.hppBulananEditId = null;
       this.hppBulananForm = {
         period,
@@ -8178,9 +8437,9 @@ function app() {
         bonusMode:'total',
         bonusTotal:pool.bonusan,
         bonusanRows:[],
-        rejectMode:'total',
+        rejectMode:rejectRows.length ? 'detail' : 'total',
         rejectTotal:pool.reject,
-        rejectRows:[],
+        rejectRows,
         products:this.buildHppBulananProducts(period)
       };
       this.go('hpp-bulanan-create');
@@ -8949,6 +9208,7 @@ function app() {
         else if (code === 'A') summary.alfa += 1;
         if (note && note.deductionType) {
           if (note.deductionType === 'daily') summary.hkPotong += 1;
+          else if (note.deductionType === 'half') summary.hkPotong += 0.5;
           else if (note.deductionType === 'manual') summary.potPerizinan += Number(note.deductionAmount) || 0;
         } else if (note && ['izin','sakit','cuti','alfa'].includes(note.type)) {
           if (rules[note.type]) legacyPotong += 1;
@@ -9127,6 +9387,7 @@ function app() {
     get attendanceNoteDeductionPreview() {
       const form = this.attendanceNoteForm || {};
       if (form.deductionType === 'daily') return Math.round(this.attendanceNoteDays * this.attendanceNoteDailyRate);
+      if (form.deductionType === 'half') return Math.round(this.attendanceNoteDays * this.attendanceNoteDailyRate * 0.5);
       if (form.deductionType === 'manual') return Math.max(0, Number(form.deductionAmount) || 0);
       return 0;
     },
@@ -9327,7 +9588,7 @@ function app() {
       let cursor = form.date;
       while (cursor <= end) { dates.push(cursor); cursor = shiftISO(cursor, 1); if (dates.length > 62) break; }
       const groupId = 'ng' + Date.now() + Math.random().toString(16).slice(2);
-      const deductionType = ['daily','none','manual'].includes(form.deductionType) ? form.deductionType : 'daily';
+      const deductionType = ['daily','half','none','manual'].includes(form.deductionType) ? form.deductionType : 'daily';
       const manualAmount = deductionType === 'manual' ? Math.max(0, Number(form.deductionAmount) || 0) : 0;
       dates.forEach((date, index) => {
         const deductionAmount = deductionType === 'manual' && index === 0 ? manualAmount : 0;
@@ -9970,10 +10231,10 @@ function app() {
       const limit = this.hppMonthlyPeriod || '';
       return this.payrollPostedPeriods.filter(period => !limit || period <= limit).slice(0, 3);
     },
-    hppPayrollSummary(period) {
+    hppPayrollSummary(period, groupsOverride = null) {
       const doc = this.postedPayrollForPeriod(period);
       if (!doc) return { gaji:0, uangMakan:0, bpjs:0, headcount:0 };
-      const groups = this.hrSettings.hppGroups || ['Produksi'];
+      const groups = (Array.isArray(groupsOverride) && groupsOverride.length) ? groupsOverride : (this.hrSettings.hppGroups || ['Produksi']);
       return groups.reduce((totals, group) => {
         const summary = this.getPayrollSummaryForDoc(doc, group, this.hrSettings.hppSalaryBasis || 'before');
         totals.gaji += summary.gaji;
@@ -10424,12 +10685,31 @@ function app() {
     customerOrderCount(customerId) {
       return this.orders.filter(o => o.customerId === customerId && !['cancel','failed','rejected'].includes(o.status)).length;
     },
+    customerCreditMinOrders(customer) {
+      if (customer && customer.creditMinOrders !== undefined && customer.creditMinOrders !== null) {
+        return Math.max(0, Number(customer.creditMinOrders) || 0);
+      }
+      if (customer && customer.creditStart === 'first') return 0;
+      if (customer && customer.creditStart === 'after2') return 2;
+      return 3;
+    },
+    customerCreditRemaining(customer) {
+      if (!customer || !customer.id) return 0;
+      return Math.max(0, this.customerCreditMinOrders(customer) - this.customerOrderCount(customer.id));
+    },
+    customerCreditLabel(customer) {
+      const remaining = this.customerCreditRemaining(customer);
+      return remaining <= 0 ? 'Kredit aktif' : 'Sisa ' + remaining + ' order';
+    },
+    customerCreditBadge(customer) {
+      return this.customerCreditRemaining(customer) <= 0 ? 'badge-green' : 'badge-slate';
+    },
     customerCreditStart(customer) {
-      return (customer && customer.creditStart) === 'first' ? 'first' : 'after2';
+      return this.customerCreditMinOrders(customer) <= 0 ? 'first' : 'after2';
     },
     get creditAvailable() {
       const customer = this.customer(this.selectedCustomerId);
-      return this.customerCreditStart(customer) === 'first' || this.customerOrderCount(this.selectedCustomerId) >= 2;
+      return this.customerCreditRemaining(customer) <= 0;
     },
     customerUnpaidOrders(customerId) {
       return this.receivables.filter(rec => rec.customerId === customerId && Number(rec.unpaid) > 0);
@@ -10550,8 +10830,13 @@ function app() {
     get cartSubtotal() { return this.cartRows.reduce((sum, r) => sum + r.total, 0); },
     get cartDiscount() { return this.cartRows.reduce((sum, r) => sum + r.discValue, 0); },
     get customDiscountValue() { return (this.cartSubtotal - this.cartDiscount) * (Number(this.customDiscount) || 0) / 100; },
-    get cartTax() { return 0; },
-    get cartTotal() { return this.cartSubtotal - this.cartDiscount - this.customDiscountValue; },
+    get cartDpp() { return this.cartSubtotal - this.cartDiscount - this.customDiscountValue; },
+    get cartTax() {
+      const customer = this.customer(this.selectedCustomerId);
+      if (!customer.ppnEnabled || !this.taxSettings || !this.taxSettings.ppnEnabled) return 0;
+      return Math.round(this.cartDpp * (Number(this.taxSettings.ppnRate) || 0) / 100);
+    },
+    get cartTotal() { return this.cartDpp + this.cartTax; },
     orderPreviewOpen: false,
     closeOrderPreview() {
       this.orderPreviewOpen = false;
@@ -10560,7 +10845,7 @@ function app() {
     openOrderPreview() {
       if (!this.cartCount) { this.notify('Tambahkan minimal 1 produk terlebih dahulu', 'error'); return; }
       if (!this.paymentMethod) { this.notify('Metode pembayaran wajib dipilih', 'error'); return; }
-      if (this.paymentMethod === 'Kredit' && !this.creditAvailable) { this.notify('Kredit tersedia mulai order ke-3 untuk pelanggan ini', 'error'); return; }
+      if (this.paymentMethod === 'Kredit' && !this.creditAvailable) { this.notify('Kredit tersedia setelah ' + this.customerCreditRemaining(this.customer(this.selectedCustomerId)) + ' order lagi', 'error'); return; }
       if (this.orderStockShortages.length) {
         this.askConfirm(
           'order-stock-shortage',
@@ -10578,7 +10863,7 @@ function app() {
     submitOrder() {
       if (!this.cartCount) { this.notify('Keranjang masih kosong', 'error'); return; }
       if (!this.paymentMethod) { this.notify('Metode pembayaran wajib dipilih', 'error'); return; }
-      if (this.paymentMethod === 'Kredit' && !this.creditAvailable) { this.notify('Kredit tersedia mulai order ke-3 untuk pelanggan ini', 'error'); return; }
+      if (this.paymentMethod === 'Kredit' && !this.creditAvailable) { this.notify('Kredit tersedia setelah ' + this.customerCreditRemaining(this.customer(this.selectedCustomerId)) + ' order lagi', 'error'); return; }
       if (this.orderStockShortages.length && !this.orderStockOverride) {
         this.notify('Stock barang di system tidak mencukup, tetap lanjutkan order ?', 'error');
         return;
@@ -10623,7 +10908,9 @@ function app() {
         dueDate:this.paymentMethod === 'Tunai' ? todayISO() : shiftISO(todayISO(), 14),
         subtotal:this.cartSubtotal,
         discount:this.cartDiscount,
-        tax:0,
+        dpp:this.cartDpp,
+        tax:this.cartTax,
+        taxRate:this.customer(c.id).ppnEnabled ? (Number(this.taxSettings.ppnRate) || 0) : 0,
         total:this.cartTotal,
         customDiscount:Number(this.customDiscount) || 0,
         paymentMethod:this.paymentMethod,
@@ -10926,6 +11213,7 @@ function app() {
       const cashAccount = this.accountById(this.defaultCashAccountId);
       const receivableAccount = this.accountByCode('1-1300');
       const revenueAccount = this.accountByCode('4-1000');
+      const taxAccount = this.accountByCode('2-1200');
       const cogsAccount = this.accountByCode('5-1000');
       const inventoryAccount = this.accountByCode('1-1400');
       const journalIds = [];
@@ -10985,7 +11273,10 @@ function app() {
           if (cash > 0) lines.push({ accountId:cashAccount.id, debit:cash, credit:0, memo:'Kas penjualan ' + order.code });
           if (transfer > 0) lines.push({ accountId:bankAccount.id, debit:transfer, credit:0, memo:'Transfer penjualan ' + order.code });
           if (unpaid > 0) lines.push({ accountId:receivableAccount.id, debit:unpaid, credit:0, memo:'Piutang penjualan ' + order.code });
-          lines.push({ accountId:revenueAccount.id, debit:0, credit:amount, memo:'Pendapatan penjualan ' + order.code });
+          const orderTax = Number(order.tax) || 0;
+          const orderDpp = Math.max(0, amount - orderTax);
+          if (orderTax > 0 && taxAccount.id) lines.push({ accountId:taxAccount.id, debit:0, credit:orderTax, memo:'PPN Keluaran ' + order.code });
+          lines.push({ accountId:revenueAccount.id, debit:0, credit:orderDpp, memo:'Pendapatan penjualan ' + order.code });
           saleJournal = this.createSystemJournal({
             date:todayISO(),
             description:'Penjualan ' + order.code,
@@ -11073,6 +11364,12 @@ function app() {
 
     /* ---------- RETURN ---------- */
     returnSearch: '', returnStatus: '',
+    returnStatusBadge(status) {
+      return { pending_approval:'badge-yellow', pending:'badge-blue', return:'badge-green', discard:'badge-red', rejected:'badge-red' }[status] || 'badge-slate';
+    },
+    returnStatusLabel(status) {
+      return { pending_approval:'Menunggu Persetujuan', pending:'Siap Diproses', return:'Masuk stok', discard:'Dihapus', rejected:'Ditolak' }[status] || status;
+    },
     get filteredReturns() {
       const q = this.returnSearch.toLowerCase();
       return this.returns.filter(r => {
@@ -11082,6 +11379,13 @@ function app() {
       });
     },
     returnModalOpen: false, returnForm: { orderId:'', name:'', productId:'', qty:1, type:'change', condition:'good', description:'' },
+    returnRejectOpen: false, returnRejectId: null, returnRejectReason: '',
+    get returnFormAmount() {
+      const order = this.order(this.returnForm.orderId);
+      const item = (order.items || []).find(row => row.productId === this.returnForm.productId) || {};
+      const net = (Number(item.price) || 0) * (1 - (Number(item.discPercent) || 0) / 100) * (Number(this.returnForm.qty) || 0);
+      return Math.round(net * (1 + (Number(order.taxRate) || 0) / 100));
+    },
     openReturn(o) {
       const item = (o.items || [])[0] || {};
       this.returnForm = {
@@ -11102,7 +11406,10 @@ function app() {
       if (!this.returnForm.description) { this.notify('Keterangan return wajib diisi', 'error'); return; }
       const item = (order.items || []).find(i => i.productId === this.returnForm.productId) || {};
       const qty = Math.max(1, Number(this.returnForm.qty) || 1);
-      const price = (Number(item.price) || 0) * (1 - (Number(item.discPercent) || 0) / 100) * qty;
+      const taxRate = Number(order.taxRate) || 0;
+      const netPrice = (Number(item.price) || 0) * (1 - (Number(item.discPercent) || 0) / 100) * qty;
+      const price = Math.round(netPrice * (1 + taxRate / 100));
+      const autoApprove = this.role === 'Manager';
       this.returns.unshift({
         id:'r' + Date.now(),
         code:this.nextCode('RTN', this.returns),
@@ -11110,26 +11417,63 @@ function app() {
         productId:this.returnForm.productId,
         name:this.returnForm.name || this.productName(this.returnForm.productId),
         qty,
+        netPrice,
+        taxRate,
+        taxAmount:Math.max(0, price - netPrice),
         price,
         type:this.returnForm.type,
         condition:this.returnForm.condition,
         action:this.returnForm.type === 'change' ? 'discard' : 'return',
-        status:'pending',
+        status:autoApprove ? 'pending' : 'pending_approval',
+        approvedBy:autoApprove ? this.currentUser : '',
+        approvedAt:autoApprove ? todayISO() : '',
+        rejectedBy:'',
+        rejectedAt:'',
+        rejectReason:'',
         description:this.returnForm.description,
         by:this.currentUser,
         date:todayISO()
       });
       this.returnModalOpen = false;
       this.persist();
-      this.notify('Return barang berhasil ditambahkan');
+      this.notify(autoApprove ? 'Return barang dibuat dan langsung disetujui Manager' : 'Return barang diajukan untuk persetujuan Manager');
     },
-    processReturn(r) { this.askConfirm('process-return', r.id, 'Proses return?', 'Return ' + r.code + ' akan diproses dan stok barang diperbarui.', false); },
-    deleteReturn(r) { this.askConfirm('delete-return', r.id, 'Batalkan return?', 'Data return ' + r.code + ' akan dihapus.'); },
+    approveReturn(r) {
+      if (!this.canApproveReturn) { this.notify('Approval return hanya dapat dilakukan oleh Manager', 'error'); return; }
+      if (!r || r.status !== 'pending_approval') { this.notify('Return ini tidak menunggu persetujuan', 'error'); return; }
+      this.askSave('approve-return', r.id, 'Return ' + r.code + ' akan disetujui dan siap diproses.', 'Setujui');
+    },
+    openRejectReturn(r) {
+      if (!this.canApproveReturn) { this.notify('Approval return hanya dapat dilakukan oleh Manager', 'error'); return; }
+      this.returnRejectId = r.id;
+      this.returnRejectReason = '';
+      this.returnRejectOpen = true;
+    },
+    submitRejectReturn() {
+      const r = this.returns.find(item => item.id === this.returnRejectId);
+      if (!r) return;
+      if (!String(this.returnRejectReason || '').trim()) { this.notify('Alasan penolakan wajib diisi', 'error'); return; }
+      r.status = 'rejected';
+      r.rejectedBy = this.currentUser;
+      r.rejectedAt = todayISO();
+      r.rejectReason = String(this.returnRejectReason).trim();
+      this.returnRejectOpen = false;
+      this.persist();
+      this.notify('Return barang ditolak');
+    },
+    processReturn(r) {
+      if (!r || r.status !== 'pending') { this.notify('Return harus disetujui Manager sebelum diproses', 'error'); return; }
+      this.askConfirm('process-return', r.id, 'Proses return?', 'Return ' + r.code + ' akan diproses dan stok barang diperbarui.', false);
+    },
+    deleteReturn(r) {
+      if (!r || !['pending_approval','rejected'].includes(r.status)) { this.notify('Return yang sudah disetujui tidak dapat dihapus', 'error'); return; }
+      this.askConfirm('delete-return', r.id, 'Batalkan return?', 'Data return ' + r.code + ' akan dihapus.');
+    },
 
     /* ---------- STOCK ---------- */
     stockTab: 'active', stockSearch: '',
     stockModalOpen: false, stockForm: { productId:'p1', warehouseId:'wh1', date:todayISO(), qty:10, description:'' },
-    materialStockTab: 'active',
+    materialStockTab: 'active', materialStockItemType: '',
     materialVarianceFrom: todayISO().slice(0, 8) + '01',
     materialVarianceTo: todayISO(),
     materialVarianceMaterial: '',
@@ -11469,6 +11813,9 @@ function app() {
           return {
             materialId:recipe.materialId,
             standardQty:standard,
+            varianceQty:0,
+            rejectQty:0,
+            rejectValue:0,
             qty:standard,
             manual:false,
             fromRecipe:true,
@@ -11491,7 +11838,7 @@ function app() {
         materials:product ? this.productionRowsFromProduct(product.id, 1) : [],
         correctionReason:''
       };
-      this.productionModalOpen = true;
+      this.go('production-create');
     },
     onProductionProductChange() {
       if (this.productionCorrection) return;
@@ -11503,7 +11850,7 @@ function app() {
       (this.productionForm.materials || []).forEach(row => {
         if (!row.fromRecipe) return;
         row.standardQty = this.recipeQtyFor(this.productionForm.productId, row.materialId) * qty;
-        if (!row.manual) row.qty = row.standardQty;
+        row.qty = Math.max(0, Number(row.standardQty) || 0) + (Number(row.varianceQty) || 0);
       });
     },
     productionMaterialOptions(index) {
@@ -11515,6 +11862,7 @@ function app() {
       const query = String(row.materialSearch || '').toLowerCase();
       return this.materials.filter(material => {
         if (!material.status) return false;
+        if ((material.itemType || 'material') === 'tool') return false;
         if (selectedElsewhere.includes(material.id)) return false;
         if (!query) return true;
         return (material.code + ' ' + material.name + ' ' + material.unit).toLowerCase().includes(query);
@@ -11532,6 +11880,9 @@ function app() {
       this.productionForm.materials.push({
         materialId:'',
         standardQty:0,
+        varianceQty:0,
+        rejectQty:0,
+        rejectValue:0,
         qty:0,
         manual:true,
         fromRecipe:false,
@@ -11544,19 +11895,37 @@ function app() {
       if (this.productionCorrection) return;
       this.productionForm.materials.splice(index, 1);
     },
+    setProductionVariance(index, value) {
+      const row = this.productionForm.materials[index];
+      if (!row) return;
+      row.varianceQty = Number(value) || 0;
+      row.qty = Math.max(0, (Number(row.standardQty) || 0) + row.varianceQty);
+      row.manual = Math.abs(row.varianceQty) > 0.0001;
+    },
     setProductionQty(index, value) {
       const row = this.productionForm.materials[index];
       if (!row) return;
-      row.qty = Math.max(0, Number(value) || 0);
-      row.manual = true;
+      const qty = Math.max(0, Number(value) || 0);
+      row.qty = qty;
+      row.varianceQty = qty - (Number(row.standardQty) || 0);
+      row.manual = Math.abs(row.varianceQty) > 0.0001;
     },
     resetProductionRow(index) {
       const row = this.productionForm.materials[index];
       if (!row || !row.fromRecipe) return;
+      row.varianceQty = 0;
       row.qty = Number(row.standardQty) || 0;
       row.manual = false;
     },
     productionRowDifference(row) { return (Number(row.qty) || 0) - (Number(row.standardQty) || 0); },
+    productionRowRejectQty(row) { return Math.max(0, this.productionRowDifference(row)); },
+    productionRowRejectValue(row) { return this.productionRowRejectQty(row) * this.productionUnitPrice(row.materialId); },
+    get productionRejectTotal() {
+      return (this.productionForm.materials || []).reduce((sum, row) => sum + this.productionRowRejectValue(row), 0);
+    },
+    get productionRejectQtyTotal() {
+      return (this.productionForm.materials || []).reduce((sum, row) => sum + this.productionRowRejectQty(row), 0);
+    },
     productionRowAvailable(row) { return this.materialStockAt(row.materialId, this.productionForm.warehouseId); },
     productionRowCost(row) { return (Number(row.qty) || 0) * this.productionUnitPrice(row.materialId); },
     get productionTotalCost() {
@@ -11568,7 +11937,7 @@ function app() {
     },
     get productionChangedRows() {
       return (this.productionForm.materials || []).filter(row =>
-        row.materialId && (row.manual || Number(row.qty) !== Number(row.standardQty) || (row.fromRecipe === false && Number(row.qty) > 0))
+        row.materialId && (Math.abs(Number(row.varianceQty) || 0) > 0.0001 || (row.fromRecipe === false && Number(row.qty) > 0))
       ).length;
     },
     get productionHasShortage() {
@@ -11595,12 +11964,6 @@ function app() {
         const available = this.productionRowAvailable(row);
         if (Number(row.qty) > available + 0.0001) {
           return 'Stok ' + (material.name || 'bahan') + ' tidak mencukupi. Tersedia ' + this.fmt(available) + ' ' + (material.unit || '');
-        }
-      }
-      for (const row of rows) {
-        const material = this.material(row.materialId);
-        if (this.productionRowNeedsReason(row) && !String(row.note || '').trim()) {
-          return 'Alasan wajib diisi untuk bahan ' + (material.name || '') + ' karena selisih / bahan tambahan';
         }
       }
       if (this.productionCorrection) {
@@ -11651,6 +12014,9 @@ function app() {
         .map(row => ({
           materialId:row.materialId,
           standardQty:Number(row.standardQty) || 0,
+          varianceQty:(Number(row.qty) || 0) - (Number(row.standardQty) || 0),
+          rejectQty:Math.max(0, (Number(row.qty) || 0) - (Number(row.standardQty) || 0)),
+          rejectValue:Math.max(0, (Number(row.qty) || 0) - (Number(row.standardQty) || 0)) * this.productionUnitPrice(row.materialId),
           qty:Number(row.qty) || 0,
           price:this.productionUnitPrice(row.materialId),
           note:String(row.note || '').trim(),
@@ -11659,6 +12025,8 @@ function app() {
       const code = this.nextProductionCode(form.date);
       const now = todayISO();
       const totalCost = rows.reduce((sum, row) => sum + row.qty * row.price, 0);
+      const rejectTotalValue = rows.reduce((sum, row) => sum + (Number(row.rejectValue) || 0), 0);
+      const rejectTotalQty = rows.reduce((sum, row) => sum + (Number(row.rejectQty) || 0), 0);
       const production = {
         id:'prd' + Date.now(),
         code,
@@ -11670,6 +12038,8 @@ function app() {
         status:'posted',
         materials:rows,
         totalCost,
+        rejectTotalQty,
+        rejectTotalValue,
         costPerUnit:Number(form.qty) > 0 ? totalCost / Number(form.qty) : 0,
         createdBy:this.currentUser,
         createdById:this.currentUserId,
@@ -11740,13 +12110,13 @@ function app() {
         detail:'Produksi ' + code + ' dibuat: ' + this.fmt(production.qty) + ' ' + (product.unit || '') + ', ' + rows.length + ' jenis bahan.',
         reason:''
       });
-      this.productionModalOpen = false;
       this.productionEditId = null;
       this.productionSelectedId = production.id;
       this.stockTab = 'production';
       this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Produksi ' + code + ' berhasil disimpan');
+      this.go('stock-product');
     },
     commitProductionCorrection() {
       const form = this.productionForm;
@@ -11804,11 +12174,16 @@ function app() {
           changes.push((material.name || 'Bahan') + ': ' + this.fmt(oldUsed) + ' menjadi ' + this.fmt(newUsed) + ' ' + (material.unit || ''));
         }
         materialRow.qty = newUsed;
+        materialRow.varianceQty = newUsed - (Number(materialRow.standardQty) || 0);
+        materialRow.rejectQty = Math.max(0, materialRow.varianceQty);
+        materialRow.rejectValue = materialRow.rejectQty * (Number(materialRow.price) || 0);
         materialRow.note = String(formRow.note || '').trim();
       });
       original.qty = newQty;
       original.materials = (original.materials || []).map(materialRow => ({ ...materialRow, price:Number(materialRow.price) || 0 }));
       original.totalCost = original.materials.reduce((sum, row) => sum + (Number(row.qty) || 0) * (Number(row.price) || 0), 0);
+      original.rejectTotalQty = original.materials.reduce((sum, row) => sum + (Number(row.rejectQty) || 0), 0);
+      original.rejectTotalValue = original.materials.reduce((sum, row) => sum + (Number(row.rejectValue) || 0), 0);
       original.costPerUnit = newQty > 0 ? original.totalCost / newQty : 0;
       original.updatedAt = todayISO();
       original.updatedBy = this.currentUser;
@@ -11823,13 +12198,13 @@ function app() {
         detail:changes.length ? changes.join('; ') : 'Tidak ada perubahan nilai',
         reason:String(form.correctionReason || '').trim()
       });
-      this.productionModalOpen = false;
       this.productionCorrection = false;
       this.productionEditId = null;
       this.productionSelectedId = original.id;
       this.rebuildAllMaterialCosts();
       this.persist();
       this.notify('Koreksi produksi ' + original.code + ' berhasil disimpan');
+      this.go('stock-product');
     },
     get canCorrectProduction() { return ['Admin','Manager','Developer'].includes(this.role); },
     viewProduction(production) {
@@ -11856,6 +12231,9 @@ function app() {
         materials:(production.materials || []).map(row => ({
           materialId:row.materialId,
           standardQty:Number(row.standardQty) || 0,
+          varianceQty:Number(row.qty || 0) - (Number(row.standardQty) || 0),
+          rejectQty:Number(row.rejectQty) || 0,
+          rejectValue:Number(row.rejectValue) || 0,
           qty:Number(row.qty) || 0,
           manual:Number(row.qty) !== Number(row.standardQty),
           fromRecipe:row.fromRecipe !== false,
@@ -11865,7 +12243,7 @@ function app() {
         }))
       };
       this.productionDetailOpen = false;
-      this.productionModalOpen = true;
+      this.go('production-create');
     },
     productionChangedCount(production) {
       return (production.materials || []).filter(row => Number(row.qty) !== Number(row.standardQty) || row.fromRecipe === false).length;
@@ -11898,6 +12276,7 @@ function app() {
         .filter(movement => {
           const material = this.material(movement.materialId);
           if (this.materialStockWarehouse && movement.warehouseId !== this.materialStockWarehouse) return false;
+          if (this.materialStockItemType && (material.itemType || 'material') !== this.materialStockItemType) return false;
           if (q && !(material.code + ' ' + material.name + ' ' + (movement.refNumber || '')).toLowerCase().includes(q)) return false;
           return true;
         })
@@ -12603,11 +12982,11 @@ function app() {
       this.hppForm = {
         date:'2026-10-30', productId:'p1', allocationPercent:100,
         bonusQty:32, bonusNote:'Bonusan 32 dus',
-        materialOverrides:{}, depreciationTotal:0,
+        materialOverrides:{}, depreciationTotal:0, adjustmentPerUnit:0,
         costPeriod:'2026-09',
         monthlyCosts:{ gaji:32637692, uang_makan:7720000, bpjs:3382080, listrik:14567560 },
         airPerDus:this.hppDefaultAirRate(), overheadPerDus:0,
-        payrollPeriod:'', listrikSource:'manual'
+        payrollSource:'manual', payrollPeriod:'', payrollGroups:['Produksi'], listrikSource:'manual'
       };
       const payload = this.hppPayload('final');
       payload.createdBy = 'Rina';

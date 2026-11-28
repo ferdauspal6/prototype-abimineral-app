@@ -1206,6 +1206,17 @@
       "previewH": 900
     },
     {
+      "id": "tax-settings",
+      "name": "Pengaturan Pajak",
+      "src": "index.html?canvas=tax-settings",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/tax-settings.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
       "id": "payables",
       "name": "Utang",
       "src": "index.html?canvas=payables",
