@@ -73,6 +73,32 @@
   .group-title{position:absolute;left:0;pointer-events:auto;cursor:pointer;font-weight:700;font-size:36px;color:#f2f2f2;
     transform:scale(var(--ginv,1));transform-origin:left top;white-space:nowrap}
   .group-title .count{font-size:15px;font-weight:400;color:var(--muted);margin-left:10px}
+  #cheatLayer{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;z-index:7;pointer-events:none}
+  .cheat-card{position:absolute;width:320px;background:#1b1b1b;color:#e6e6e6;border:1px solid #3a3a3a;border-radius:12px;
+    box-shadow:0 18px 46px #0009;padding:14px;pointer-events:auto;font-size:11px;line-height:1.45}
+  .cheat-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:12px 0 0 12px;background:var(--accent)}
+  .cheat-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .cheat-eyebrow{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .cheat-page{font-size:9px;font-weight:700;color:#9b9b9b;border:1px solid #3a3a3a;border-radius:999px;padding:2px 7px;white-space:nowrap}
+  .cheat-card h3{margin:8px 0 4px;font-size:15px;line-height:1.25;letter-spacing:-.02em;color:#fff}
+  .cheat-summary{margin:0;color:#b8b8b8;font-size:10.5px}
+  .cheat-months{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+  .cheat-month{background:#222;border:1px solid #333;border-radius:8px;padding:8px;min-width:0}
+  .cheat-month h4{margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#cfcfcf}
+  .cheat-step{padding:5px 0;border-top:1px solid #303030}
+  .cheat-step:first-of-type{border-top:0;padding-top:0}
+  .cheat-step .lbl{display:block;color:#b8b8b8;font-size:9.5px}
+  .cheat-step .val{display:block;color:#fff;font-weight:700;font-size:10.5px;margin-top:1px}
+  .cheat-step .note{display:block;color:#8f8f8f;font-size:9px;margin-top:1px}
+  .cheat-formula{margin-top:9px;background:#2a2417;border:1px solid #5f4a19;border-radius:8px;padding:8px}
+  .cheat-formula b{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#fbbf24;margin-bottom:3px}
+  .cheat-formula code{display:block;color:#fde68a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;line-height:1.5;white-space:normal}
+  .cheat-note{color:#9b9b9b;font-size:9.5px;margin-top:8px}
+  .cheat-coa{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .cheat-coa span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:8.5px;color:#a7f3d0;background:#10251c;border:1px solid #1f5e42;border-radius:5px;padding:2px 5px}
+  .cheat-link{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;padding:8px 10px;border-radius:7px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:10.5px}
+  .cheat-link:hover{background:#0b88e8}
+  .cheat-link span{font-size:14px;line-height:1}
   #hint{position:absolute;left:12px;bottom:12px;background:#000000b3;color:#cfcfcf;border:1px solid var(--line);
     border-radius:8px;padding:6px 10px;pointer-events:none;max-width:min(70%,640px);z-index:8}
   #toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);background:var(--accent);color:#fff;
@@ -183,6 +209,7 @@
 "use strict";
 (function(){
 var GROUP_HEADER = 270, ROW_GAP = 140, GROUP_GAP = 300, FRAME_GAP = 120;
+var CHEAT_W = 320, CHEAT_GAP = 28, CHEAT_H = 620;
 var FIT_PAD = 120, ZOOM_MIN = 0.01, ZOOM_MAX = 4;
 
 var stage = document.getElementById('stage');
@@ -201,6 +228,7 @@ var frames = [];
 var frameById = new Map();
 var groupEls = new Map();
 var flowLayer = null;
+var cheatLayer = null;
 var scale = 1, tx = 0, ty = 0;
 var mode = 'inspect';
 var tool = 'cursor';
@@ -413,6 +441,7 @@ function normalizeScreen(s){
     preview: s.preview || '',
     previewW: s.previewW || 0,
     previewH: s.previewH || 0,
+    cheat: s.cheat || null,
     bytes: s.bytes || 0,
     w: s.w || (isAsset ? ((cfg.assets && cfg.assets.displayWidth) || 260) : (cfg.defaultWidth || 1440)),
     h: (s.h != null ? s.h : null),
@@ -485,11 +514,41 @@ function unloadAllFrames(){
   if (hover) { hover = null; drawOverlay(); }
 }
 
+function cheatCardEl(screen){
+  var cheat = screen.cheat || {};
+  var el = document.createElement('div');
+  el.className = 'cheat-card';
+  el.dataset.id = screen.id;
+  var months = (cheat.months || []).map(function(month){
+    var steps = (month.steps || []).map(function(step){
+      return '<div class="cheat-step"><span class="lbl">' + esc(step.label) + '</span>' +
+        '<span class="val">' + esc(step.value) + '</span>' +
+        (step.note ? '<span class="note">' + esc(step.note) + '</span>' : '') + '</div>';
+    }).join('');
+    return '<div class="cheat-month"><h4>' + esc(month.title) + '</h4>' + steps + '</div>';
+  }).join('');
+  var coa = (cheat.coa || []).map(function(item){ return '<span>' + esc(item) + '</span>'; }).join('');
+  el.innerHTML =
+    '<div class="cheat-top"><span class="cheat-eyebrow">' + esc(cheat.eyebrow || 'Cheat Sheet') + '</span>' +
+    '<span class="cheat-page">' + esc(screen.name) + '</span></div>' +
+    '<h3>' + esc(cheat.title || '') + '</h3>' +
+    '<p class="cheat-summary">' + esc(cheat.summary || '') + '</p>' +
+    (months ? '<div class="cheat-months">' + months + '</div>' : '') +
+    (cheat.formula ? '<div class="cheat-formula"><b>Rumus</b><code>' + esc(cheat.formula) + '</code></div>' : '') +
+    (cheat.note ? '<div class="cheat-note">' + esc(cheat.note) + '</div>' : '') +
+    (coa ? '<div class="cheat-coa">' + coa + '</div>' : '') +
+    (cheat.flowHref ? '<a class="cheat-link" href="' + esc(cheat.flowHref) + '" target="_blank" rel="noopener"><span>' + esc(cheat.flowLabel || 'Buka di Flow') + '</span><span>→</span></a>' : '');
+  return el;
+}
+
 function buildWorld(){
   world.innerHTML = '';
   flowLayer = document.createElementNS('http://www.w3.org/2000/svg','svg');
   flowLayer.setAttribute('id','flowLayer');
   world.appendChild(flowLayer);
+  cheatLayer = document.createElement('div');
+  cheatLayer.id = 'cheatLayer';
+  world.appendChild(cheatLayer);
 
   var groupsWithMembers = new Set((cfg.screens||[]).map(function(s){ return s.group; }));
   (cfg.groups||[]).forEach(function(g){
@@ -558,6 +617,10 @@ function buildWorld(){
     frame.el = el; frame.labelEl = label; frame.wrapEl = wrap;
     frames.push(frame);
     frameById.set(screen.id, frame);
+    if (screen.cheat) {
+      frame.cheatEl = cheatCardEl(screen);
+      cheatLayer.appendChild(frame.cheatEl);
+    }
   });
   (cfg.groups || []).forEach(function(group){
     var title = groupEls.get(group.id);
@@ -754,10 +817,11 @@ function layout(){
     var x = 0, rowH = 0;
     members.forEach(function(f){
       if (f.pinned) return;
-      if (x > 0 && x + f.w > rowWidth){ rowTop += rowH + ROW_GAP; x = 0; rowH = 0; }
+      var advance = f.w + FRAME_GAP + (f.screen.cheat ? CHEAT_W + CHEAT_GAP : 0);
+      if (x > 0 && x + advance > rowWidth){ rowTop += rowH + ROW_GAP; x = 0; rowH = 0; }
       f.x = x; f.y = rowTop;
-      x += f.w + FRAME_GAP;
-      rowH = Math.max(rowH, f.hEff);
+      x += advance;
+      rowH = Math.max(rowH, f.hEff, f.screen.cheat ? CHEAT_H : 0);
     });
     y = rowTop + rowH + GROUP_GAP;
   });
@@ -772,6 +836,13 @@ function applyPositions(){
     f.wrapEl.style.width = f.w + 'px';
     if (f.screen.h != null) f.wrapEl.style.height = f.screen.h + 'px';
     f.labelEl.querySelector('.name').textContent = f.screen.name;
+    if (f.cheatEl){
+      f.cheatEl.style.display = f.visible ? '' : 'none';
+      if (f.visible){
+        f.cheatEl.style.left = (f.x + f.w + CHEAT_GAP) + 'px';
+        f.cheatEl.style.top = f.y + 'px';
+      }
+    }
     if (f.screen.type === 'asset'){
       f.labelEl.querySelector('.dims').textContent =
         (f.intrinsicW || f.w) + ' \u00d7 ' + (f.intrinsicH || Math.round(f.hEff));
@@ -792,6 +863,10 @@ function allBoxes(){
     if (!f.visible) return;
     var box = {x:f.x, y:f.y, w:f.w, h:f.hEff};
     b = b ? mergeBox(b, box) : box;
+    if (f.screen.cheat){
+      var cheatBox = {x:f.x + f.w + CHEAT_GAP, y:f.y, w:CHEAT_W, h:CHEAT_H};
+      b = mergeBox(b, cheatBox);
+    }
   });
   return b;
 }
@@ -814,7 +889,8 @@ function zoomToFrame(id, setHash){
   var f = frameById.get(id);
   if (!f) return;
   loadFrame(f);
-  fitBoxes({x:f.x, y:f.y - 30, w:f.w, h:f.hEff + 30}, 80);
+  var extraW = f.screen.cheat ? CHEAT_W + CHEAT_GAP : 0;
+  fitBoxes({x:f.x, y:f.y - 30, w:f.w + extraW, h:Math.max(f.hEff, f.screen.cheat ? CHEAT_H : 0) + 30}, 80);
   if (setHash !== false) history.replaceState(null, '', '#' + id);
 }
 function zoomToGroup(gid){
@@ -824,6 +900,9 @@ function zoomToGroup(gid){
   members.forEach(function(f){
     var box = {x:f.x, y:f.y, w:f.w, h:f.hEff};
     b = b ? mergeBox(b, box) : box;
+    if (f.screen.cheat){
+      b = mergeBox(b, {x:f.x + f.w + CHEAT_GAP, y:f.y, w:CHEAT_W, h:CHEAT_H});
+    }
   });
   b.y -= GROUP_HEADER; b.h += GROUP_HEADER;
   fitBoxes(b, 80);

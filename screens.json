@@ -39,6 +39,9 @@
     "assets/app.css",
     "assets/app.js",
     "assets/favicon.ico",
+    "assets/flow-data.js",
+    "assets/flow.css",
+    "assets/flow.js",
     "assets/fonts/instrument-sans-400.ttf",
     "assets/fonts/instrument-sans-500.ttf",
     "assets/fonts/instrument-sans-600.ttf",
@@ -598,7 +601,71 @@
       "w": 1440,
       "preview": "canvas/previews/materials.jpg",
       "previewW": 1440,
-      "previewH": 900
+      "previewH": 900,
+      "cheat": {
+        "eyebrow": "Cheat Sheet",
+        "title": "Harga Beli & Moving Average",
+        "summary": "Nilai bahan mengikuti rata-rata bergerak global. Pemakaian tidak mengubah rata-rata; rata-rata berubah saat pembelian atau penerimaan.",
+        "months": [
+          {
+            "title": "November",
+            "steps": [
+              {
+                "label": "Beli 10 pcs × 10.000",
+                "value": "Nilai masuk = 100.000"
+              },
+              {
+                "label": "Stok setelah beli",
+                "value": "10 pcs · 100.000",
+                "note": "Rata-rata = 100.000 ÷ 10 = 10.000"
+              },
+              {
+                "label": "Pakai 6 pcs × 10.000",
+                "value": "= 60.000 → HPP Nov",
+                "note": "Rata-rata 10.000 tidak berubah"
+              },
+              {
+                "label": "Sisa akhir Nov",
+                "value": "4 pcs · 40.000",
+                "note": "Menjadi stok awal Desember"
+              }
+            ]
+          },
+          {
+            "title": "Desember",
+            "steps": [
+              {
+                "label": "Beli 70 pcs × 12.000",
+                "value": "Nilai masuk = 840.000"
+              },
+              {
+                "label": "Stok gabungan",
+                "value": "74 pcs · 880.000",
+                "note": "Rata-rata = 880.000 ÷ 74 = 11.891,89"
+              },
+              {
+                "label": "Pakai 50 pcs × 11.891,89",
+                "value": "= 594.595 → HPP Des",
+                "note": "Pembelian baru mengubah rata-rata"
+              },
+              {
+                "label": "Sisa akhir Des",
+                "value": "24 pcs · 285.405",
+                "note": "1 pcs = 11.891"
+              }
+            ]
+          }
+        ],
+        "formula": "Rata-rata baru = (nilai stok lama + nilai pembelian baru) ÷ (qty lama + qty beli)",
+        "note": "Pemakaian dinilai = qty pakai × rata-rata saat itu. Cek: 594.595 + 285.405 = 880.000.",
+        "coa": [
+          "Dr 1-1400 Persediaan",
+          "Dr 1-1600 Peralatan",
+          "Cr 2-1100 Utang Usaha"
+        ],
+        "flowHref": "flow.html?focus=product-cost&sim=moving-average",
+        "flowLabel": "Buka di Flow"
+      }
     },
     {
       "id": "material-categories",

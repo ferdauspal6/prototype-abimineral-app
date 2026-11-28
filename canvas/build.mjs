@@ -360,6 +360,7 @@ for (const def of canvasScreens) {
     virtual: true,
     w: def.w || cfg.defaultWidth || 1440,
   };
+  if (def.cheat) screen.cheat = def.cheat;
   // Let the viewer measure the real page height unless the definition pins one.
   delete screen.h;
   if (def.h != null) screen.h = def.h;

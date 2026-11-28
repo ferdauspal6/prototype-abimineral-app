@@ -628,6 +628,16 @@
       new ResizeObserver(() => { sizeShell(); renderEdges(); }).observe(headerEl);
     }
     if (document.fonts?.ready) document.fonts.ready.then(() => { sizeShell(); renderEdges(); });
+
+    const params = new URLSearchParams(location.search);
+    const focus = params.get('focus');
+    const sim = params.get('sim');
+    if (focus || sim) {
+      setTimeout(() => {
+        if (focus) focusNode(focus);
+        if (sim) setTimeout(() => openSimulation(sim), 320);
+      }, 460);
+    }
     setTimeout(() => { renderEdges(); }, 120);
   }
 

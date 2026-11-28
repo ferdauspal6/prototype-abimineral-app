@@ -64,6 +64,29 @@ project therefore keeps a catalog in `canvas-screens.json`:
 `node canvas/build.mjs` turns each entry into a virtual screen named
 `index.html?canvas=<id>`, grouped under its module in `screens.json`.
 
+A screen can also carry a `cheat` card that the viewer places to the right of
+its frame. This is useful for pages with formulas, COA mappings, or a shortcut
+to the related flow page.
+
+```json
+{
+  "id": "materials",
+  "name": "Master Barang",
+  "page": "materials",
+  "cheat": {
+    "eyebrow": "Cheat Sheet",
+    "title": "Harga Beli & Moving Average",
+    "summary": "Nilai bahan mengikuti rata-rata bergerak.",
+    "formula": "(nilai lama + nilai beli) ÷ (qty lama + qty beli)",
+    "flowHref": "flow.html?focus=product-cost&sim=moving-average",
+    "flowLabel": "Buka di Flow"
+  }
+}
+```
+
+Cheat cards are rendered as canvas overlays, not screenshots. They follow pan
+and zoom, and are included in `Fit`, `Zoom to frame`, and `Zoom to group`.
+
 Alur preview:
 
 1. `node canvas/build.mjs` membuat `screens.json`.
