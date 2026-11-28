@@ -12,7 +12,7 @@ const DOMAIN_KEYS = [
   'stockHistory', 'opnames', 'incomes', 'expenses', 'receivables',
   'collections', 'payments', 'users', 'roles', 'monthlyHistory',
   'categories', 'materials', 'suppliers', 'purchaseRequests', 'units', 'purchaseOrders',
-  'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'accounts', 'journals',
+  'receipts', 'purchaseReturns', 'stockMovements', 'payables', 'poAdvances', 'accounts', 'journals',
   'recipes', 'productions', 'productionLogs',
   'hppSettings', 'biayaProduksiBulanan', 'hppHarian', 'hppLog', 'hppBulanan',
   'employees', 'attendanceScans', 'attendanceNotes', 'attendanceBatches', 'payrolls', 'hrSettings'
@@ -238,9 +238,9 @@ function seedData() {
   });
 
   const suppliers = [
-    { id:'sup1', code:'SUP-0001', name:'PT Sumber Kemasan', contact:'Budi Hartono', phone:'081122334455', email:'sales@sumberkemasan.co.id', address:'Kawasan Industri Blok A-12, Balikpapan', paymentTerms:'30 hari', status:true, notes:'Supplier botol dan cup' },
-    { id:'sup2', code:'SUP-0002', name:'CV Aneka Botol', contact:'Siti Rahma', phone:'081255667788', email:'order@anekabotol.co.id', address:'Jl. Soekarno Hatta No. 77, Balikpapan', paymentTerms:'14 hari', status:true, notes:'' },
-    { id:'sup3', code:'SUP-0003', name:'PT Cetak Label Nusantara', contact:'Andi Wijaya', phone:'081399887766', email:'produksi@cetaklabel.co.id', address:'Jl. Mulawarman No. 45, Samarinda', paymentTerms:'Cash', status:true, notes:'Supplier label dan stiker' }
+    { id:'sup1', code:'SUP-0001', name:'PT Sumber Kemasan', contact:'Budi Hartono', phone:'081122334455', email:'sales@sumberkemasan.co.id', address:'Kawasan Industri Blok A-12, Balikpapan', paymentTerms:'30 hari', paymentScheme:'credit', paymentDays:30, defaultDpAmount:0, status:true, notes:'Supplier botol dan cup' },
+    { id:'sup2', code:'SUP-0002', name:'CV Aneka Botol', contact:'Siti Rahma', phone:'081255667788', email:'order@anekabotol.co.id', address:'Jl. Soekarno Hatta No. 77, Balikpapan', paymentTerms:'14 hari', paymentScheme:'credit', paymentDays:14, defaultDpAmount:0, status:true, notes:'' },
+    { id:'sup3', code:'SUP-0003', name:'PT Cetak Label Nusantara', contact:'Andi Wijaya', phone:'081399887766', email:'produksi@cetaklabel.co.id', address:'Jl. Mulawarman No. 45, Samarinda', paymentTerms:'Cash', paymentScheme:'full', paymentDays:0, defaultDpAmount:0, status:true, notes:'Supplier label dan stiker' }
   ];
 
   const recipes = [
@@ -269,6 +269,7 @@ function seedData() {
   const purchaseReturns = [];
   const stockMovements = [];
   const payables = [];
+  const poAdvances = [];
 
   const accounts = [
     { id:'acc1', code:'1-1100', name:'Kas', type:'asset', normalBalance:'debit', parentId:null, isCashBank:true, isSystem:false, isLocked:false, cashType:'cash', bankName:'', accountNumber:'', accountHolder:'', branch:'', status:true, description:'Kas tunai' },
@@ -294,7 +295,8 @@ function seedData() {
     { id:'acc22', code:'3-1100', name:'Saldo Awal', type:'equity', normalBalance:'credit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'Akun penyeimbang saldo awal' },
     { id:'acc25', code:'5-1600', name:'Beban Listrik Produksi', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan produksi' },
     { id:'acc26', code:'5-1610', name:'Beban Listrik Kantor', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Listrik untuk kegiatan kantor' },
-    { id:'acc27', code:'5-1700', name:'Beban Leasing', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Biaya leasing kendaraan dan peralatan' }
+    { id:'acc27', code:'5-1700', name:'Beban Leasing', type:'expense', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:false, isLocked:false, status:true, description:'Biaya leasing kendaraan dan peralatan' },
+    { id:'acc28', code:'1-1700', name:'Uang Muka Pembelian', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'DP dan pembayaran di awal ke supplier' }
   ];
 
   const journals = [];
@@ -436,7 +438,7 @@ function seedData() {
     stockHistory, opnames, incomes, expenses, receivables,
     collections, payments, users, roles, monthlyHistory,
     categories, materials, suppliers, purchaseRequests, units, purchaseOrders,
-    receipts, purchaseReturns, stockMovements, payables, accounts, journals, permissions,
+    receipts, purchaseReturns, stockMovements, payables, poAdvances, accounts, journals, permissions,
     recipes, productions, productionLogs,
     hppSettings, biayaProduksiBulanan, hppHarian, hppLog, hppBulanan,
     employees, attendanceScans, attendanceNotes, attendanceBatches, payrolls, hrSettings
@@ -496,6 +498,7 @@ function app() {
     purchaseReturns: seed.purchaseReturns,
     stockMovements: seed.stockMovements,
     payables: seed.payables,
+    poAdvances: seed.poAdvances,
     recipes: seed.recipes,
     productions: seed.productions,
     productionLogs: seed.productionLogs,
@@ -667,6 +670,7 @@ function app() {
       this.ensureMaterialOpeningBalances();
       this.rebuildAllMaterialCosts();
       this.ensureAttendanceRecaps();
+      this.ensurePurchasePaymentData();
       this.savedAt = parsed.savedAt || null;
       const session = parsed.session || {};
       if (session.userId) {
@@ -719,6 +723,7 @@ function app() {
       this.ensureMaterialOpeningBalances();
       this.rebuildAllMaterialCosts();
       this.ensureAttendanceRecaps();
+      this.ensurePurchasePaymentData();
     },
     migrateFromV19(parsed) {
       this.migrateFromV18(parsed);
@@ -2111,6 +2116,26 @@ function app() {
           }
           break;
         }
+        case 'po-payment-modal': {
+          const row = this.canvasAdvancePO();
+          this.openPOPayment(row);
+          break;
+        }
+        case 'po-cancel-refund': {
+          const row = this.canvasAdvancePO();
+          this.openPOPayment(row);
+          this.savePOPayment(true);
+          this.cancelPO(row);
+          break;
+        }
+        case 'payables-advance': {
+          const row = this.canvasAdvancePO();
+          this.openPOPayment(row);
+          this.savePOPayment(true);
+          this.payableTab = 'advance';
+          this.page = 'payables';
+          break;
+        }
         case 'receipt-create': this.openReceiptCreate(); break;
         case 'receipt-preview': {
           const row = first(this.receipts);
@@ -2574,13 +2599,14 @@ function app() {
           { label:'Lihat Detail', icon:'i-eye', run:() => this.viewPO(row) },
           { label:'Preview A4', icon:'i-printer', run:() => this.startPOPreview(row) },
           { label:'Edit Draft', icon:'i-pencil', show:row.status === 'draft', run:() => this.startPOEdit(row) },
-          { label:'Ubah Harga', icon:'i-pencil', show:this.canEditPoPrice && !['draft'].includes(row.status) && this.poPriceEditable(row), run:() => this.openPoPriceEdit(row) },
+          { label:'Ubah Harga', icon:'i-pencil', show:this.canEditPoPrice && !['draft'].includes(row.status) && this.poPriceEditable(row) && this.poAdvancePaid(row) <= 0, run:() => this.openPoPriceEdit(row) },
           { label:'Submit', icon:'i-send', show:row.status === 'draft', run:() => this.submitPO(row) },
           { label:'Setujui', icon:'i-check', show:this.canApprovePO && row.status === 'pending_approval' && row.createdById !== this.currentUserId, run:() => this.approvePO(row) },
           { label:'Tolak', icon:'i-x', danger:true, show:this.canApprovePO && row.status === 'pending_approval' && row.createdById !== this.currentUserId, run:() => this.openRejectPO(row) },
           { label:'Tandai Terkirim', icon:'i-send', show:row.status === 'approved', run:() => this.sendPO(row) },
+          { label:this.poPaymentScheme(row) === 'full' ? 'Bayar Lunas di Awal' : 'Bayar DP', icon:'i-banknote-down', show:this.poCanPay(row), run:() => this.openPOPayment(row) },
           { label:'Terima Barang', icon:'i-truck', show:['approved','sent','partially_received'].includes(row.status), run:() => this.openReceiptCreate(row) },
-          { label:'Batalkan', icon:'i-trash', danger:true, show:['draft','pending_approval','approved'].includes(row.status), run:() => this.cancelPO(row) }
+          { label:'Batalkan', icon:'i-trash', danger:true, show:['draft','pending_approval','approved','sent'].includes(row.status), run:() => this.cancelPO(row) }
         ];
         case 'coa': return row.isSystem ? [{ label:'Akun terkunci', icon:'i-shield', disabled:true }] : [
           { label:'Edit', icon:'i-pencil', run:() => this.openAccount(row) },
@@ -2720,6 +2746,9 @@ function app() {
       if (action === 'submit-po') {
         const po = this.purchaseOrders.find(item => item.id === id);
         if (po) this.submitPO(po, true);
+      }
+      if (action === 'save-po-payment') {
+        this.savePOPayment(true);
       }
       if (action === 'save-receipt-form') {
         this.saveReceipt(id === 'post', true);
@@ -2948,12 +2977,17 @@ function app() {
       }
       if (action === 'cancel-po') {
         const po = this.purchaseOrders.find(item => item.id === id);
-        if (!po || !['draft','pending_approval','approved'].includes(po.status)) {
+        if (!po || !['draft','pending_approval','approved','sent'].includes(po.status)) {
           this.notify('PO tidak dapat dibatalkan', 'error');
           this.confirm.open = false;
           return;
         }
-        if (po.status === 'approved') this.releasePRQuantities(po);
+        if (this.receipts.some(receipt => receipt.poId === po.id)) {
+          this.notify('PO sudah memiliki penerimaan. Hapus draft penerimaan atau gunakan return pembelian.', 'error');
+          this.confirm.open = false;
+          return;
+        }
+        if (['approved','sent'].includes(po.status)) this.releasePRQuantities(po);
         po.status = 'cancelled';
         po.history = po.history || [];
         po.history.push({ action:'cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:'' });
@@ -3170,6 +3204,7 @@ function app() {
         this.attendanceBatches = [];
         this.payrolls = [];
         this.payables = [];
+        this.poAdvances = [];
         this.materials = this.materials.map(material => ({
           ...material,
           stock:0,
@@ -3224,6 +3259,7 @@ function app() {
         this.ensureMaterialOpeningBalances();
         this.rebuildAllMaterialCosts();
         this.ensureAttendanceRecaps();
+        this.ensurePurchasePaymentData();
         this.syncRoleCounts();
         if (!this.users.some(u => u.id === this.currentUserId)) {
           this.currentUserId = null;
@@ -4126,7 +4162,7 @@ function app() {
 
     /* ---------- SUPPLIER ---------- */
     supplierSearch: '', supplierStatus: '', supplierModalOpen: false, supplierEditId: null,
-    supplierForm: { name:'', contact:'', phone:'', email:'', address:'', paymentTerms:'', status:true, notes:'' },
+    supplierForm: { name:'', contact:'', phone:'', email:'', address:'', paymentScheme:'credit', paymentDays:30, defaultDpAmount:0, paymentTerms:'', status:true, notes:'' },
     get filteredSuppliers() {
       const q = this.supplierSearch.toLowerCase();
       return this.suppliers.filter(supplier => {
@@ -4140,13 +4176,26 @@ function app() {
       this.supplierForm = supplier
         ? {
             name:supplier.name, contact:supplier.contact, phone:supplier.phone, email:supplier.email,
-            address:supplier.address, paymentTerms:supplier.paymentTerms, status:supplier.status, notes:supplier.notes || ''
+            address:supplier.address, status:supplier.status, notes:supplier.notes || '',
+            paymentScheme:this.supplierPaymentScheme(supplier),
+            paymentDays:this.supplierPaymentDays(supplier),
+            defaultDpAmount:Number(supplier.defaultDpAmount) || 0,
+            paymentTerms:supplier.paymentTerms || ''
           }
-        : { name:'', contact:'', phone:'', email:'', address:'', paymentTerms:'', status:true, notes:'' };
+        : { name:'', contact:'', phone:'', email:'', address:'', paymentScheme:'credit', paymentDays:30, defaultDpAmount:0, paymentTerms:'', status:true, notes:'' };
       this.supplierModalOpen = true;
     },
     saveSupplier() {
       if (!this.supplierForm.name) { this.notify('Nama supplier wajib diisi', 'error'); return; }
+      const scheme = ['credit','dp','full'].includes(this.supplierForm.paymentScheme) ? this.supplierForm.paymentScheme : 'credit';
+      if (scheme === 'dp' && Number(this.supplierForm.defaultDpAmount) <= 0) {
+        this.notify('Nominal DP default harus lebih dari 0', 'error');
+        return;
+      }
+      this.supplierForm.paymentScheme = scheme;
+      this.supplierForm.paymentDays = Math.max(0, Number(this.supplierForm.paymentDays) || 0);
+      this.supplierForm.defaultDpAmount = scheme === 'dp' ? (Number(this.supplierForm.defaultDpAmount) || 0) : 0;
+      this.supplierForm.paymentTerms = this.paymentTermsLabel(scheme, this.supplierForm.paymentDays, this.supplierForm.defaultDpAmount);
       if (this.supplierEditId) {
         const supplier = this.suppliers.find(s => s.id === this.supplierEditId);
         if (supplier) Object.assign(supplier, this.supplierForm);
@@ -4437,10 +4486,173 @@ function app() {
     /* ---------- PURCHASE ORDER ---------- */
     poSearch: '', poStatus: '', poSupplier: '',
     poSelectedId: null, poDetailOpen: false, poRejectOpen: false, poRejectId: null, poRejectReason: '',
+    poPaymentOpen: false, poPaymentId: null,
+    poPaymentForm: { date:todayISO(), cashAccountId:'acc1', amount:0, note:'', proof:'' },
+    poCancelOpen: false, poCancelId: null, poCancelRefund: true,
+    poCancelForm: { date:todayISO(), cashAccountId:'acc1', amount:0, note:'' },
     poPriceModalOpen: false, poPriceEditId: null, poPriceRows: [], poPriceNote: '',
     poEditId: null,
     poPrSelectValue: '', poPrPickerOpen: false, poPrPickerPrId: null, poPrPickerRows: [],
-    poForm: { date:todayISO(), supplierId:'', prId:'', paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
+    poForm: { date:todayISO(), supplierId:'', prId:'', paymentScheme:'credit', paymentDays:30, dpAmount:0, paymentTerms:'', notes:'', items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }], additionalCosts:[] },
+    canvasAdvancePO() {
+      const po = {
+        id:'pocanvas' + Date.now(),
+        code:'PO/2026/11/0901',
+        date:todayISO(),
+        supplierId:'sup1',
+        prId:'',
+        prCode:'',
+        paymentScheme:'dp',
+        paymentDays:30,
+        dpAmount:1500000,
+        paymentTerms:'30 hari',
+        notes:'Contoh PO dengan DP sebelum pengiriman.',
+        status:'approved',
+        items:[{ materialId:'mat1', qty:1000, price:5000, receivedQty:0, returnedQty:0 }],
+        additionalCosts:[],
+        additionalTotal:0,
+        subtotal:5000000,
+        total:5000000,
+        createdBy:'Rina',
+        createdById:'u5',
+        approvedBy:'Rina',
+        approvedAt:todayISO(),
+        history:[
+          { action:'submitted', by:'Rina', byRole:'Manager', at:todayISO(), note:'' },
+          { action:'approved', by:'Rina', byRole:'Manager', at:todayISO(), note:'Contoh canvas' }
+        ],
+        rejectReason:''
+      };
+      this.purchaseOrders.unshift(po);
+      return po;
+    },
+    ensurePurchasePaymentData() {
+      if (!Array.isArray(this.accounts)) this.accounts = [];
+      if (!Array.isArray(this.poAdvances)) this.poAdvances = [];
+      const advanceAccount = { id:'acc28', code:'1-1700', name:'Uang Muka Pembelian', type:'asset', normalBalance:'debit', parentId:null, isCashBank:false, isSystem:true, isLocked:true, status:true, description:'DP dan pembayaran di awal ke supplier' };
+      const existing = this.accounts.find(account => account.code === '1-1700');
+      if (!existing) this.accounts.push(advanceAccount);
+      else Object.assign(existing, { isSystem:true, isLocked:true, type:'asset', normalBalance:'debit', status:true });
+      (this.suppliers || []).forEach(supplier => {
+        if (!['credit','dp','full'].includes(supplier.paymentScheme)) {
+          supplier.paymentScheme = /cash|lunas|tunai/i.test(supplier.paymentTerms || '') ? 'full' : 'credit';
+        }
+        if (supplier.paymentDays === undefined) {
+          const match = String(supplier.paymentTerms || '').match(/(\d+)/);
+          supplier.paymentDays = match ? Number(match[1]) : 30;
+        }
+        supplier.defaultDpAmount = Number(supplier.defaultDpAmount) || 0;
+        if (!supplier.paymentTerms) supplier.paymentTerms = this.paymentTermsLabel(supplier.paymentScheme, supplier.paymentDays, supplier.defaultDpAmount);
+      });
+      (this.purchaseOrders || []).forEach(po => {
+        if (!['credit','dp','full'].includes(po.paymentScheme)) po.paymentScheme = 'credit';
+        if (po.paymentDays === undefined) {
+          const match = String(po.paymentTerms || '').match(/(\d+)/);
+          po.paymentDays = match ? Number(match[1]) : 0;
+        }
+        po.dpAmount = Number(po.dpAmount) || 0;
+        if (!po.paymentTerms) po.paymentTerms = this.paymentTermsLabel(po.paymentScheme, po.paymentDays, po.dpAmount);
+      });
+      (this.payables || []).forEach(payable => { payable.advanceApplied = Number(payable.advanceApplied) || 0; });
+      this.poAdvances.forEach(advance => {
+        advance.amount = Number(advance.amount) || 0;
+        advance.applied = Number(advance.applied) || 0;
+        advance.refunded = Number(advance.refunded) || 0;
+        advance.remaining = advance.remaining === undefined ? Math.max(0, advance.amount - advance.applied - advance.refunded) : Math.max(0, Number(advance.remaining) || 0);
+        advance.status = advance.status || (advance.remaining > 0 ? 'open' : 'applied');
+        advance.history = advance.history || [];
+        advance.refunds = advance.refunds || [];
+      });
+    },
+    paymentSchemeLabel(scheme) { return { credit:'Tempo', dp:'DP', full:'Lunas di Awal' }[scheme] || 'Tempo'; },
+    paymentTermsLabel(scheme, days) {
+      if (scheme === 'full') return 'Lunas di Awal';
+      return (Number(days) || 0) + ' hari';
+    },
+    supplierPaymentScheme(supplier) {
+      if (supplier && ['credit','dp','full'].includes(supplier.paymentScheme)) return supplier.paymentScheme;
+      return /cash|lunas|tunai/i.test((supplier && supplier.paymentTerms) || '') ? 'full' : 'credit';
+    },
+    supplierPaymentDays(supplier) {
+      if (supplier && supplier.paymentDays !== undefined) return Number(supplier.paymentDays) || 0;
+      const match = String((supplier && supplier.paymentTerms) || '').match(/(\d+)/);
+      return match ? Number(match[1]) : 30;
+    },
+    supplierPaymentLabel(supplier) {
+      const scheme = this.supplierPaymentScheme(supplier);
+      if (scheme === 'full') return 'Lunas di Awal';
+      if (scheme === 'dp') return 'DP ' + this.rp2(supplier.defaultDpAmount || 0);
+      return 'Tempo ' + this.supplierPaymentDays(supplier) + ' hari';
+    },
+    poPaymentScheme(po) {
+      return po && ['credit','dp','full'].includes(po.paymentScheme) ? po.paymentScheme : 'credit';
+    },
+    poPaymentDays(po) {
+      if (po && po.paymentDays !== undefined) return Number(po.paymentDays) || 0;
+      const match = String((po && po.paymentTerms) || '').match(/(\d+)/);
+      return match ? Number(match[1]) : 0;
+    },
+    poPaymentTarget(po) {
+      const scheme = this.poPaymentScheme(po);
+      if (scheme === 'full') return Number(po.total) || 0;
+      if (scheme === 'dp') return Math.min(Number(po.dpAmount) || 0, Number(po.total) || 0);
+      return 0;
+    },
+    poAdvancePaid(po) {
+      if (!po) return 0;
+      return (this.poAdvances || [])
+        .filter(advance => advance.poId === po.id)
+        .reduce((sum, advance) => sum + (Number(advance.amount) || 0), 0);
+    },
+    poAdvanceRemaining(po) {
+      if (!po) return 0;
+      return (this.poAdvances || [])
+        .filter(advance => advance.poId === po.id)
+        .reduce((sum, advance) => sum + (Number(advance.remaining) || 0), 0);
+    },
+    poPaymentRemaining(po) {
+      return Math.max(0, this.poPaymentTarget(po) - this.poAdvancePaid(po));
+    },
+    poPaymentStatus(po) {
+      if (this.poPaymentScheme(po) === 'credit') return 'credit';
+      const target = this.poPaymentTarget(po);
+      const paid = this.poAdvancePaid(po);
+      if (paid <= 0.005) return 'waiting';
+      if (target > 0 && paid + 0.005 >= target) return 'paid';
+      return 'partial';
+    },
+    poPaymentStatusLabel(po) {
+      const scheme = this.poPaymentScheme(po);
+      const status = this.poPaymentStatus(po);
+      if (status === 'credit') return 'Tempo';
+      if (status === 'waiting') return scheme === 'full' ? 'Menunggu Lunas' : 'Menunggu DP';
+      if (status === 'paid') return scheme === 'full' ? 'Lunas di Awal' : 'DP Lunas';
+      return scheme === 'full' ? 'Dibayar Sebagian' : 'DP Sebagian';
+    },
+    poPaymentStatusBadge(po) {
+      return { credit:'badge-slate', waiting:'badge-yellow', partial:'badge-blue', paid:'badge-green' }[this.poPaymentStatus(po)] || 'badge-slate';
+    },
+    poPaymentButtonLabel(po) {
+      return this.poPaymentScheme(po) === 'full' ? 'Bayar Lunas di Awal' : 'Bayar DP';
+    },
+    poCanPay(po) {
+      if (!po) return false;
+      if (this.poPaymentScheme(po) === 'credit') return false;
+      if (!['approved','sent'].includes(po.status)) return false;
+      return this.poAdvancePaid(po) + 0.005 < this.poPaymentTarget(po);
+    },
+    get payableAdvanceRows() {
+      return (this.poAdvances || []).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.code || '').localeCompare(String(a.code || '')));
+    },
+    payableAdvanceBadge(status) {
+      return { open:'badge-blue', applied:'badge-green', refunded:'badge-stone' }[status] || 'badge-slate';
+    },
+    payableAdvanceLabel(status) {
+      return { open:'Belum terpakai', applied:'Terpakai', refunded:'Dikembalikan' }[status] || status;
+    },
+    get payableAdvanceTotal() { return this.payableAdvanceRows.reduce((sum, row) => sum + Math.max(0, (Number(row.amount) || 0) - (Number(row.refunded) || 0)), 0); },
+    get payableAdvanceUsedTotal() { return this.payableAdvanceRows.reduce((sum, row) => sum + (Number(row.applied) || 0), 0); },
+    get payableAdvanceRemainingTotal() { return this.payableAdvanceRows.reduce((sum, row) => sum + (Number(row.remaining) || 0), 0); },
     get filteredPurchaseOrders() {
       const q = this.poSearch.toLowerCase();
       return this.purchaseOrders.filter(po => {
@@ -4671,7 +4883,11 @@ function app() {
     },
     onPOSupplierChange() {
       const supplier = this.suppliers.find(s => s.id === this.poForm.supplierId);
-      if (supplier) this.poForm.paymentTerms = supplier.paymentTerms || '';
+      if (!supplier) return;
+      this.poForm.paymentScheme = this.supplierPaymentScheme(supplier);
+      this.poForm.paymentDays = this.supplierPaymentDays(supplier);
+      this.poForm.dpAmount = Number(supplier.defaultDpAmount) || 0;
+      this.poForm.paymentTerms = this.paymentTermsLabel(this.poForm.paymentScheme, this.poForm.paymentDays, this.poForm.dpAmount);
     },
     openPOCreate(pr = null) {
       if (pr) {
@@ -4699,6 +4915,9 @@ function app() {
           date:todayISO(),
           supplierId:supplier ? supplier.id : '',
           prId:pr.id,
+          paymentScheme:supplier ? this.supplierPaymentScheme(supplier) : 'credit',
+          paymentDays:supplier ? this.supplierPaymentDays(supplier) : 30,
+          dpAmount:supplier ? (Number(supplier.defaultDpAmount) || 0) : 0,
           paymentTerms:supplier ? supplier.paymentTerms : '',
           notes:'',
           items,
@@ -4716,6 +4935,9 @@ function app() {
         date:todayISO(),
         supplierId:supplier ? supplier.id : '',
         prId:'',
+        paymentScheme:supplier ? this.supplierPaymentScheme(supplier) : 'credit',
+        paymentDays:supplier ? this.supplierPaymentDays(supplier) : 30,
+        dpAmount:supplier ? (Number(supplier.defaultDpAmount) || 0) : 0,
         paymentTerms:supplier ? supplier.paymentTerms : '',
         notes:'',
         items:[{ materialId:'', qty:1, price:0, include:true, materialOpen:false, materialSearch:'' }],
@@ -4732,6 +4954,9 @@ function app() {
         date:po.date,
         supplierId:po.supplierId,
         prId:po.prId || '',
+        paymentScheme:this.poPaymentScheme(po),
+        paymentDays:this.poPaymentDays(po),
+        dpAmount:Number(po.dpAmount) || 0,
         paymentTerms:po.paymentTerms || '',
         notes:po.notes || '',
         items:(po.items || []).map(item => ({
@@ -4748,6 +4973,7 @@ function app() {
     },
     openPoPriceEdit(po) {
       if (!this.canEditPoPrice) { this.notify('Hanya Manager atau Admin yang dapat mengubah harga PO', 'error'); return; }
+      if (this.poAdvancePaid(po) > 0) { this.notify('Harga PO tidak dapat diubah karena sudah ada pembayaran DP / Lunas di Awal', 'error'); return; }
       if (!this.poPriceEditable(po)) { this.notify('Harga PO tidak dapat diubah karena barang sudah diterima', 'error'); return; }
       this.poPriceEditId = po.id;
       this.poPriceRows = (po.items || []).map(item => ({
@@ -4762,6 +4988,7 @@ function app() {
     savePoPriceEdit() {
       const po = this.purchaseOrders.find(item => item.id === this.poPriceEditId);
       if (!po || !this.canEditPoPrice) return;
+      if (this.poAdvancePaid(po) > 0) { this.notify('Harga PO tidak dapat diubah karena sudah ada pembayaran DP / Lunas di Awal', 'error'); return; }
       if (!this.poPriceEditable(po)) { this.notify('Harga PO tidak dapat diubah karena barang sudah diterima', 'error'); return; }
       const invalid = (this.poPriceRows || []).find(row => Number(row.price) < 0);
       if (invalid) { this.notify('Harga tidak boleh negatif', 'error'); return; }
@@ -4833,6 +5060,15 @@ function app() {
         if (Number(row.amount) <= 0) return 'Nominal biaya tambahan harus lebih dari 0';
         if (Number(row.qty) <= 0) return 'Qty biaya tambahan harus lebih dari 0';
       }
+      const scheme = this.poForm.paymentScheme || 'credit';
+      if (!['credit','dp','full'].includes(scheme)) return 'Skema pembayaran tidak valid';
+      const total = rows.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.price) || 0), 0)
+        + additionalRows.reduce((sum, row) => sum + (Number(row.amount) || 0) * (Number(row.qty) || 0), 0);
+      if (scheme === 'dp') {
+        const dpAmount = Number(this.poForm.dpAmount) || 0;
+        if (dpAmount <= 0) return 'Nominal DP harus lebih dari 0';
+        if (dpAmount >= total - 0.005) return 'Nominal DP harus lebih kecil dari total PO. Gunakan Lunas di Awal untuk pembayaran penuh.';
+      }
       return null;
     },
     savePO(submit = false, confirmed = false) {
@@ -4858,6 +5094,10 @@ function app() {
         }));
       const additionalTotal = additionalCosts.reduce((sum, row) => sum + row.subtotal, 0);
       const total = materialTotal + additionalTotal;
+      const paymentScheme = ['credit','dp','full'].includes(this.poForm.paymentScheme) ? this.poForm.paymentScheme : 'credit';
+      const paymentDays = Math.max(0, Number(this.poForm.paymentDays) || 0);
+      const dpAmount = paymentScheme === 'dp' ? Math.min(Number(this.poForm.dpAmount) || 0, total) : 0;
+      const paymentTerms = this.paymentTermsLabel(paymentScheme, paymentDays, dpAmount);
       const autoApprove = submit && this.role === 'Manager';
       if (autoApprove) {
         const approvalError = this.poApprovalError({ items, prId:this.poForm.prId || '' });
@@ -4883,7 +5123,10 @@ function app() {
         po.supplierId = this.poForm.supplierId;
         po.prId = this.poForm.prId || '';
         po.prCode = po.prId ? (this.purchaseRequests.find(pr => pr.id === po.prId) || {}).code || '' : '';
-        po.paymentTerms = this.poForm.paymentTerms || '';
+        po.paymentScheme = paymentScheme;
+        po.paymentDays = paymentDays;
+        po.dpAmount = dpAmount;
+        po.paymentTerms = paymentTerms;
         po.notes = this.poForm.notes || '';
         po.items = items;
         po.additionalCosts = additionalCosts;
@@ -4911,7 +5154,10 @@ function app() {
           supplierId:this.poForm.supplierId,
           prId:this.poForm.prId || '',
           prCode:this.poForm.prId ? (this.purchaseRequests.find(pr => pr.id === this.poForm.prId) || {}).code || '' : '',
-          paymentTerms:this.poForm.paymentTerms || '',
+          paymentScheme,
+          paymentDays,
+          dpAmount,
+          paymentTerms,
           notes:this.poForm.notes || '',
           status:submit ? (autoApprove ? 'approved' : 'pending_approval') : 'draft',
           items,
@@ -4944,6 +5190,7 @@ function app() {
       if (po.status !== 'draft') { this.notify('Hanya PO draft yang dapat disubmit', 'error'); return; }
       this.poForm = {
         date:po.date, supplierId:po.supplierId, prId:po.prId || '',
+        paymentScheme:this.poPaymentScheme(po), paymentDays:this.poPaymentDays(po), dpAmount:Number(po.dpAmount) || 0,
         paymentTerms:po.paymentTerms, notes:po.notes,
         items:(po.items || []).map(item => ({ ...item })),
         additionalCosts:(po.additionalCosts || []).map(row => ({ ...row }))
@@ -5053,16 +5300,175 @@ function app() {
       this.persist();
       this.notify('PO ditutup');
     },
+    get poPaymentPO() { return this.purchaseOrders.find(po => po.id === this.poPaymentId) || {}; },
+    get poCancelPO() { return this.purchaseOrders.find(po => po.id === this.poCancelId) || {}; },
+    openPOPayment(po) {
+      if (!po) return;
+      if (this.poPaymentScheme(po) === 'credit') { this.notify('PO dengan skema Tempo tidak memiliki pembayaran awal', 'error'); return; }
+      if (!['approved','sent'].includes(po.status)) { this.notify('Pembayaran awal hanya dapat dicatat setelah PO disetujui dan sebelum penerimaan', 'error'); return; }
+      const remaining = Math.max(0, this.poPaymentTarget(po) - this.poAdvancePaid(po));
+      if (remaining <= 0.005) { this.notify('Pembayaran awal PO ini sudah selesai', 'error'); return; }
+      const last = (this.poAdvances || []).filter(advance => advance.poId === po.id).slice(-1)[0];
+      this.poPaymentId = po.id;
+      this.poPaymentForm = {
+        date:todayISO(),
+        cashAccountId:(last && last.cashAccountId) || this.cashAccountOptions()[0]?.id || 'acc1',
+        amount:remaining,
+        note:'',
+        proof:''
+      };
+      this.poPaymentOpen = true;
+    },
+    savePOPayment(confirmed = false) {
+      const po = this.purchaseOrders.find(item => item.id === this.poPaymentId);
+      if (!po) { this.notify('PO tidak ditemukan', 'error'); return; }
+      const scheme = this.poPaymentScheme(po);
+      if (scheme === 'credit') { this.notify('PO Tempo tidak memiliki pembayaran awal', 'error'); return; }
+      if (!['approved','sent'].includes(po.status)) { this.notify('Pembayaran awal hanya dapat dicatat sebelum penerimaan', 'error'); return; }
+      const amount = Number(this.poPaymentForm.amount) || 0;
+      const remaining = Math.max(0, this.poPaymentTarget(po) - this.poAdvancePaid(po));
+      if (!this.poPaymentForm.date) { this.notify('Tanggal pembayaran wajib diisi', 'error'); return; }
+      if (amount <= 0) { this.notify('Nominal pembayaran harus lebih dari 0', 'error'); return; }
+      if (amount > remaining + 0.005) { this.notify('Nominal melebihi sisa pembayaran awal ' + this.rp(remaining), 'error'); return; }
+      if (scheme === 'full' && Math.abs(amount - remaining) > 0.005) { this.notify('Lunas di Awal harus dibayar penuh sebesar ' + this.rp(remaining), 'error'); return; }
+      const cash = this.accountById(this.poPaymentForm.cashAccountId);
+      if (!cash.id || !cash.isCashBank || !cash.status) { this.notify('Pilih akun Kas/Bank yang aktif', 'error'); return; }
+      if (!confirmed) {
+        this.askSave('save-po-payment', po.id, 'Pembayaran ' + (scheme === 'full' ? 'lunas di awal' : 'DP') + ' PO ' + po.code + ' sebesar ' + this.rp(amount) + ' akan disimpan dan jurnal dibuat otomatis.', 'Simpan');
+        return;
+      }
+      const date = this.poPaymentForm.date;
+      const code = docCode('DP', date, nextDocSeq(this.poAdvances, 'DP', date));
+      const paymentId = 'dp' + Date.now();
+      const journal = this.createSystemJournal({
+        date,
+        description:'Pembayaran awal PO ' + po.code,
+        source:'po-advance',
+        sourceId:paymentId,
+        lines:[
+          { accountId:'acc28', debit:amount, credit:0, memo:'Uang muka pembelian ' + po.code },
+          { accountId:cash.id, debit:0, credit:amount, memo:'Kas keluar ' + code }
+        ]
+      });
+      const advance = {
+        id:paymentId,
+        code,
+        poId:po.id,
+        poCode:po.code,
+        supplierId:po.supplierId,
+        date,
+        amount,
+        applied:0,
+        refunded:0,
+        remaining:amount,
+        status:'open',
+        cashAccountId:cash.id,
+        cashAccountName:cash.name,
+        note:this.poPaymentForm.note || '',
+        proof:this.poPaymentForm.proof || '',
+        journalId:journal ? journal.id : '',
+        by:this.currentUser,
+        byRole:this.role,
+        createdAt:todayISO(),
+        history:[{ action:'paid', by:this.currentUser, byRole:this.role, at:todayISO(), note:code }],
+        refunds:[]
+      };
+      this.poAdvances.unshift(advance);
+      po.history = po.history || [];
+      po.history.push({ action:scheme === 'full' ? 'full-payment' : 'dp-payment', by:this.currentUser, byRole:this.role, at:todayISO(), note:code + ' • ' + this.rp(amount) });
+      this.poPaymentOpen = false;
+      this.persist();
+      this.notify('Pembayaran ' + code + ' berhasil disimpan');
+    },
     cancelPO(po) {
-      if (!['draft','pending_approval','approved'].includes(po.status)) {
-        this.notify('PO yang sudah dikirim tidak dapat dibatalkan', 'error');
+      if (!['draft','pending_approval','approved','sent'].includes(po.status)) {
+        this.notify('PO yang sudah masuk tahap penerimaan tidak dapat dibatalkan', 'error');
+        return;
+      }
+      if (this.receipts.some(receipt => receipt.poId === po.id)) {
+        this.notify('PO sudah memiliki penerimaan. Hapus draft penerimaan atau gunakan return pembelian.', 'error');
         return;
       }
       if (po.createdById !== this.currentUserId && !['Admin','Manager'].includes(this.role)) {
         this.notify('Anda tidak berhak membatalkan PO ini', 'error');
         return;
       }
+      if (this.poAdvancePaid(po) > 0) {
+        this.poCancelId = po.id;
+        this.poCancelRefund = true;
+        const advances = (this.poAdvances || []).filter(advance => advance.poId === po.id && Number(advance.remaining) > 0.005);
+        const refundable = advances.reduce((sum, advance) => sum + (Number(advance.remaining) || 0), 0);
+        const last = advances.slice(-1)[0];
+        this.poCancelForm = {
+          date:todayISO(),
+          cashAccountId:(last && last.cashAccountId) || this.cashAccountOptions()[0]?.id || 'acc1',
+          amount:refundable,
+          note:''
+        };
+        this.poCancelOpen = true;
+        return;
+      }
       this.askConfirm('cancel-po', po.id, 'Batalkan PO?', 'PO ' + po.code + ' akan dibatalkan.', true);
+    },
+    saveCancelPO() {
+      const po = this.purchaseOrders.find(item => item.id === this.poCancelId);
+      if (!po) { this.notify('PO tidak ditemukan', 'error'); this.poCancelOpen = false; return; }
+      if (!['draft','pending_approval','approved','sent'].includes(po.status)) { this.notify('PO tidak dapat dibatalkan', 'error'); return; }
+      if (this.receipts.some(receipt => receipt.poId === po.id)) { this.notify('PO sudah memiliki penerimaan', 'error'); return; }
+      const advances = (this.poAdvances || [])
+        .filter(advance => advance.poId === po.id && Number(advance.remaining) > 0.005)
+        .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.code || '').localeCompare(String(b.code || '')));
+      const refundable = advances.reduce((sum, advance) => sum + (Number(advance.remaining) || 0), 0);
+      const refundAmount = this.poCancelRefund ? (Number(this.poCancelForm.amount) || 0) : 0;
+      if (this.poCancelRefund && (refundAmount < 0 || refundAmount > refundable + 0.005)) {
+        this.notify('Nominal refund tidak boleh melebihi uang muka ' + this.rp(refundable), 'error');
+        return;
+      }
+      let cash = null;
+      if (refundAmount > 0) {
+        cash = this.accountById(this.poCancelForm.cashAccountId);
+        if (!cash.id || !cash.isCashBank || !cash.status) { this.notify('Pilih akun Kas/Bank untuk refund', 'error'); return; }
+      }
+      let refundJournalId = '';
+      let refundCode = '';
+      if (refundAmount > 0) {
+        const allRefunds = (this.poAdvances || []).flatMap(advance => advance.refunds || []);
+        refundCode = docCode('RF', this.poCancelForm.date || todayISO(), nextDocSeq(allRefunds, 'RF', this.poCancelForm.date || todayISO()));
+        const journal = this.createSystemJournal({
+          date:this.poCancelForm.date || todayISO(),
+          description:'Refund uang muka PO ' + po.code,
+          source:'po-advance-refund',
+          sourceId:po.id,
+          lines:[
+            { accountId:cash.id, debit:refundAmount, credit:0, memo:'Refund DP ' + po.code },
+            { accountId:'acc28', debit:0, credit:refundAmount, memo:'Uang muka dikembalikan ' + refundCode }
+          ]
+        });
+        refundJournalId = journal ? journal.id : '';
+        let budget = refundAmount;
+        advances.forEach(advance => {
+          if (budget <= 0.005) return;
+          const cut = Math.min(Number(advance.remaining) || 0, budget);
+          if (cut <= 0.005) return;
+          advance.remaining = Math.max(0, (Number(advance.remaining) || 0) - cut);
+          advance.refunded = (Number(advance.refunded) || 0) + cut;
+          advance.refunds = advance.refunds || [];
+          advance.refunds.push({ date:this.poCancelForm.date || todayISO(), amount:cut, code:refundCode, cashAccountId:cash.id, journalId:refundJournalId, note:this.poCancelForm.note || '', by:this.currentUser });
+          advance.status = advance.remaining <= 0.005 ? 'refunded' : 'open';
+          advance.history = advance.history || [];
+          advance.history.push({ action:'refunded', by:this.currentUser, byRole:this.role, at:todayISO(), note:refundCode + ' • ' + this.rp(cut) });
+          budget -= cut;
+        });
+      }
+      if (['approved','sent'].includes(po.status)) this.releasePRQuantities(po);
+      po.status = 'cancelled';
+      po.history = po.history || [];
+      po.history.push({ action:'cancelled', by:this.currentUser, byRole:this.role, at:todayISO(), note:refundAmount > 0 ? 'Refund ' + refundCode + ' • ' + this.rp(refundAmount) : (refundable > 0 ? 'DP tidak dikembalikan' : '') });
+      this.syncPRStatusForPO(po);
+      this.poCancelOpen = false;
+      this.poDetailOpen = false;
+      this.persist();
+      this.notify('Purchase Order ' + po.code + ' dibatalkan' + (refundAmount > 0 ? ' dan refund ' + refundCode + ' dicatat' : ''));
     },
     purchaseRequestPOs(pr) {
       if (!pr || !pr.id) return [];
@@ -5364,6 +5770,25 @@ function app() {
       const apTotal = (Number(receipt.total) || 0) + additionalCost;
       receipt.additionalCost = additionalCost;
       receipt.apTotal = apTotal;
+      let advanceApplied = 0;
+      if (this.poPaymentScheme(po) !== 'credit' && apTotal > 0) {
+        let budget = apTotal;
+        this.poAdvances
+          .filter(advance => advance.poId === po.id && Number(advance.remaining) > 0.005)
+          .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.code || '').localeCompare(String(b.code || '')))
+          .forEach(advance => {
+            if (budget <= 0.005) return;
+            const applied = Math.min(Number(advance.remaining) || 0, budget);
+            if (applied <= 0.005) return;
+            advance.applied = (Number(advance.applied) || 0) + applied;
+            advance.remaining = Math.max(0, (Number(advance.remaining) || 0) - applied);
+            advance.status = advance.remaining <= 0.005 ? 'applied' : 'open';
+            advance.history = advance.history || [];
+            advance.history.push({ action:'applied', by:this.currentUser, byRole:this.role, at:now, note:receipt.code + ' • ' + this.rp(applied) });
+            advanceApplied += applied;
+            budget -= applied;
+          });
+      }
       const journalLines = [
         { accountId:'acc4', debit:receipt.total, credit:0, memo:'Persediaan ' + receipt.code }
       ];
@@ -5371,6 +5796,10 @@ function app() {
         journalLines.push({ accountId:'acc14', debit:additionalCost, credit:0, memo:'Biaya tambahan PO ' + receipt.code });
       }
       journalLines.push({ accountId:'acc7', debit:0, credit:apTotal, memo:'Utang supplier ' + receipt.code });
+      if (advanceApplied > 0) {
+        journalLines.push({ accountId:'acc7', debit:advanceApplied, credit:0, memo:'Potong uang muka ' + receipt.code });
+        journalLines.push({ accountId:'acc28', debit:0, credit:advanceApplied, memo:'Uang muka terpakai ' + receipt.code });
+      }
       const journal = this.createSystemJournal({
         date:receipt.date,
         description:'Penerimaan barang ' + receipt.code,
@@ -5390,11 +5819,12 @@ function app() {
         date:receipt.date,
         dueDate,
         total:apTotal,
-        paid:0,
-        unpaid:apTotal,
-        status:'unpaid',
+        advanceApplied,
+        paid:advanceApplied,
+        unpaid:Math.max(0, apTotal - advanceApplied),
+        status:apTotal - advanceApplied <= 0.005 ? 'paid' : (advanceApplied > 0 ? 'partial' : 'unpaid'),
         payments:[],
-        history:[{ action:'created', by:this.currentUser, byRole:this.role, at:now, note:receipt.code }]
+        history:[{ action:'created', by:this.currentUser, byRole:this.role, at:now, note:receipt.code + (advanceApplied > 0 ? ' • DP ' + this.rp(advanceApplied) : '') }]
       };
       this.payables.unshift(payable);
       receipt.status = 'posted';
@@ -11587,6 +12017,7 @@ function app() {
     },
 
     /* ---------- PAYABLES / UTANG ---------- */
+    payableTab: 'payables',
     payableSearch: '', payableStatus: '', payableSupplier: '', payableDateFrom: '', payableDateTo: '',
     payableDetailOpen: false, payableSelectedId: null,
     payablePaymentOpen: false, payablePaymentId: null,
@@ -12228,7 +12659,7 @@ function app() {
         const journal = this.createSystemJournal({ date, description, source, sourceId, lines });
         return journal ? journal.id : '';
       };
-      const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','productions','productionLogs','journals','hppHarian','hppBulanan','hppLog'];
+      const reset = ['orders','deliveries','returns','receivables','collections','payments','stockHistory','opnames','incomes','expenses','monthlyHistory','purchaseRequests','purchaseOrders','receipts','purchaseReturns','stockMovements','payables','poAdvances','productions','productionLogs','journals','hppHarian','hppBulanan','hppLog'];
       reset.forEach(key => { this[key] = []; });
       this.ensureDummyHppMaster();
       this.ensureDummyDebtCustomer();

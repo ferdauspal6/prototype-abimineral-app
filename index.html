@@ -1890,7 +1890,7 @@
             <thead><tr><th>#</th><th>Kode</th><th>Nama Supplier</th><th>Kontak</th><th>Telepon</th><th>Termin</th><th>Status</th><th class="actions">Action</th></tr></thead>
             <tbody>
               <template x-for="(s, i) in filteredSuppliers" :key="s.id">
-                <tr><td x-text="i + 1"></td><td class="font-semibold" x-text="s.code"></td><td x-text="s.name"></td><td x-text="s.contact || '-'"></td><td x-text="s.phone || '-'"></td><td><span class="badge badge-slate" x-text="s.paymentTerms || '-'"></span></td><td><span class="badge" :class="s.status ? 'badge-green' : 'badge-stone'" x-text="s.status ? 'Aktif' : 'Nonaktif'"></span></td><td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'suppliers', s)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td></tr>
+                <tr><td x-text="i + 1"></td><td class="font-semibold" x-text="s.code"></td><td x-text="s.name"></td><td x-text="s.contact || '-'"></td><td x-text="s.phone || '-'"></td><td><span class="badge badge-slate" x-text="supplierPaymentLabel(s)"></span></td><td><span class="badge" :class="s.status ? 'badge-green' : 'badge-stone'" x-text="s.status ? 'Aktif' : 'Nonaktif'"></span></td><td class="actions"><button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'suppliers', s)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button></td></tr>
               </template>
               <tr x-show="filteredSuppliers.length === 0"><td colspan="8"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada supplier</div></div></td></tr>
             </tbody>
@@ -2163,7 +2163,12 @@
                   <td x-text="po.prCode || 'Manual'"></td>
                   <td class="num" x-text="(po.items || []).length"></td>
                   <td class="num font-semibold" x-text="rp(po.total)"></td>
-                  <td><span class="badge" :class="poStatusBadge(po.status)" x-text="poStatusLabel(po.status)"></span></td>
+                  <td>
+                    <span class="badge" :class="poStatusBadge(po.status)" x-text="poStatusLabel(po.status)"></span>
+                    <div class="mt-1" x-show="poPaymentScheme(po) !== 'credit'">
+                      <span class="badge" :class="poPaymentStatusBadge(po)" x-text="poPaymentStatusLabel(po)"></span>
+                    </div>
+                  </td>
                   <td class="actions">
                     <button class="icon-btn icon-btn-sm" @click.stop="openActionMenu($event, 'purchase-orders', po)" title="Aksi"><svg class="icon icon-sm"><use href="#i-more"></use></svg></button>
                   </td>
@@ -2189,7 +2194,14 @@
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="poForm.date"></div>
             <div><label class="label">Supplier <span class="req">*</span></label><select class="select" x-model="poForm.supplierId" @change="onPOSupplierChange()"><option value="">Pilih supplier</option><template x-for="s in activeSuppliers" :key="s.id"><option :value="s.id" x-text="s.name"></option></template></select></div>
-            <div><label class="label">Termin Pembayaran</label><input class="input" x-model="poForm.paymentTerms" placeholder="Contoh: 30 hari"></div>
+            <div>
+              <label class="label">Skema Pembayaran</label>
+              <select class="select" x-model="poForm.paymentScheme">
+                <option value="credit">Tempo</option>
+                <option value="dp">DP</option>
+                <option value="full">Lunas di Awal</option>
+              </select>
+            </div>
             <div>
               <label class="label">Referensi PR</label>
               <select class="select" x-model="poPrSelectValue" @change="onPoPrSelect()" :disabled="!!poEditId">
@@ -2199,6 +2211,21 @@
                 </template>
               </select>
               <div class="mt-1 text-[10px] text-slate-400" x-show="poEditId">Referensi PR tidak dapat diubah saat edit draft.</div>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div x-show="poForm.paymentScheme !== 'full'">
+              <label class="label">Termin Pelunasan (hari)</label>
+              <input type="number" min="0" class="input" x-model.number="poForm.paymentDays">
+              <div class="mt-1 text-[10px] text-slate-400">Jatuh tempo sisa pembayaran setelah barang diterima.</div>
+            </div>
+            <div x-show="poForm.paymentScheme === 'dp'">
+              <label class="label">DP (Rp)</label>
+              <div class="input-group"><input type="number" min="0" class="input" x-model.number="poForm.dpAmount"><span class="addon">Rp</span></div>
+              <div class="mt-1 text-[10px] text-slate-400">Sisa setelah DP: <b x-text="rp(Math.max(0, poGrandTotal - (Number(poForm.dpAmount) || 0)))"></b></div>
+            </div>
+            <div x-show="poForm.paymentScheme === 'full'" class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+              <b>Lunas di Awal.</b> Total <b x-text="rp(poGrandTotal)"></b> dibayar penuh sebelum penerimaan. Setelah barang diterima, utang otomatis lunas lewat uang muka.
             </div>
           </div>
           <div class="mt-3"><label class="label">Catatan</label><input class="input" x-model="poForm.notes" placeholder="Catatan untuk supplier / purchasing"></div>
@@ -2309,8 +2336,26 @@
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button class="btn btn-outline btn-sm" @click="go('purchase-orders')">Kembali</button>
+            <button x-show="poCanPay(selectedPO)" class="btn btn-outline btn-sm" @click="openPOPayment(selectedPO)"><svg class="icon icon-sm"><use href="#i-banknote-down"></use></svg> <span x-text="poPaymentButtonLabel(selectedPO)"></span></button>
             <button class="btn btn-outline btn-sm" @click="exportPOPDF()"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export PDF</button>
             <button class="btn btn-primary btn-sm" @click="printPO()"><svg class="icon icon-sm"><use href="#i-printer"></use></svg> Print A4</button>
+          </div>
+        </div>
+
+        <div class="card p-4 mb-4 no-print" x-show="poPaymentScheme(selectedPO) !== 'credit'">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] uppercase tracking-wide text-slate-400">Pembayaran PO</div>
+              <div class="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <span class="badge" :class="poPaymentStatusBadge(selectedPO)" x-text="poPaymentStatusLabel(selectedPO)"></span>
+                <span>Skema <b x-text="paymentSchemeLabel(poPaymentScheme(selectedPO))"></b></span>
+                <span>Target <b x-text="rp(poPaymentTarget(selectedPO))"></b></span>
+                <span>Dibayar <b class="text-emerald-600" x-text="rp(poAdvancePaid(selectedPO))"></b></span>
+                <span>Sisa Bayar <b class="text-amber-600" x-text="rp(poPaymentRemaining(selectedPO))"></b></span>
+                <span>Uang Muka <b x-text="rp(poAdvanceRemaining(selectedPO))"></b></span>
+              </div>
+            </div>
+            <button x-show="poCanPay(selectedPO)" class="btn btn-primary btn-sm" @click="openPOPayment(selectedPO)"><svg class="icon icon-sm"><use href="#i-banknote-down"></use></svg> <span x-text="poPaymentButtonLabel(selectedPO)"></span></button>
           </div>
         </div>
 
@@ -2328,6 +2373,8 @@
               <div class="space-y-1.5">
                 <div><span class="inline-block w-28 text-slate-500">Tanggal</span><b x-text="dateShort(selectedPO.date)"></b></div>
                 <div><span class="inline-block w-28 text-slate-500">Supplier</span><b x-text="supplierName(selectedPO.supplierId)"></b></div>
+                <div><span class="inline-block w-28 text-slate-500">Skema</span><b x-text="paymentSchemeLabel(poPaymentScheme(selectedPO))"></b></div>
+                <div x-show="poPaymentScheme(selectedPO) === 'dp'"><span class="inline-block w-28 text-slate-500">DP</span><b x-text="rp(selectedPO.dpAmount)"></b></div>
                 <div><span class="inline-block w-28 text-slate-500">Termin</span><b x-text="selectedPO.paymentTerms || '-'"></b></div>
               </div>
               <div class="space-y-1.5">
@@ -3996,6 +4043,12 @@
             <div><label class="label">Surat Jalan Supplier</label><input class="input" x-model="receiptForm.deliveryNote" placeholder="Nomor surat jalan"></div>
           </div>
           <div class="mt-3 flex flex-wrap gap-4 text-xs text-slate-500"><span>Supplier: <b class="text-slate-800" x-text="receiptSourcePO ? supplierName(receiptSourcePO.supplierId) : '-'"></b></span><span>Termin: <b class="text-slate-800" x-text="receiptSourcePO ? (receiptSourcePO.paymentTerms || '-') : '-'"></b></span><span>Nilai Diterima: <b class="text-slate-800" x-text="rp(receiptTotal)"></b></span><span>Total PO: <b class="text-slate-800" x-text="rp(receiptSourcePO ? receiptSourcePO.total : 0)"></b></span></div>
+          <div x-show="receiptSourcePO && poAdvanceRemaining(receiptSourcePO) > 0" class="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+            Uang muka tersedia <b x-text="rp(poAdvanceRemaining(receiptSourcePO))"></b> dan akan dipotong otomatis ke utang penerimaan ini.
+          </div>
+          <div x-show="receiptSourcePO && poPaymentScheme(receiptSourcePO) !== 'credit' && poPaymentRemaining(receiptSourcePO) > 0" class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+            Pembayaran awal belum lunas. Sisa target <b x-text="rp(poPaymentRemaining(receiptSourcePO))"></b> akan menjadi utang biasa dan dapat dibayar lewat menu Utang.
+          </div>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -4143,6 +4196,11 @@
 
       <!-- PAYABLES -->
       <section x-show="page === 'payables'">
+        <div class="seg mb-4">
+          <button class="seg-btn" :class="{ 'active': payableTab === 'payables' }" @click="payableTab = 'payables'">Utang Usaha</button>
+          <button class="seg-btn" :class="{ 'active': payableTab === 'advance' }" @click="payableTab = 'advance'">Uang Muka</button>
+        </div>
+        <div x-show="payableTab === 'payables'">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
           <div class="card kpi"><div class="kpi-label">Total Utang</div><div class="kpi-value" x-text="rp(payableTotalValue)"></div></div>
           <div class="card kpi"><div class="kpi-label">Sudah Dibayar</div><div class="kpi-value text-emerald-600" x-text="rp(payablePaidTotal)"></div></div>
@@ -4179,6 +4237,38 @@
               <tr x-show="filteredPayables.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada utang supplier</div><div class="text-xs text-slate-400">Utang otomatis terbentuk saat penerimaan barang diposting.</div></div></td></tr>
             </tbody>
           </table>
+        </div>
+        </div>
+
+        <div x-show="payableTab === 'advance'">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div class="card kpi"><div class="kpi-label">Total Uang Muka</div><div class="kpi-value" x-text="rp(payableAdvanceTotal)"></div></div>
+            <div class="card kpi"><div class="kpi-label">Sudah Terpakai</div><div class="kpi-value text-emerald-600" x-text="rp(payableAdvanceUsedTotal)"></div></div>
+            <div class="card kpi"><div class="kpi-label">Belum Terpakai</div><div class="kpi-value text-amber-600" x-text="rp(payableAdvanceRemainingTotal)"></div></div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>No. Pembayaran</th><th>Tanggal</th><th>Supplier</th><th>PO</th><th class="num">Nominal</th><th class="num">Terpakai</th><th class="num">Sisa</th><th>Kas/Bank</th><th>Status</th><th class="actions">Action</th></tr></thead>
+              <tbody>
+                <template x-for="(advance, i) in payableAdvanceRows" :key="advance.id">
+                  <tr>
+                    <td x-text="i + 1"></td>
+                    <td class="font-semibold" x-text="advance.code"></td>
+                    <td x-text="dateShort(advance.date)"></td>
+                    <td x-text="supplierName(advance.supplierId)"></td>
+                    <td><div class="font-semibold" x-text="advance.poCode || '-'"></div><span class="sub" x-text="advance.note || ''"></span></td>
+                    <td class="num font-semibold" x-text="rp(advance.amount)"></td>
+                    <td class="num text-emerald-600" x-text="rp(advance.applied)"></td>
+                    <td class="num font-semibold text-amber-600" x-text="rp(advance.remaining)"></td>
+                    <td><div x-text="advance.cashAccountName || '-'"></div><span class="sub" x-text="advance.by || ''"></span></td>
+                    <td><span class="badge" :class="payableAdvanceBadge(advance.status)" x-text="payableAdvanceLabel(advance.status)"></span><div x-show="Number(advance.refunded) > 0" class="sub mt-1" x-text="'Refund ' + rp(advance.refunded)"></div></td>
+                    <td class="actions"><button class="btn btn-ghost btn-xs" @click="viewPO(purchaseOrders.find(po => po.id === advance.poId) || {})">Lihat PO</button></td>
+                  </tr>
+                </template>
+                <tr x-show="payableAdvanceRows.length === 0"><td colspan="11"><div class="empty"><svg class="icon icon-lg text-slate-300"><use href="#i-folder-search"></use></svg><div class="font-semibold mt-2">Belum ada uang muka</div><div class="text-xs text-slate-400">Uang muka terbentuk saat DP atau Lunas di Awal dibayar dari PO.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -4773,7 +4863,12 @@
         <div><label class="label">Status <span class="req">*</span></label><div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input type="radio" class="radio" :value="true" x-model="supplierForm.status"> Aktif</label><label class="flex items-center gap-2"><input type="radio" class="radio" :value="false" x-model="supplierForm.status"> Nonaktif</label></div></div>
         <div><label class="label">Nama Supplier <span class="req">*</span></label><input class="input" x-model="supplierForm.name"></div>
         <div class="grid grid-cols-2 gap-3"><div><label class="label">Nama Kontak</label><input class="input" x-model="supplierForm.contact"></div><div><label class="label">Telepon</label><input class="input" x-model="supplierForm.phone"></div></div>
-        <div class="grid grid-cols-2 gap-3"><div><label class="label">Email</label><input type="email" class="input" x-model="supplierForm.email"></div><div><label class="label">Termin Pembayaran</label><input class="input" x-model="supplierForm.paymentTerms" placeholder="Contoh: 30 hari"></div></div>
+        <div class="grid grid-cols-2 gap-3"><div><label class="label">Email</label><input type="email" class="input" x-model="supplierForm.email"></div><div><label class="label">Skema Pembayaran Default</label><select class="select" x-model="supplierForm.paymentScheme"><option value="credit">Tempo</option><option value="dp">DP</option><option value="full">Lunas di Awal</option></select></div></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div x-show="supplierForm.paymentScheme !== 'full'"><label class="label">Termin (hari)</label><input type="number" min="0" class="input" x-model.number="supplierForm.paymentDays"></div>
+          <div x-show="supplierForm.paymentScheme === 'dp'"><label class="label">DP Default (Rp)</label><div class="input-group"><input type="number" min="0" class="input" x-model.number="supplierForm.defaultDpAmount"><span class="addon">Rp</span></div></div>
+          <div x-show="supplierForm.paymentScheme === 'full'" class="col-span-2 text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">PO dari supplier ini akan memakai pembayaran penuh di awal. Nilai tetap bisa diubah saat membuat PO.</div>
+        </div>
         <div><label class="label">Alamat</label><textarea class="textarea" x-model="supplierForm.address"></textarea></div>
         <div><label class="label">Catatan</label><textarea class="textarea" x-model="supplierForm.notes"></textarea></div>
       </div>
@@ -5111,6 +5206,18 @@
           <div><div class="text-slate-400">Status</div><span class="badge mt-1" :class="poStatusBadge(selectedPO.status)" x-text="poStatusLabel(selectedPO.status)"></span></div>
           <div><div class="text-slate-400">Total</div><div class="font-bold mt-1" x-text="rp(selectedPO.total)"></div></div>
         </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs" x-show="poPaymentScheme(selectedPO) !== 'credit'">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>Skema: <b x-text="paymentSchemeLabel(poPaymentScheme(selectedPO))"></b></span>
+              <span>Target: <b x-text="rp(poPaymentTarget(selectedPO))"></b></span>
+              <span>Dibayar: <b x-text="rp(poAdvancePaid(selectedPO))"></b></span>
+              <span>Sisa Bayar: <b x-text="rp(poPaymentRemaining(selectedPO))"></b></span>
+              <span>Uang Muka: <b x-text="rp(poAdvanceRemaining(selectedPO))"></b></span>
+            </div>
+            <span class="badge" :class="poPaymentStatusBadge(selectedPO)" x-text="poPaymentStatusLabel(selectedPO)"></span>
+          </div>
+        </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead><tr><th>#</th><th>Kode</th><th>Barang</th><th>Satuan</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Subtotal</th></tr></thead>
@@ -5144,13 +5251,14 @@
       </div>
       <div class="modal-foot modal-foot-split">
         <div class="modal-actions modal-actions-left">
-          <button x-show="['draft','pending_approval','approved'].includes(selectedPO.status)" class="btn btn-danger" @click="cancelPO(selectedPO)">Batalkan PO</button>
+          <button x-show="['draft','pending_approval','approved','sent'].includes(selectedPO.status)" class="btn btn-danger" @click="cancelPO(selectedPO)">Batalkan PO</button>
         </div>
         <div class="modal-actions modal-actions-right">
           <button class="btn btn-outline" @click="startPOPreview(selectedPO)"><svg class="icon icon-sm"><use href="#i-printer"></use></svg> Preview A4</button>
           <button x-show="selectedPO.status === 'draft'" class="btn btn-outline" @click="startPOEdit(selectedPO); poDetailOpen = false">Edit Draft</button>
-          <button x-show="canEditPoPrice && !['draft'].includes(selectedPO.status) && poPriceEditable(selectedPO)" class="btn btn-outline" @click="openPoPriceEdit(selectedPO); poDetailOpen = false">Ubah Harga</button>
+          <button x-show="canEditPoPrice && !['draft'].includes(selectedPO.status) && poPriceEditable(selectedPO) && poAdvancePaid(selectedPO) <= 0" class="btn btn-outline" @click="openPoPriceEdit(selectedPO); poDetailOpen = false">Ubah Harga</button>
           <button x-show="selectedPO.status === 'approved'" class="btn btn-outline" @click="sendPO(selectedPO)">Tandai Terkirim</button>
+          <button x-show="poCanPay(selectedPO)" class="btn btn-outline" @click="openPOPayment(selectedPO)"><svg class="icon icon-sm"><use href="#i-banknote-down"></use></svg> <span x-text="poPaymentButtonLabel(selectedPO)"></span></button>
           <button x-show="['approved','sent','partially_received'].includes(selectedPO.status)" class="btn btn-primary" @click="openReceiptCreate(selectedPO); poDetailOpen = false">Terima Barang</button>
           <button x-show="['approved','sent','partially_received','fully_received'].includes(selectedPO.status)" class="btn btn-outline" @click="closePO(selectedPO)">Tutup PO</button>
           <button x-show="selectedPO.status === 'draft'" class="btn btn-primary" @click="submitPO(selectedPO)">Submit</button>
@@ -5158,6 +5266,58 @@
           <button x-show="canApprovePO && selectedPO.status === 'pending_approval' && selectedPO.createdById !== currentUserId" class="btn btn-primary" @click="approvePO(selectedPO)">Setujui</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- PO ADVANCE PAYMENT MODAL -->
+  <div x-show="poPaymentOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="poPaymentOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title" x-text="poPaymentScheme(poPaymentPO) === 'full' ? 'Bayar Lunas di Awal' : 'Bayar DP'"></div><div class="modal-desc" x-text="'PO ' + (poPaymentPO.code || '') + ' • ' + supplierName(poPaymentPO.supplierId)"></div></div><button class="icon-btn" @click="poPaymentOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs grid grid-cols-2 gap-3">
+          <div><div class="text-slate-400">Target Pembayaran Awal</div><div class="font-semibold mt-1" x-text="rp(poPaymentTarget(poPaymentPO))"></div></div>
+          <div><div class="text-slate-400">Sudah Dibayar</div><div class="font-semibold text-emerald-600 mt-1" x-text="rp(poAdvancePaid(poPaymentPO))"></div></div>
+          <div><div class="text-slate-400">Sisa yang Harus Dibayar</div><div class="font-bold text-amber-600 mt-1" x-text="rp(poPaymentRemaining(poPaymentPO))"></div></div>
+          <div><div class="text-slate-400">Status</div><span class="badge mt-1" :class="poPaymentStatusBadge(poPaymentPO)" x-text="poPaymentStatusLabel(poPaymentPO)"></span></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><label class="label">Tanggal <span class="req">*</span></label><input type="date" class="input" x-model="poPaymentForm.date"></div>
+          <div><label class="label">Nominal <span class="req">*</span></label><div class="input-group"><input type="number" min="1" class="input" x-model.number="poPaymentForm.amount" :disabled="poPaymentScheme(poPaymentPO) === 'full'"><span class="addon">Rp</span></div></div>
+        </div>
+        <div><label class="label">Kas/Bank <span class="req">*</span></label><select class="select" x-model="poPaymentForm.cashAccountId"><template x-for="account in cashAccountOptions()" :key="account.id"><option :value="account.id" x-text="account.code + ' — ' + account.name"></option></template></select></div>
+        <div><label class="label">Keterangan</label><input class="input" x-model="poPaymentForm.note" placeholder="Catatan pembayaran DP"></div>
+        <div><label class="label">Bukti Pembayaran</label><input type="file" class="input pt-2" accept="image/*"></div>
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Jurnal otomatis: <b>Dr Uang Muka Pembelian / Cr Kas/Bank</b>.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="poPaymentOpen = false">Batal</button><button class="btn btn-primary" @click="savePOPayment()">Simpan</button></div>
+    </div>
+  </div>
+
+  <!-- PO CANCEL / REFUND MODAL -->
+  <div x-show="poCancelOpen" x-transition.opacity class="modal-backdrop no-print" @click.self="poCancelOpen = false">
+    <div class="modal-panel modal-md">
+      <div class="modal-head"><div><div class="modal-title">Batalkan PO</div><div class="modal-desc" x-text="'PO ' + (poCancelPO.code || '') + ' • ' + supplierName(poCancelPO.supplierId)"></div></div><button class="icon-btn" @click="poCancelOpen = false"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+      <div class="modal-body space-y-4">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs grid grid-cols-2 gap-3">
+          <div><div class="text-slate-400">Total PO</div><div class="font-semibold mt-1" x-text="rp(poCancelPO.total)"></div></div>
+          <div><div class="text-slate-400">Uang Muka Dibayar</div><div class="font-semibold text-emerald-600 mt-1" x-text="rp(poAdvancePaid(poCancelPO))"></div></div>
+          <div><div class="text-slate-400">Uang Muka Belum Terpakai</div><div class="font-bold text-amber-600 mt-1" x-text="rp(poAdvanceRemaining(poCancelPO))"></div></div>
+          <div><div class="text-slate-400">Status</div><span class="badge mt-1" :class="poPaymentStatusBadge(poCancelPO)" x-text="poPaymentStatusLabel(poCancelPO)"></span></div>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" class="checkbox" x-model="poCancelRefund"> Kembalikan uang muka ke Kas/Bank</label>
+        <div x-show="poCancelRefund" class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div><label class="label">Tanggal Refund</label><input type="date" class="input" x-model="poCancelForm.date"></div>
+            <div><label class="label">Nominal Refund</label><div class="input-group"><input type="number" min="0" :max="poAdvanceRemaining(poCancelPO)" class="input" x-model.number="poCancelForm.amount"><span class="addon">Rp</span></div></div>
+          </div>
+          <div><label class="label">Kas/Bank Penerima</label><select class="select" x-model="poCancelForm.cashAccountId"><template x-for="account in cashAccountOptions()" :key="account.id"><option :value="account.id" x-text="account.code + ' — ' + account.name"></option></template></select></div>
+          <div><label class="label">Keterangan</label><input class="input" x-model="poCancelForm.note" placeholder="Catatan refund"></div>
+          <div class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-700">Nominal boleh lebih kecil dari uang muka. Sisa yang tidak direfund tetap tercatat sebagai uang muka supplier.<br>Jurnal otomatis: <b>Dr Kas/Bank / Cr Uang Muka Pembelian</b>.</div>
+        </div>
+        <div x-show="!poCancelRefund" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">Uang muka tidak dikembalikan. Saldo tetap tercatat di menu <b>Utang → Uang Muka</b> sebagai hak tagih ke supplier.</div>
+        <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700">PO akan dibatalkan dan tidak dapat digunakan untuk penerimaan. Tindakan ini tidak menghapus riwayat pembayaran.</div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" @click="poCancelOpen = false">Kembali</button><button class="btn btn-danger" @click="saveCancelPO()">Batalkan PO</button></div>
     </div>
   </div>
 
@@ -5373,9 +5533,10 @@
           <div><div class="text-slate-400">Status</div><span class="badge mt-1" :class="payableStatusBadge(selectedPayable.status)" x-text="payableStatusLabel(selectedPayable.status)"></span></div>
           <div><div class="text-slate-400">Sisa</div><div class="font-bold text-amber-600 mt-1" x-text="rp(selectedPayable.unpaid)"></div></div>
         </div>
-        <div class="grid grid-cols-3 gap-3 text-xs">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Nilai Utang</div><div class="font-semibold" x-text="rp(selectedPayable.total)"></div></div>
-          <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Dibayar</div><div class="font-semibold text-emerald-600" x-text="rp(selectedPayable.paid)"></div></div>
+          <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">DP Diterapkan</div><div class="font-semibold text-blue-600" x-text="rp(selectedPayable.advanceApplied)"></div></div>
+          <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Dibayar Kas/Bank</div><div class="font-semibold text-emerald-600" x-text="rp(selectedPayable.paid - (Number(selectedPayable.advanceApplied) || 0))"></div></div>
           <div class="rounded-lg border border-slate-200 px-3 py-2"><div class="text-slate-400">Sisa</div><div class="font-semibold text-amber-600" x-text="rp(selectedPayable.unpaid)"></div></div>
         </div>
         <details class="history-details">

@@ -65,7 +65,7 @@ Prototype ini bukan sekadar mockup statis. Seluruh perubahan data disimpan di **
 - **Alur saling terhubung**: order mengurangi stok, surat jalan mencatat pembayaran dan piutang, penagihan mengurangi sisa piutang, return menyesuaikan stok/nilai piutang.
 - **Dashboard live**: KPI, status operasional, low stock, produk populer, dan grafik dihitung dari data aktual.
 - **Kontrol demo** di menu user dan Pengaturan → Data Demo: Export JSON, Import JSON, **Isi Data Dummy**, **Hapus Transaksi**, dan Reset Data.
-- **Hapus Transaksi** mengosongkan order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, Return Pembelian, jurnal, dan utang tanpa menghapus master data. Stok barang mentah direset ke 0.
+- **Hapus Transaksi** mengosongkan order, surat jalan, return, piutang, penagihan, pembayaran, riwayat stok, opname, pendapatan/pengeluaran, Purchase Request, Purchase Order, Penerimaan Barang, Return Pembelian, jurnal, utang, dan uang muka pembelian tanpa menghapus master data. Stok barang mentah direset ke 0.
 - **Sinkronisasi antar-tab** melalui event `storage`.
 - Data terikat pada browser/perangkat. Gunakan Export/Import untuk memindahkan state demo.
 - Nomor dokumen dan tanggal dibuat relatif terhadap tanggal hari ini, sehingga demo selalu terlihat baru.
@@ -114,19 +114,37 @@ Purchase Order (L3):
 - PR detail menampilkan semua PO terkait beserta supplier dan statusnya.
 - **Biaya Tambahan** mendukung keterangan, nominal, dan qty; total PO = subtotal barang + biaya tambahan.
 - Saat penerimaan, biaya tambahan dialokasikan proporsional ke AP; jurnal mencatat beban tambahan dan utang supplier.
+- **Skema pembayaran PO**:
+  - **Tempo** — utang penuh terbentuk saat penerimaan.
+  - **DP** — DP dalam nominal rupiah dibayar sebelum penerimaan dan dicatat sebagai **Uang Muka Pembelian**.
+  - **Lunas di Awal** — 100% total PO dibayar sebelum penerimaan.
+- DP dan Lunas di Awal hanya dapat dibayar setelah PO disetujui dan sebelum ada penerimaan.
+- Setiap pembayaran awal membuat dokumen `DP/YYYY/MM/0001` dan jurnal `Dr Uang Muka Pembelian / Cr Kas/Bank`.
+- Saat penerimaan, uang muka dipotongkan ke utang:
+  - `Dr Persediaan / Biaya Tambahan`
+  - `Cr Utang Usaha` sebesar nilai diterima (bruto)
+  - `Dr Utang Usaha` sebesar DP yang diterapkan
+  - `Cr Uang Muka Pembelian` sebesar DP yang diterapkan
+- Seluruh DP dipakai pada penerimaan pertama. Jika nilai DP melebihi nilai penerimaan pertama, sisanya otomatis dipakai pada penerimaan berikutnya.
+- Master Supplier menyimpan default **skema pembayaran, DP nominal, dan termin**. Nilai ini hanya prefill dan tetap bisa diubah di PO.
+- Edit PO dan **Ubah Harga** dikunci setelah ada pembayaran awal.
+- PO dapat dibatalkan pada status `draft`, `pending_approval`, `approved`, dan `sent` selama belum ada penerimaan.
+- Jika PO sudah dibayar DP/lunas, popup pembatalan menawarkan **refund**:
+  - nominal refund bisa diisi sebagian,
+  - jurnal refund `Dr Kas/Bank / Cr Uang Muka Pembelian` dengan nomor `RF/...`,
+  - sisa yang tidak direfund tetap tercatat sebagai uang muka supplier di menu **Utang → Uang Muka**.
 - Saat approve, `orderedQty` PR bertambah dan status PR menjadi `processing`/`completed`.
-- Cancel PO approved mengembalikan `orderedQty`; harga master tidak berubah karena PO tidak pernah mengubah harga.
-- PO tidak membuat jurnal, utang, atau perubahan stok.
+- Cancel PO `approved`/`sent` mengembalikan `orderedQty`; harga master tidak berubah karena PO tidak pernah mengubah harga.
+- PO Tempo tidak membuat jurnal, utang, atau perubahan stok. PO DP/Lunas di Awal membuat jurnal saat pembayaran awal.
 - Preview A4 + Print + Export PDF tersedia.
 - PO ikut terhapus saat **Hapus Transaksi**.
-- Tahap berikutnya: Finance F1/F2 (CoA + Jurnal) sebelum Penerimaan Barang (L4).
 
 ### 2.5 Finance F1 + F2 — Chart of Accounts & Jurnal Umum
 
 Chart of Accounts:
-- 20 akun awal: aset, kewajiban, ekuitas, pendapatan, beban.
+- Akun awal mencakup aset, kewajiban, ekuitas, pendapatan, dan beban.
 - Saldo normal debit/kredit, akun induk, penanda Kas/Bank.
-- Akun kontrol (Piutang Usaha, Persediaan, Utang Usaha, Piutang Supplier) bertanda **Sistem** dan terkunci dari jurnal manual.
+- Akun kontrol (Piutang Usaha, Persediaan, Utang Usaha, Piutang Supplier, **Uang Muka Pembelian**) bertanda **Sistem** dan terkunci dari jurnal manual.
 - Akun sistem tidak dapat diedit/dihapus.
 - Akun yang sudah dipakai jurnal tidak dapat dihapus.
 - Saldo akun dihitung dari jurnal berstatus `posted`; jurnal void tidak dihitung.
@@ -263,7 +281,8 @@ Aturan utama:
   - stok material bertambah,
   - `stockValue`, `avgCost`, dan `stockMovements` diperbarui,
   - jurnal otomatis `Dr Persediaan / Cr Utang Usaha`,
-  - payable/AP otomatis dengan jatuh tempo dari termin supplier,
+  - jika PO memiliki DP/Lunas di Awal, uang muka dipotongkan ke utang dan jurnal `Dr Utang Usaha / Cr Uang Muka Pembelian` dibuat,
+  - payable/AP otomatis dengan jatuh tempo dari termin supplier; `paid` berisi DP yang diterapkan dan `unpaid` adalah sisanya,
   - status PO menjadi `partially_received` / `fully_received`.
 - Stok per gudang dihitung dari `stockMovements` dan ditampilkan di **Stock → Barang**.
 - Harga beli master memakai **moving average global perusahaan**:
@@ -317,6 +336,12 @@ Aturan utama:
   - status menjadi `partial` atau `paid`,
   - jurnal otomatis `Dr Utang Usaha / Cr Kas/Bank`,
   - riwayat pembayaran tersimpan di detail utang.
+- Detail utang memisahkan **DP Diterapkan**, **Dibayar Kas/Bank**, dan **Sisa**.
+- Tab **Uang Muka** menampilkan seluruh pembayaran DP/Lunas di Awal:
+  - nomor pembayaran, tanggal, supplier, PO,
+  - nominal, terpakai, sisa, kas/bank, status,
+  - aksi **Lihat PO**.
+- Uang muka yang belum terpakai tetap tampil sebagai aset sampai dipotongkan oleh penerimaan atau dikembalikan lewat pembatalan PO.
 - Permission `Utang` untuk Admin, Manager, Supervisor, Developer.
 
 ### 2.10 Produksi & Resep (BOM)

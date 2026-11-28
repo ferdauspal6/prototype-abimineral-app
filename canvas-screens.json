@@ -633,6 +633,24 @@
     "setup": "purchase-order-detail"
   },
   {
+    "id": "purchase-order-payment",
+    "name": "PO — Pembayaran DP",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-orders",
+    "role": "Manager",
+    "setup": "po-payment-modal"
+  },
+  {
+    "id": "purchase-order-cancel",
+    "name": "PO — Pembatalan & Refund",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-orders",
+    "role": "Manager",
+    "setup": "po-cancel-refund"
+  },
+  {
     "id": "purchase-order-reject",
     "name": "Tolak Purchase Order",
     "group": "pembelian",
@@ -843,6 +861,14 @@
     "group": "keuangan",
     "groupName": "Keuangan",
     "page": "payables"
+  },
+  {
+    "id": "payables-advance",
+    "name": "Utang — Uang Muka",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "payables",
+    "setup": "payables-advance"
   },
   {
     "id": "payable-detail",

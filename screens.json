@@ -898,6 +898,28 @@
       "previewH": 900
     },
     {
+      "id": "purchase-order-payment",
+      "name": "PO — Pembayaran DP",
+      "src": "index.html?canvas=purchase-order-payment",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/purchase-order-payment.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
+      "id": "purchase-order-cancel",
+      "name": "PO — Pembatalan & Refund",
+      "src": "index.html?canvas=purchase-order-cancel",
+      "group": "pembelian",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/purchase-order-cancel.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
       "id": "purchase-order-reject",
       "name": "Tolak Purchase Order",
       "src": "index.html?canvas=purchase-order-reject",
@@ -1191,6 +1213,17 @@
       "virtual": true,
       "w": 1440,
       "preview": "canvas/previews/payables.jpg",
+      "previewW": 1440,
+      "previewH": 900
+    },
+    {
+      "id": "payables-advance",
+      "name": "Utang — Uang Muka",
+      "src": "index.html?canvas=payables-advance",
+      "group": "keuangan",
+      "virtual": true,
+      "w": 1440,
+      "preview": "canvas/previews/payables-advance.jpg",
       "previewW": 1440,
       "previewH": 900
     },
