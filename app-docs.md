@@ -70,7 +70,7 @@ Prototype ini bukan sekadar mockup statis. Seluruh perubahan data disimpan di **
 - Data terikat pada browser/perangkat. Gunakan Export/Import untuk memindahkan state demo.
 - Nomor dokumen dan tanggal dibuat relatif terhadap tanggal hari ini, sehingga demo selalu terlihat baru.
 - **Master barang awal** hanya berisi 3 produk ABI Mineral: ABI-0001 (220 ml cup), ABI-0002 (330 ml botol), dan ABI-0003 (600 ml botol), masing-masing dengan stok awal 100 Krt.
-- **Panduan alur:** buka `flow.html` untuk melihat flowchart operasional lengkap (order → surat jalan → pembayaran → piutang → penagihan → return), status, efek data, dan hak akses role.
+- **Panduan alur:** buka `flow.html` untuk canvas interaktif alur penjualan (order → invoice → surat jalan → pembayaran → piutang → penagihan → return). Kartu dapat digeser, di-zoom, dicari, dan difilter; toggle **Tampilkan Jurnal** menampilkan relasi ke COA. Klik kartu untuk melihat rumus, contoh, dan mapping akun.
 - **Design guideline:** `design-guideline.md` berisi standar shell, header, tombol, form, searchable select + quick-add, tabel, status, modal vs halaman, konvensi Alpine, dan checklist modul baru.
 
 ### 2.4 Modul Pembelian — L1 & L2
