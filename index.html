@@ -3781,10 +3781,9 @@
         <div class="card p-4 mb-4 no-print">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="seg">
-              <button class="seg-btn" :class="{ 'active': reportTab === 'trial' }" @click="reportTab = 'trial'">Neraca Saldo</button>
               <button class="seg-btn" :class="{ 'active': reportTab === 'profit' }" @click="reportTab = 'profit'">Laba Rugi</button>
               <button class="seg-btn" :class="{ 'active': reportTab === 'balance' }" @click="reportTab = 'balance'">Neraca</button>
-              <button class="seg-btn" :class="{ 'active': reportTab === 'revenue' }" @click="reportTab = 'revenue'">Pendapatan</button>
+              <button class="seg-btn" :class="{ 'active': reportTab === 'trial' }" @click="reportTab = 'trial'">Neraca Saldo</button>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <button class="btn btn-outline" @click="downloadReportCSV()"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Export CSV</button>
@@ -3792,20 +3791,19 @@
             </div>
           </div>
           <div class="mt-3 flex flex-wrap items-end gap-3">
-            <div x-show="reportTab === 'profit' || reportTab === 'revenue'">
+            <div x-show="reportTab === 'profit'">
               <label class="label">Dari Tanggal</label>
               <input type="date" class="input w-44" x-model="reportFrom">
             </div>
             <div>
-              <label class="label" x-text="(reportTab === 'profit' || reportTab === 'revenue') ? 'Sampai Tanggal' : 'Posisi per Tanggal'"></label>
-              <input x-show="reportTab === 'profit' || reportTab === 'revenue'" type="date" class="input w-44" x-model="reportTo">
-              <input x-show="reportTab !== 'profit' && reportTab !== 'revenue'" type="date" class="input w-44" x-model="reportAsOf">
+              <label class="label" x-text="reportTab === 'profit' ? 'Sampai Tanggal' : 'Posisi per Tanggal'"></label>
+              <input x-show="reportTab === 'profit'" type="date" class="input w-44" x-model="reportTo">
+              <input x-show="reportTab !== 'profit'" type="date" class="input w-44" x-model="reportAsOf">
             </div>
             <label x-show="reportTab === 'trial'" class="flex items-center gap-2 text-sm text-slate-600 pb-2"><input type="checkbox" class="checkbox" x-model="reportShowZero"> Tampilkan akun saldo 0</label>
           </div>
           <p class="mt-2 text-[11px] text-slate-400" x-show="reportTab === 'profit'">Laba Rugi mengukur satu periode, memakai rentang tanggal.</p>
-          <p class="mt-2 text-[11px] text-slate-400" x-show="reportTab === 'revenue'">Pendapatan Operasional dihitung dari order; Pendapatan Lain dihitung dari jurnal posted.</p>
-          <p class="mt-2 text-[11px] text-slate-400" x-show="reportTab !== 'profit' && reportTab !== 'revenue'">Neraca Saldo dan Neraca mengukur posisi pada satu tanggal, dihitung dari seluruh jurnal posted sampai tanggal itu.</p>
+          <p class="mt-2 text-[11px] text-slate-400" x-show="reportTab !== 'profit'">Neraca dan Neraca Saldo mengukur posisi pada satu tanggal, dihitung dari seluruh jurnal posted sampai tanggal itu.</p>
         </div>
 
         <div class="card print-area mb-4" x-show="reportTab === 'trial'">
@@ -3932,86 +3930,6 @@
                 <tr><td class="font-bold">Total kewajiban + ekuitas</td><td class="num font-bold" x-text="reportValue(reportBalanceSheet.totalKewajibanEkuitas)"></td></tr>
                 <tr><td class="text-slate-500">Pengecekan: aset − (kewajiban + ekuitas)</td><td class="num"><span x-text="reportValue(reportBalanceSheet.difference)"></span><span class="ml-2 badge" :class="reportBalanceSheet.seimbang ? 'badge-green' : 'badge-red'" x-text="reportBalanceSheet.seimbang ? 'Seimbang' : 'Periksa jurnal'"></span></td></tr>
               </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <div class="card print-area mb-4" x-show="reportTab === 'revenue'">
-          <div class="print-only px-4 pt-4">
-            <div class="text-base font-bold">CV TOU MASAGENA MINERAL</div>
-            <div class="text-xs text-slate-500">Pendapatan • <span x-text="dateShort(reportFrom) + ' – ' + dateShort(reportTo)"></span></div>
-          </div>
-          <div class="card-header">
-            <div>
-              <div class="section-title">Pendapatan</div>
-              <div class="text-[11px] text-slate-400" x-text="dateShort(reportFrom) + ' – ' + dateShort(reportTo)"></div>
-            </div>
-            <span class="badge badge-slate" x-text="revenueReport.orders.length + ' order'"></span>
-          </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Sumber Pendapatan</th><th class="num">Nilai</th><th class="num">Porsi</th></tr></thead>
-              <tbody>
-                <tr><td class="font-semibold">Penjualan Order</td><td class="num" x-text="rp(revenueReport.salesValue)"></td><td class="num" x-text="revenueReport.salesPct + '%'"></td></tr>
-                <tr><td class="font-semibold">Pendapatan Lain (Jurnal)</td><td class="num" x-text="rp(revenueReport.otherTotal)"></td><td class="num" x-text="revenueReport.otherPct + '%'"></td></tr>
-                <tr class="bg-slate-100 font-bold"><td>Total Pendapatan</td><td class="num" x-text="rp(revenueReport.total)"></td><td class="num">100%</td></tr>
-                <tr x-show="revenueReport.orders.length === 0 && revenueReport.otherRows.length === 0"><td colspan="3"><div class="empty py-6"><div class="font-semibold">Belum ada pendapatan</div><div class="text-xs text-slate-400">Tidak ada order atau jurnal pendapatan pada periode ini.</div></div></td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="border-t border-slate-200"></div>
-          <div class="px-4 py-3"><div class="section-title">Pendapatan Lain per Akun</div><div class="text-[11px] text-slate-400">Berasal dari jurnal posted pada periode ini.</div></div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Kode</th><th>Akun</th><th class="num">Nilai</th></tr></thead>
-              <tbody>
-                <template x-for="row in revenueReport.otherRows" :key="row.account.id">
-                  <tr><td class="font-semibold" x-text="row.account.code"></td><td><button class="text-left hover:text-blue-600" @click="openReportLedger(row.account.id)" x-text="row.account.name"></button></td><td class="num" x-text="reportValue(row.value)"></td></tr>
-                </template>
-                <tr x-show="revenueReport.otherRows.length === 0"><td colspan="3" class="text-center text-xs text-slate-400 py-3">Tidak ada pendapatan lain pada periode ini.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="border-t border-slate-200"></div>
-          <div class="px-4 py-3"><div class="section-title">Penjualan per Channel dan User</div><div class="text-[11px] text-slate-400">Order di luar role Sales masuk ke Sales Kantor.</div></div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Channel</th><th>User</th><th class="num">Order</th><th class="num">Nilai Penjualan</th></tr></thead>
-              <tbody>
-                <template x-for="row in revenueReport.users" :key="row.channel + '-' + row.user">
-                  <tr>
-                    <td><span class="badge" :class="row.channel === 'Sales' ? 'badge-green' : 'badge-blue'" x-text="row.channel"></span></td>
-                    <td class="font-semibold" x-text="row.user"></td>
-                    <td class="num" x-text="row.orders"></td>
-                    <td class="num" x-text="rp(row.value)"></td>
-                  </tr>
-                </template>
-                <tr x-show="revenueReport.users.length === 0"><td colspan="4" class="text-center text-xs text-slate-400 py-3">Belum ada penjualan pada periode ini.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="border-t border-slate-200"></div>
-          <div class="px-4 py-3"><div class="section-title">Rincian Order</div><div class="text-[11px] text-slate-400">Nilai penjualan.</div></div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Invoice</th><th>Tanggal</th><th>Pelanggan</th><th>Channel</th><th>Dibuat Oleh</th><th>Sales Pelanggan</th><th class="num">Nilai</th></tr></thead>
-              <tbody>
-                <template x-for="order in revenueReport.orders" :key="order.id">
-                  <tr>
-                    <td><button class="font-semibold text-blue-600 hover:underline" @click="viewInvoice(order.id)" x-text="order.code"></button></td>
-                    <td x-text="dateShort(order.date)"></td>
-                    <td><div class="font-semibold" x-text="customerName(order.customerId)"></div><span class="sub" x-text="customer(order.customerId).address"></span></td>
-                    <td><span class="badge" :class="orderSalesChannel(order) === 'Sales' ? 'badge-green' : 'badge-blue'" x-text="orderSalesChannel(order)"></span></td>
-                    <td><div class="font-semibold" x-text="orderCreatorName(order)"></div><span class="sub" x-text="orderCreatorRole(order)"></span></td>
-                    <td x-text="order.sales || '-'"></td>
-                    <td class="num" x-text="rp((order.total || 0) - (order.tax || 0))"></td>
-                  </tr>
-                </template>
-                <tr x-show="revenueReport.orders.length === 0"><td colspan="7" class="text-center text-xs text-slate-400 py-3">Belum ada order pada periode ini.</td></tr>
-              </tbody>
             </table>
           </div>
         </div>

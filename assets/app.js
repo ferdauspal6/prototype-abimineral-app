@@ -2141,7 +2141,6 @@ function app() {
         case 'report-trial': this.reportTab = 'trial'; this.page = 'reports'; break;
         case 'report-profit': this.reportTab = 'profit'; this.page = 'reports'; break;
         case 'report-balance': this.reportTab = 'balance'; this.page = 'reports'; break;
-        case 'report-revenue': this.reportTab = 'revenue'; this.page = 'reports'; break;
         case 'hpp-bulanan-create': {
           this.startHppBulananCreate();
           this.page = 'hpp-bulanan-create';
@@ -9695,7 +9694,7 @@ function app() {
     },
     /* ---------- LEDGER & TRIAL BALANCE ---------- */
     ledgerAccountId: 'acc1', ledgerFrom: '', ledgerTo: todayISO(),
-    reportTab: 'trial', reportAsOf: todayISO(), reportFrom: todayISO().slice(0, 8) + '01', reportTo: todayISO(), reportShowZero: false,
+    reportTab: 'profit', reportAsOf: todayISO(), reportFrom: todayISO().slice(0, 8) + '01', reportTo: todayISO(), reportShowZero: false,
     get ledgerAccountData() { return this.accountById(this.ledgerAccountId) || this.accounts[0] || {}; },
     ledgerAccountOptions() { return [...this.accounts].sort((a, b) => String(a.code).localeCompare(String(b.code))); },
     get ledgerOpening() {
@@ -9864,51 +9863,6 @@ function app() {
         totalKewajibanEkuitas, difference, seimbang:Math.abs(difference) < 0.005
       };
     },
-    get revenueReport() {
-      const from = this.reportFrom;
-      const to = this.reportTo;
-      const inRange = date => (!from || date >= from) && (!to || date <= to);
-      const orders = this.orders
-        .filter(order => inRange(order.date) && !['cancel','failed'].includes(order.status))
-        .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-      const netSales = order => Math.max(0, (Number(order.total) || 0) - (Number(order.tax) || 0));
-      const salesValue = orders.reduce((sum, order) => sum + netSales(order), 0);
-      const channels = [
-        { channel:'Sales', orders:0, value:0 },
-        { channel:'Sales Kantor', orders:0, value:0 }
-      ];
-      const users = {};
-      orders.forEach(order => {
-        const channel = this.orderSalesChannel(order);
-        const user = channel === 'Sales' ? this.orderSalesPerson(order) : this.orderCreatorName(order);
-        const value = netSales(order);
-        const channelRow = channels.find(row => row.channel === channel) || channels[0];
-        channelRow.orders += 1;
-        channelRow.value += value;
-        const key = channel + '|' + user;
-        if (!users[key]) users[key] = { channel, user, orders:0, value:0 };
-        users[key].orders += 1;
-        users[key].value += value;
-      });
-      const otherRows = this.accounts
-        .filter(account => account.type === 'revenue')
-        .map(account => {
-          const movement = this.reportMovement(account.id, from, to, 'order');
-          return { account, value:movement.credit - movement.debit };
-        })
-        .filter(row => row.value !== 0)
-        .sort((a, b) => String(a.account.code).localeCompare(String(b.account.code)));
-      const otherTotal = otherRows.reduce((sum, row) => sum + row.value, 0);
-      const total = salesValue + otherTotal;
-      const pct = value => total ? Math.round(value / total * 1000) / 10 : 0;
-      return {
-        from, to, orders, salesValue, salesPct:pct(salesValue),
-        otherRows, otherTotal, otherPct:pct(otherTotal),
-        total,
-        channels:channels.filter(row => row.orders > 0),
-        users:Object.values(users).sort((a, b) => a.channel.localeCompare(b.channel) || b.value - a.value)
-      };
-    },
     openReportLedger(accountId) {
       if (!accountId) return;
       this.ledgerAccountId = accountId;
@@ -9925,17 +9879,7 @@ function app() {
       const cell = value => '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
       let lines = [];
       let filename = 'laporan-';
-      if (this.reportTab === 'revenue') {
-        const data = this.revenueReport;
-        lines.push(['Sumber','Keterangan','Nilai'].map(cell).join(';'));
-        lines.push(['Penjualan Order','Penjualan', data.salesValue].map(cell).join(';'));
-        data.otherRows.forEach(row => lines.push(['Pendapatan Lain', row.account.code + ' — ' + row.account.name, row.value].map(cell).join(';')));
-        lines.push(['TOTAL','', data.total].map(cell).join(';'));
-        lines.push('');
-        lines.push(['Channel','User','Order','Nilai'].map(cell).join(';'));
-        data.users.forEach(row => lines.push([row.channel, row.user, row.orders, row.value].map(cell).join(';')));
-        filename += 'pendapatan-' + this.reportFrom + '_' + this.reportTo;
-      } else if (this.reportTab === 'profit') {
+      if (this.reportTab === 'profit') {
         const data = this.reportProfitLoss;
         lines.push(['Section','Kode','Akun','Nilai'].map(cell).join(';'));
         const add = (section, rows, sign = 1) => rows.forEach(row => lines.push([section, row.account.code, row.account.name, row.value * sign].map(cell).join(';')));

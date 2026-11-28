@@ -1,134 +1,1036 @@
 [
-  { "id": "dashboard", "name": "Dashboard", "group": "penjualan", "groupName": "Penjualan", "page": "dashboard" },
-  { "id": "dashboard-recap-cash", "name": "Dashboard — Uang Masuk", "group": "penjualan", "groupName": "Penjualan", "page": "dashboard", "state": { "dashRecapTab": "cash" } },
-  { "id": "dashboard-stock-popular", "name": "Dashboard — Stok Populer", "group": "penjualan", "groupName": "Penjualan", "page": "dashboard", "state": { "dashStockTab": "popular" } },
-  { "id": "dashboard-stock-holding", "name": "Dashboard — Stok Ditahan", "group": "penjualan", "groupName": "Penjualan", "page": "dashboard", "state": { "dashStockTab": "holding" } },
-  { "id": "customers", "name": "Master Pelanggan", "group": "penjualan", "groupName": "Penjualan", "page": "customers" },
-  { "id": "customer-modal", "name": "Modal Pelanggan", "group": "penjualan", "groupName": "Penjualan", "page": "customers", "setup": "customer-modal" },
-  { "id": "promos", "name": "Master Promo", "group": "penjualan", "groupName": "Penjualan", "page": "promos" },
-  { "id": "promo-modal", "name": "Modal Promo", "group": "penjualan", "groupName": "Penjualan", "page": "promos", "setup": "promo-modal" },
-  { "id": "order-customer", "name": "Pilih Pelanggan", "group": "penjualan", "groupName": "Penjualan", "page": "order-customer" },
-  { "id": "order-customer-schedule", "name": "Pilih Pelanggan — Jadwal", "group": "penjualan", "groupName": "Penjualan", "page": "order-customer", "state": { "orderViewTab": "schedule" } },
-  { "id": "order-create", "name": "Buat Order", "group": "penjualan", "groupName": "Penjualan", "page": "order-create" },
-  { "id": "order-create-history", "name": "Buat Order — Riwayat", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "state": { "orderTab": "history" } },
-  { "id": "orders", "name": "Order List", "group": "penjualan", "groupName": "Penjualan", "page": "orders" },
-  { "id": "order-filter-customer", "name": "Order — Filter Pelanggan", "group": "penjualan", "groupName": "Penjualan", "page": "orders", "setup": "order-filter-customer" },
-  { "id": "order-detail", "name": "Order Detail", "group": "penjualan", "groupName": "Penjualan", "page": "order-detail", "setup": "order-detail" },
-  { "id": "invoice", "name": "Invoice", "group": "penjualan", "groupName": "Penjualan", "page": "invoice", "setup": "invoice" },
-  { "id": "bulk-invoice", "name": "Bulk Invoice", "group": "penjualan", "groupName": "Penjualan", "page": "bulk-invoice", "setup": "bulk-invoice" },
-  { "id": "order-success", "name": "Order Sukses", "group": "penjualan", "groupName": "Penjualan", "page": "order-success" },
-  { "id": "deliveries", "name": "Surat Jalan", "group": "penjualan", "groupName": "Penjualan", "page": "deliveries" },
-  { "id": "delivery-create", "name": "Buat Surat Jalan", "group": "penjualan", "groupName": "Penjualan", "page": "delivery-create" },
-  { "id": "delivery-check", "name": "Konfirmasi Surat Jalan", "group": "penjualan", "groupName": "Penjualan", "page": "delivery-check", "setup": "delivery-check" },
-  { "id": "delivery-detail", "name": "Detail Surat Jalan", "group": "penjualan", "groupName": "Penjualan", "page": "delivery-detail", "setup": "delivery-detail" },
-  { "id": "delivery-invoice", "name": "Preview Delivery", "group": "penjualan", "groupName": "Penjualan", "page": "delivery-invoice", "setup": "delivery-invoice" },
-  { "id": "returns", "name": "Return Penjualan", "group": "penjualan", "groupName": "Penjualan", "page": "returns" },
-  { "id": "return-modal", "name": "Modal Return", "group": "penjualan", "groupName": "Penjualan", "page": "returns", "setup": "return-modal" },
-  { "id": "order-preview", "name": "Preview Order", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "setup": "order-preview" },
-  { "id": "order-stock-confirm", "name": "Konfirmasi Stock Kurang", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "setup": "order-stock-confirm" },
-  { "id": "order-preview-shortage", "name": "Preview Order — Stock Kurang", "group": "penjualan", "groupName": "Penjualan", "page": "order-create", "setup": "order-preview-shortage" },
-  { "id": "delivery-preview", "name": "Preview Buat Surat Jalan", "group": "penjualan", "groupName": "Penjualan", "page": "delivery-create", "setup": "delivery-preview" },
-  { "id": "collection-preview", "name": "Preview Penagihan", "group": "penjualan", "groupName": "Penjualan", "page": "collection-create", "setup": "collection-preview" },
-  { "id": "report-modal", "name": "Modal Laporan", "group": "penjualan", "groupName": "Penjualan", "page": "dashboard", "setup": "report-modal" },
-  { "id": "camera-modal", "name": "Modal Kamera", "group": "penjualan", "groupName": "Penjualan", "page": "order-customer", "setup": "camera-modal" },
-  { "id": "confirm-modal", "name": "Modal Konfirmasi", "group": "penjualan", "groupName": "Penjualan", "page": "orders", "setup": "confirm-modal" },
-  { "id": "action-menu", "name": "Action Menu", "group": "penjualan", "groupName": "Penjualan", "page": "orders", "setup": "action-menu" },
-
-  { "id": "warehouses", "name": "Master Gudang", "group": "logistik", "groupName": "Logistik", "page": "warehouses" },
-  { "id": "warehouse-modal", "name": "Modal Gudang", "group": "logistik", "groupName": "Logistik", "page": "warehouses", "setup": "warehouse-modal" },
-  { "id": "products", "name": "Master Produk", "group": "logistik", "groupName": "Logistik", "page": "products" },
-  { "id": "product-categories", "name": "Kategori Produk", "group": "logistik", "groupName": "Logistik", "page": "products", "state": { "productTab": "categories" } },
-  { "id": "product-price-types", "name": "Tipe Harga", "group": "logistik", "groupName": "Logistik", "page": "products", "state": { "productTab": "price-types" } },
-  { "id": "product-form", "name": "Form Produk", "group": "logistik", "groupName": "Logistik", "page": "product-create", "setup": "product-form" },
-  { "id": "recipe-preview", "name": "Preview Resep", "group": "logistik", "groupName": "Logistik", "page": "products", "setup": "recipe-preview" },
-  { "id": "product-category-modal", "name": "Modal Kategori Produk", "group": "logistik", "groupName": "Logistik", "page": "products", "setup": "product-category-modal" },
-  { "id": "materials", "name": "Master Barang", "group": "logistik", "groupName": "Logistik", "page": "materials" },
-  { "id": "material-categories", "name": "Kategori Barang", "group": "logistik", "groupName": "Logistik", "page": "materials", "state": { "materialTab": "categories" } },
-  { "id": "material-modal", "name": "Modal Barang", "group": "logistik", "groupName": "Logistik", "page": "materials", "setup": "material-modal" },
-  { "id": "material-category-modal", "name": "Modal Kategori Barang", "group": "logistik", "groupName": "Logistik", "page": "materials", "setup": "material-category-modal" },
-  { "id": "stock-modal", "name": "Modal Stock Masuk", "group": "logistik", "groupName": "Logistik", "page": "stock-product", "setup": "stock-modal" },
-  { "id": "opname-modal", "name": "Modal Stock Opname", "group": "logistik", "groupName": "Logistik", "page": "stock-product", "setup": "opname-modal" },
-  { "id": "stock-active", "name": "Stock Aktif", "group": "logistik", "groupName": "Logistik", "page": "stock-product", "state": { "stockView": "product", "stockTab": "active" } },
-  { "id": "stock-production", "name": "Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock-product", "state": { "stockView": "product", "stockTab": "production" } },
-  { "id": "stock-history", "name": "Riwayat Stock", "group": "logistik", "groupName": "Logistik", "page": "stock-product", "state": { "stockView": "product", "stockTab": "history" } },
-  { "id": "stock-opname", "name": "Stock Opname", "group": "logistik", "groupName": "Logistik", "page": "stock-product", "state": { "stockView": "product", "stockTab": "opname" } },
-  { "id": "stock-material", "name": "Stock Barang", "group": "logistik", "groupName": "Logistik", "page": "stock-material", "state": { "stockView": "material", "materialStockTab": "active" } },
-  { "id": "stock-material-history", "name": "Riwayat Barang", "group": "logistik", "groupName": "Logistik", "page": "stock-material", "state": { "stockView": "material", "materialStockTab": "history" } },
-  { "id": "stock-material-variance", "name": "Selisih Bahan Baku", "group": "logistik", "groupName": "Logistik", "page": "stock-material", "state": { "stockView": "material", "materialStockTab": "selisih" } },
-  { "id": "employees", "name": "Data Pegawai", "group": "hr", "groupName": "HR", "page": "employees" },
-  { "id": "employee-detail", "name": "Detail Pegawai", "group": "hr", "groupName": "HR", "page": "employees", "setup": "employee-detail" },
-  { "id": "attendance", "name": "Rekap Absensi", "group": "hr", "groupName": "HR", "page": "attendance" },
-  { "id": "attendance-recap", "name": "Rekap Absensi — Detail", "group": "hr", "groupName": "HR", "page": "attendance", "setup": "attendance-recap" },
-  { "id": "perizinan", "name": "Perizinan", "group": "hr", "groupName": "HR", "page": "perizinan" },
-  { "id": "lembur", "name": "Lembur", "group": "hr", "groupName": "HR", "page": "lembur" },
-  { "id": "payroll", "name": "Payroll", "group": "hr", "groupName": "HR", "page": "payroll" },
-  { "id": "production-modal", "name": "Buat Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-modal" },
-  { "id": "production-detail", "name": "Detail Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-detail" },
-  { "id": "production-detail-logs", "name": "Detail Produksi — Riwayat", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-detail-logs" },
-  { "id": "production-correction", "name": "Koreksi Produksi", "group": "logistik", "groupName": "Logistik", "page": "stock", "setup": "production-correction" },
-
-  { "id": "suppliers", "name": "Supplier", "group": "pembelian", "groupName": "Pembelian", "page": "suppliers" },
-  { "id": "supplier-modal", "name": "Modal Supplier", "group": "pembelian", "groupName": "Pembelian", "page": "suppliers", "setup": "supplier-modal" },
-  { "id": "purchase-requests", "name": "Purchase Request", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-requests" },
-  { "id": "purchase-request-create", "name": "Buat Purchase Request", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-request-create", "setup": "purchase-request-create" },
-  { "id": "purchase-request-preview", "name": "Preview Purchase Request", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-request-preview", "setup": "purchase-request-preview" },
-  { "id": "purchase-request-detail", "name": "Detail Purchase Request", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-requests", "setup": "purchase-request-detail" },
-  { "id": "purchase-request-reject", "name": "Tolak Purchase Request", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-requests", "role": "Manager", "setup": "purchase-request-reject" },
-  { "id": "purchase-orders", "name": "Purchase Order", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-orders" },
-  { "id": "purchase-order-create", "name": "Buat Purchase Order", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-order-create", "setup": "purchase-order-create" },
-  { "id": "purchase-order-preview", "name": "Preview Purchase Order", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-order-preview", "setup": "purchase-order-preview" },
-  { "id": "purchase-order-detail", "name": "Detail Purchase Order", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-orders", "setup": "purchase-order-detail" },
-  { "id": "purchase-order-reject", "name": "Tolak Purchase Order", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-orders", "role": "Manager", "setup": "purchase-order-reject" },
-  { "id": "receipts", "name": "Penerimaan Barang", "group": "pembelian", "groupName": "Pembelian", "page": "receipts" },
-  { "id": "receipt-create", "name": "Buat Penerimaan", "group": "pembelian", "groupName": "Pembelian", "page": "receipt-create", "setup": "receipt-create" },
-  { "id": "receipt-preview", "name": "Preview Penerimaan", "group": "pembelian", "groupName": "Pembelian", "page": "receipt-preview", "setup": "receipt-preview" },
-  { "id": "receipt-detail", "name": "Detail Penerimaan", "group": "pembelian", "groupName": "Pembelian", "page": "receipts", "setup": "receipt-detail" },
-  { "id": "receipt-history", "name": "Riwayat Penerimaan", "group": "pembelian", "groupName": "Pembelian", "page": "receipts", "setup": "receipt-history" },
-  { "id": "purchase-returns", "name": "Return Pembelian", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-returns" },
-  { "id": "purchase-return-create", "name": "Buat Return Pembelian", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-return-create", "setup": "purchase-return-create" },
-  { "id": "purchase-return-detail", "name": "Detail Return Pembelian", "group": "pembelian", "groupName": "Pembelian", "page": "purchase-returns", "setup": "purchase-return-detail" },
-
-  { "id": "coa", "name": "Chart of Accounts", "group": "keuangan", "groupName": "Keuangan", "page": "coa" },
-  { "id": "finance-accounts", "name": "Daftar Rekening", "group": "keuangan", "groupName": "Keuangan", "page": "finance-accounts" },
-  { "id": "opening-balance", "name": "Saldo Awal", "group": "keuangan", "groupName": "Keuangan", "page": "opening-balance" },
-  { "id": "hpp", "name": "HPP Harian", "group": "keuangan", "groupName": "Keuangan", "page": "hpp" },
-  { "id": "hpp-bulanan", "name": "HPP — Bulanan", "group": "keuangan", "groupName": "Keuangan", "page": "hpp", "state": { "hppTab": "bulanan" } },
-  { "id": "hpp-bulanan-create", "name": "HPP — Buat Bulanan", "group": "keuangan", "groupName": "Keuangan", "page": "hpp-bulanan-create", "setup": "hpp-bulanan-create" },
-  { "id": "hpp-settings", "name": "HPP — Pengaturan", "group": "keuangan", "groupName": "Keuangan", "page": "hpp", "state": { "hppTab": "settings" } },
-  { "id": "hpp-create", "name": "HPP — Buat", "group": "keuangan", "groupName": "Keuangan", "page": "hpp-create", "setup": "hpp-create" },
-  { "id": "account-modal", "name": "Modal Akun", "group": "keuangan", "groupName": "Keuangan", "page": "coa", "setup": "account-modal" },
-  { "id": "journals", "name": "Jurnal Umum", "group": "keuangan", "groupName": "Keuangan", "page": "journals" },
-  { "id": "journal-create", "name": "Buat Jurnal", "group": "keuangan", "groupName": "Keuangan", "page": "journal-create", "setup": "journal-create" },
-  { "id": "journal-detail", "name": "Detail Jurnal", "group": "keuangan", "groupName": "Keuangan", "page": "journals", "setup": "journal-detail" },
-  { "id": "journal-void", "name": "Void Jurnal", "group": "keuangan", "groupName": "Keuangan", "page": "journals", "setup": "journal-void" },
-  { "id": "ledger", "name": "Buku Besar", "group": "keuangan", "groupName": "Keuangan", "page": "ledger" },
-  { "id": "reports-neraca-saldo", "name": "Laporan — Neraca Saldo", "group": "keuangan", "groupName": "Keuangan", "page": "reports", "setup": "report-trial" },
-  { "id": "reports-laba-rugi", "name": "Laporan — Laba Rugi", "group": "keuangan", "groupName": "Keuangan", "page": "reports", "setup": "report-profit" },
-  { "id": "reports-neraca", "name": "Laporan — Neraca", "group": "keuangan", "groupName": "Keuangan", "page": "reports", "setup": "report-balance" },
-  { "id": "reports-pendapatan", "name": "Laporan — Pendapatan", "group": "keuangan", "groupName": "Keuangan", "page": "reports", "setup": "report-revenue" },
-  { "id": "payables", "name": "Utang", "group": "keuangan", "groupName": "Keuangan", "page": "payables" },
-  { "id": "payable-detail", "name": "Detail Utang", "group": "keuangan", "groupName": "Keuangan", "page": "payables", "setup": "payable-detail" },
-  { "id": "payable-payment", "name": "Pembayaran Utang", "group": "keuangan", "groupName": "Keuangan", "page": "payables", "setup": "payable-payment" },
-  { "id": "finance-income", "name": "Pendapatan Lainnya", "group": "keuangan", "groupName": "Keuangan", "page": "finance-income" },
-  { "id": "finance-expense", "name": "Pengeluaran Lainnya", "group": "keuangan", "groupName": "Keuangan", "page": "finance-expense" },
-  { "id": "finance-modal", "name": "Modal Transaksi Keuangan", "group": "keuangan", "groupName": "Keuangan", "page": "finance-income", "setup": "finance-modal" },
-  { "id": "receivables-active", "name": "Piutang Aktif", "group": "keuangan", "groupName": "Keuangan", "page": "receivables", "state": { "receivableTab": "active" } },
-  { "id": "receivables-collections", "name": "Penagihan", "group": "keuangan", "groupName": "Keuangan", "page": "receivables", "state": { "receivableTab": "collections" } },
-  { "id": "receivables-paid", "name": "Piutang Lunas", "group": "keuangan", "groupName": "Keuangan", "page": "receivables", "state": { "receivableTab": "paid" } },
-  { "id": "receivables-payments", "name": "Riwayat Pembayaran", "group": "keuangan", "groupName": "Keuangan", "page": "receivables", "state": { "receivableTab": "payments" } },
-  { "id": "collection-create", "name": "Buat Penagihan", "group": "keuangan", "groupName": "Keuangan", "page": "collection-create", "setup": "collection-create" },
-  { "id": "receivable-payment-modal", "name": "Modal Pembayaran Piutang", "group": "keuangan", "groupName": "Keuangan", "page": "receivables", "setup": "receivable-payment-modal" },
-  { "id": "collection-confirm", "name": "Konfirmasi Penagihan", "group": "keuangan", "groupName": "Keuangan", "page": "collection-confirm", "setup": "collection-confirm" },
-
-  { "id": "users", "name": "Pengguna", "group": "pengguna", "groupName": "Pengguna", "page": "users" },
-  { "id": "user-modal", "name": "Modal Pengguna", "group": "pengguna", "groupName": "Pengguna", "page": "users", "setup": "user-modal" },
-  { "id": "roles", "name": "Role", "group": "pengguna", "groupName": "Pengguna", "page": "roles" },
-  { "id": "role-modal", "name": "Modal Role", "group": "pengguna", "groupName": "Pengguna", "page": "roles", "setup": "role-modal" },
-  { "id": "settings-profile", "name": "Pengaturan Profil", "group": "pengguna", "groupName": "Pengguna", "page": "settings", "state": { "settingsTab": "profile" } },
-  { "id": "settings-password", "name": "Pengaturan Kata Sandi", "group": "pengguna", "groupName": "Pengguna", "page": "settings", "state": { "settingsTab": "password" } },
-  { "id": "settings-2fa", "name": "Pengaturan 2FA", "group": "pengguna", "groupName": "Pengguna", "page": "settings", "state": { "settingsTab": "two-factor" } },
-  { "id": "settings-appearance", "name": "Pengaturan Tampilan", "group": "pengguna", "groupName": "Pengguna", "page": "settings", "state": { "settingsTab": "appearance" } },
-  { "id": "settings-data", "name": "Pengaturan Data Demo", "group": "pengguna", "groupName": "Pengguna", "page": "settings", "state": { "settingsTab": "data" } },
-
-  { "id": "login", "name": "Login", "group": "auth", "groupName": "Auth", "page": "login" }
+  {
+    "id": "dashboard",
+    "name": "Dashboard",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "dashboard"
+  },
+  {
+    "id": "dashboard-recap-cash",
+    "name": "Dashboard — Uang Masuk",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "dashboard",
+    "state": {
+      "dashRecapTab": "cash"
+    }
+  },
+  {
+    "id": "dashboard-stock-popular",
+    "name": "Dashboard — Stok Populer",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "dashboard",
+    "state": {
+      "dashStockTab": "popular"
+    }
+  },
+  {
+    "id": "dashboard-stock-holding",
+    "name": "Dashboard — Stok Ditahan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "dashboard",
+    "state": {
+      "dashStockTab": "holding"
+    }
+  },
+  {
+    "id": "customers",
+    "name": "Master Pelanggan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "customers"
+  },
+  {
+    "id": "customer-modal",
+    "name": "Modal Pelanggan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "customers",
+    "setup": "customer-modal"
+  },
+  {
+    "id": "promos",
+    "name": "Master Promo",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "promos"
+  },
+  {
+    "id": "promo-modal",
+    "name": "Modal Promo",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "promos",
+    "setup": "promo-modal"
+  },
+  {
+    "id": "order-customer",
+    "name": "Pilih Pelanggan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-customer"
+  },
+  {
+    "id": "order-customer-schedule",
+    "name": "Pilih Pelanggan — Jadwal",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-customer",
+    "state": {
+      "orderViewTab": "schedule"
+    }
+  },
+  {
+    "id": "order-create",
+    "name": "Buat Order",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-create"
+  },
+  {
+    "id": "order-create-history",
+    "name": "Buat Order — Riwayat",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-create",
+    "state": {
+      "orderTab": "history"
+    }
+  },
+  {
+    "id": "orders",
+    "name": "Order List",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "orders"
+  },
+  {
+    "id": "order-filter-customer",
+    "name": "Order — Filter Pelanggan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "orders",
+    "setup": "order-filter-customer"
+  },
+  {
+    "id": "order-detail",
+    "name": "Order Detail",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-detail",
+    "setup": "order-detail"
+  },
+  {
+    "id": "invoice",
+    "name": "Invoice",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "invoice",
+    "setup": "invoice"
+  },
+  {
+    "id": "bulk-invoice",
+    "name": "Bulk Invoice",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "bulk-invoice",
+    "setup": "bulk-invoice"
+  },
+  {
+    "id": "order-success",
+    "name": "Order Sukses",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-success"
+  },
+  {
+    "id": "deliveries",
+    "name": "Surat Jalan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "deliveries"
+  },
+  {
+    "id": "delivery-create",
+    "name": "Buat Surat Jalan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "delivery-create"
+  },
+  {
+    "id": "delivery-check",
+    "name": "Konfirmasi Surat Jalan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "delivery-check",
+    "setup": "delivery-check"
+  },
+  {
+    "id": "delivery-detail",
+    "name": "Detail Surat Jalan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "delivery-detail",
+    "setup": "delivery-detail"
+  },
+  {
+    "id": "delivery-invoice",
+    "name": "Preview Delivery",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "delivery-invoice",
+    "setup": "delivery-invoice"
+  },
+  {
+    "id": "returns",
+    "name": "Return Penjualan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "returns"
+  },
+  {
+    "id": "return-modal",
+    "name": "Modal Return",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "returns",
+    "setup": "return-modal"
+  },
+  {
+    "id": "order-preview",
+    "name": "Preview Order",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-create",
+    "setup": "order-preview"
+  },
+  {
+    "id": "order-stock-confirm",
+    "name": "Konfirmasi Stock Kurang",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-create",
+    "setup": "order-stock-confirm"
+  },
+  {
+    "id": "order-preview-shortage",
+    "name": "Preview Order — Stock Kurang",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-create",
+    "setup": "order-preview-shortage"
+  },
+  {
+    "id": "delivery-preview",
+    "name": "Preview Buat Surat Jalan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "delivery-create",
+    "setup": "delivery-preview"
+  },
+  {
+    "id": "collection-preview",
+    "name": "Preview Penagihan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "collection-create",
+    "setup": "collection-preview"
+  },
+  {
+    "id": "report-modal",
+    "name": "Modal Laporan",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "dashboard",
+    "setup": "report-modal"
+  },
+  {
+    "id": "camera-modal",
+    "name": "Modal Kamera",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "order-customer",
+    "setup": "camera-modal"
+  },
+  {
+    "id": "confirm-modal",
+    "name": "Modal Konfirmasi",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "orders",
+    "setup": "confirm-modal"
+  },
+  {
+    "id": "action-menu",
+    "name": "Action Menu",
+    "group": "penjualan",
+    "groupName": "Penjualan",
+    "page": "orders",
+    "setup": "action-menu"
+  },
+  {
+    "id": "warehouses",
+    "name": "Master Gudang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "warehouses"
+  },
+  {
+    "id": "warehouse-modal",
+    "name": "Modal Gudang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "warehouses",
+    "setup": "warehouse-modal"
+  },
+  {
+    "id": "products",
+    "name": "Master Produk",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "products"
+  },
+  {
+    "id": "product-categories",
+    "name": "Kategori Produk",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "products",
+    "state": {
+      "productTab": "categories"
+    }
+  },
+  {
+    "id": "product-price-types",
+    "name": "Tipe Harga",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "products",
+    "state": {
+      "productTab": "price-types"
+    }
+  },
+  {
+    "id": "product-form",
+    "name": "Form Produk",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "product-create",
+    "setup": "product-form"
+  },
+  {
+    "id": "recipe-preview",
+    "name": "Preview Resep",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "products",
+    "setup": "recipe-preview"
+  },
+  {
+    "id": "product-category-modal",
+    "name": "Modal Kategori Produk",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "products",
+    "setup": "product-category-modal"
+  },
+  {
+    "id": "materials",
+    "name": "Master Barang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "materials"
+  },
+  {
+    "id": "material-categories",
+    "name": "Kategori Barang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "materials",
+    "state": {
+      "materialTab": "categories"
+    }
+  },
+  {
+    "id": "material-modal",
+    "name": "Modal Barang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "materials",
+    "setup": "material-modal"
+  },
+  {
+    "id": "material-category-modal",
+    "name": "Modal Kategori Barang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "materials",
+    "setup": "material-category-modal"
+  },
+  {
+    "id": "stock-modal",
+    "name": "Modal Stock Masuk",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-product",
+    "setup": "stock-modal"
+  },
+  {
+    "id": "opname-modal",
+    "name": "Modal Stock Opname",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-product",
+    "setup": "opname-modal"
+  },
+  {
+    "id": "stock-active",
+    "name": "Stock Aktif",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-product",
+    "state": {
+      "stockView": "product",
+      "stockTab": "active"
+    }
+  },
+  {
+    "id": "stock-production",
+    "name": "Produksi",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-product",
+    "state": {
+      "stockView": "product",
+      "stockTab": "production"
+    }
+  },
+  {
+    "id": "stock-history",
+    "name": "Riwayat Stock",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-product",
+    "state": {
+      "stockView": "product",
+      "stockTab": "history"
+    }
+  },
+  {
+    "id": "stock-opname",
+    "name": "Stock Opname",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-product",
+    "state": {
+      "stockView": "product",
+      "stockTab": "opname"
+    }
+  },
+  {
+    "id": "stock-material",
+    "name": "Stock Barang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-material",
+    "state": {
+      "stockView": "material",
+      "materialStockTab": "active"
+    }
+  },
+  {
+    "id": "stock-material-history",
+    "name": "Riwayat Barang",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-material",
+    "state": {
+      "stockView": "material",
+      "materialStockTab": "history"
+    }
+  },
+  {
+    "id": "stock-material-variance",
+    "name": "Selisih Bahan Baku",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock-material",
+    "state": {
+      "stockView": "material",
+      "materialStockTab": "selisih"
+    }
+  },
+  {
+    "id": "employees",
+    "name": "Data Pegawai",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "employees"
+  },
+  {
+    "id": "employee-detail",
+    "name": "Detail Pegawai",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "employees",
+    "setup": "employee-detail"
+  },
+  {
+    "id": "attendance",
+    "name": "Rekap Absensi",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "attendance"
+  },
+  {
+    "id": "attendance-recap",
+    "name": "Rekap Absensi — Detail",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "attendance",
+    "setup": "attendance-recap"
+  },
+  {
+    "id": "perizinan",
+    "name": "Perizinan",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "perizinan"
+  },
+  {
+    "id": "lembur",
+    "name": "Lembur",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "lembur"
+  },
+  {
+    "id": "payroll",
+    "name": "Payroll",
+    "group": "hr",
+    "groupName": "HR",
+    "page": "payroll"
+  },
+  {
+    "id": "production-modal",
+    "name": "Buat Produksi",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock",
+    "setup": "production-modal"
+  },
+  {
+    "id": "production-detail",
+    "name": "Detail Produksi",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock",
+    "setup": "production-detail"
+  },
+  {
+    "id": "production-detail-logs",
+    "name": "Detail Produksi — Riwayat",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock",
+    "setup": "production-detail-logs"
+  },
+  {
+    "id": "production-correction",
+    "name": "Koreksi Produksi",
+    "group": "logistik",
+    "groupName": "Logistik",
+    "page": "stock",
+    "setup": "production-correction"
+  },
+  {
+    "id": "suppliers",
+    "name": "Supplier",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "suppliers"
+  },
+  {
+    "id": "supplier-modal",
+    "name": "Modal Supplier",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "suppliers",
+    "setup": "supplier-modal"
+  },
+  {
+    "id": "purchase-requests",
+    "name": "Purchase Request",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-requests"
+  },
+  {
+    "id": "purchase-request-create",
+    "name": "Buat Purchase Request",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-request-create",
+    "setup": "purchase-request-create"
+  },
+  {
+    "id": "purchase-request-preview",
+    "name": "Preview Purchase Request",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-request-preview",
+    "setup": "purchase-request-preview"
+  },
+  {
+    "id": "purchase-request-detail",
+    "name": "Detail Purchase Request",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-requests",
+    "setup": "purchase-request-detail"
+  },
+  {
+    "id": "purchase-request-reject",
+    "name": "Tolak Purchase Request",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-requests",
+    "role": "Manager",
+    "setup": "purchase-request-reject"
+  },
+  {
+    "id": "purchase-orders",
+    "name": "Purchase Order",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-orders"
+  },
+  {
+    "id": "purchase-order-create",
+    "name": "Buat Purchase Order",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-order-create",
+    "setup": "purchase-order-create"
+  },
+  {
+    "id": "purchase-order-preview",
+    "name": "Preview Purchase Order",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-order-preview",
+    "setup": "purchase-order-preview"
+  },
+  {
+    "id": "purchase-order-detail",
+    "name": "Detail Purchase Order",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-orders",
+    "setup": "purchase-order-detail"
+  },
+  {
+    "id": "purchase-order-reject",
+    "name": "Tolak Purchase Order",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-orders",
+    "role": "Manager",
+    "setup": "purchase-order-reject"
+  },
+  {
+    "id": "receipts",
+    "name": "Penerimaan Barang",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "receipts"
+  },
+  {
+    "id": "receipt-create",
+    "name": "Buat Penerimaan",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "receipt-create",
+    "setup": "receipt-create"
+  },
+  {
+    "id": "receipt-preview",
+    "name": "Preview Penerimaan",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "receipt-preview",
+    "setup": "receipt-preview"
+  },
+  {
+    "id": "receipt-detail",
+    "name": "Detail Penerimaan",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "receipts",
+    "setup": "receipt-detail"
+  },
+  {
+    "id": "receipt-history",
+    "name": "Riwayat Penerimaan",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "receipts",
+    "setup": "receipt-history"
+  },
+  {
+    "id": "purchase-returns",
+    "name": "Return Pembelian",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-returns"
+  },
+  {
+    "id": "purchase-return-create",
+    "name": "Buat Return Pembelian",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-return-create",
+    "setup": "purchase-return-create"
+  },
+  {
+    "id": "purchase-return-detail",
+    "name": "Detail Return Pembelian",
+    "group": "pembelian",
+    "groupName": "Pembelian",
+    "page": "purchase-returns",
+    "setup": "purchase-return-detail"
+  },
+  {
+    "id": "coa",
+    "name": "Chart of Accounts",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "coa"
+  },
+  {
+    "id": "finance-accounts",
+    "name": "Daftar Rekening",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "finance-accounts"
+  },
+  {
+    "id": "opening-balance",
+    "name": "Saldo Awal",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "opening-balance"
+  },
+  {
+    "id": "hpp",
+    "name": "HPP Harian",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "hpp"
+  },
+  {
+    "id": "hpp-bulanan",
+    "name": "HPP — Bulanan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "hpp",
+    "state": {
+      "hppTab": "bulanan"
+    }
+  },
+  {
+    "id": "hpp-bulanan-create",
+    "name": "HPP — Buat Bulanan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "hpp-bulanan-create",
+    "setup": "hpp-bulanan-create"
+  },
+  {
+    "id": "hpp-settings",
+    "name": "HPP — Pengaturan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "hpp",
+    "state": {
+      "hppTab": "settings"
+    }
+  },
+  {
+    "id": "hpp-create",
+    "name": "HPP — Buat",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "hpp-create",
+    "setup": "hpp-create"
+  },
+  {
+    "id": "account-modal",
+    "name": "Modal Akun",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "coa",
+    "setup": "account-modal"
+  },
+  {
+    "id": "journals",
+    "name": "Jurnal Umum",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "journals"
+  },
+  {
+    "id": "journal-create",
+    "name": "Buat Jurnal",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "journal-create",
+    "setup": "journal-create"
+  },
+  {
+    "id": "journal-detail",
+    "name": "Detail Jurnal",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "journals",
+    "setup": "journal-detail"
+  },
+  {
+    "id": "journal-void",
+    "name": "Void Jurnal",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "journals",
+    "setup": "journal-void"
+  },
+  {
+    "id": "ledger",
+    "name": "Buku Besar",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "ledger"
+  },
+  {
+    "id": "reports-neraca-saldo",
+    "name": "Laporan — Neraca Saldo",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "reports",
+    "setup": "report-trial"
+  },
+  {
+    "id": "reports-laba-rugi",
+    "name": "Laporan — Laba Rugi",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "reports",
+    "setup": "report-profit"
+  },
+  {
+    "id": "reports-neraca",
+    "name": "Laporan — Neraca",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "reports",
+    "setup": "report-balance"
+  },
+  {
+    "id": "payables",
+    "name": "Utang",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "payables"
+  },
+  {
+    "id": "payable-detail",
+    "name": "Detail Utang",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "payables",
+    "setup": "payable-detail"
+  },
+  {
+    "id": "payable-payment",
+    "name": "Pembayaran Utang",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "payables",
+    "setup": "payable-payment"
+  },
+  {
+    "id": "finance-income",
+    "name": "Pendapatan Lainnya",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "finance-income"
+  },
+  {
+    "id": "finance-expense",
+    "name": "Pengeluaran Lainnya",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "finance-expense"
+  },
+  {
+    "id": "finance-modal",
+    "name": "Modal Transaksi Keuangan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "finance-income",
+    "setup": "finance-modal"
+  },
+  {
+    "id": "receivables-active",
+    "name": "Piutang Aktif",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "receivables",
+    "state": {
+      "receivableTab": "active"
+    }
+  },
+  {
+    "id": "receivables-collections",
+    "name": "Penagihan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "receivables",
+    "state": {
+      "receivableTab": "collections"
+    }
+  },
+  {
+    "id": "receivables-paid",
+    "name": "Piutang Lunas",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "receivables",
+    "state": {
+      "receivableTab": "paid"
+    }
+  },
+  {
+    "id": "receivables-payments",
+    "name": "Riwayat Pembayaran",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "receivables",
+    "state": {
+      "receivableTab": "payments"
+    }
+  },
+  {
+    "id": "collection-create",
+    "name": "Buat Penagihan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "collection-create",
+    "setup": "collection-create"
+  },
+  {
+    "id": "receivable-payment-modal",
+    "name": "Modal Pembayaran Piutang",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "receivables",
+    "setup": "receivable-payment-modal"
+  },
+  {
+    "id": "collection-confirm",
+    "name": "Konfirmasi Penagihan",
+    "group": "keuangan",
+    "groupName": "Keuangan",
+    "page": "collection-confirm",
+    "setup": "collection-confirm"
+  },
+  {
+    "id": "users",
+    "name": "Pengguna",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "users"
+  },
+  {
+    "id": "user-modal",
+    "name": "Modal Pengguna",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "users",
+    "setup": "user-modal"
+  },
+  {
+    "id": "roles",
+    "name": "Role",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "roles"
+  },
+  {
+    "id": "role-modal",
+    "name": "Modal Role",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "roles",
+    "setup": "role-modal"
+  },
+  {
+    "id": "settings-profile",
+    "name": "Pengaturan Profil",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "settings",
+    "state": {
+      "settingsTab": "profile"
+    }
+  },
+  {
+    "id": "settings-password",
+    "name": "Pengaturan Kata Sandi",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "settings",
+    "state": {
+      "settingsTab": "password"
+    }
+  },
+  {
+    "id": "settings-2fa",
+    "name": "Pengaturan 2FA",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "settings",
+    "state": {
+      "settingsTab": "two-factor"
+    }
+  },
+  {
+    "id": "settings-appearance",
+    "name": "Pengaturan Tampilan",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "settings",
+    "state": {
+      "settingsTab": "appearance"
+    }
+  },
+  {
+    "id": "settings-data",
+    "name": "Pengaturan Data Demo",
+    "group": "pengguna",
+    "groupName": "Pengguna",
+    "page": "settings",
+    "state": {
+      "settingsTab": "data"
+    }
+  },
+  {
+    "id": "login",
+    "name": "Login",
+    "group": "auth",
+    "groupName": "Auth",
+    "page": "login"
+  }
 ]

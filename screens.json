@@ -1184,17 +1184,6 @@
       "previewH": 900
     },
     {
-      "id": "reports-pendapatan",
-      "name": "Laporan — Pendapatan",
-      "src": "index.html?canvas=reports-pendapatan",
-      "group": "keuangan",
-      "virtual": true,
-      "w": 1440,
-      "preview": "canvas/previews/reports-pendapatan.jpg",
-      "previewW": 1440,
-      "previewH": 900
-    },
-    {
       "id": "payables",
       "name": "Utang",
       "src": "index.html?canvas=payables",

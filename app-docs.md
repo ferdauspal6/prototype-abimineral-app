@@ -166,14 +166,11 @@ Buku Besar:
 - Nomor jurnal bisa diklik untuk membuka detail.
 
 Laporan:
-- Satu halaman dengan 4 tab: **Neraca Saldo**, **Laba Rugi**, **Neraca**, dan **Pendapatan**.
-- **Neraca Saldo**: posisi per tanggal; kolom Kode, Nama Akun, Tipe, Debit, Kredit; total debit dan kredit; badge Seimbang; toggle akun saldo 0; export CSV.
+- Satu halaman dengan 3 tab, berurutan: **Laba Rugi**, **Neraca**, dan **Neraca Saldo**. Tab default adalah **Laba Rugi**.
 - **Laba Rugi**: rentang tanggal; section Pendapatan, HPP, Laba Kotor, Beban Operasional, Laba Bersih.
 - **Neraca**: posisi per tanggal; Aset Lancar/Tetap, Kewajiban Jangka Pendek/Panjang, Ekuitas, Laba Berjalan, total kewajiban + ekuitas, dan baris pengecekan.
-- **Pendapatan**: rentang tanggal; ringkasan sumber (Penjualan Order dan Pendapatan Lain), rincian pendapatan lain per akun, penjualan per channel/user, dan rincian order.
-- Channel penjualan: **Sales** untuk order dari role Sales, **Sales Kantor** untuk order dari role lain.
-- Setiap order menyimpan `createdById`, `createdBy`, `createdByRole`, `salesChannel`, dan `salesPerson`.
-- Nilai penjualan memakai total order tanpa PPN; order batal tidak dihitung.
+- **Neraca Saldo**: posisi per tanggal; kolom Kode, Nama Akun, Tipe, Debit, Kredit; total debit dan kredit; badge Seimbang; toggle akun saldo 0; export CSV.
+- Channel penjualan dihitung dari role pembuat order: **Sales** untuk order dari role Sales, **Sales Kantor** untuk order dari role lain. Data ini dipakai pada laporan penjualan di Dashboard.
 - Neraca Saldo memastikan total debit = total kredit. Neraca memastikan aset = kewajiban + ekuitas.
 - Kode/nama akun bisa diklik untuk drill-down ke Buku Besar.
 - Cetak memakai A4 portrait dan hanya mencetak tab aktif.
@@ -1561,6 +1558,13 @@ Layout: heading "Pengaturan", sidebar kiri (Profil, Kata sandi, Otentikasi 2FA, 
 | `ScrollArea` | Modal panjang. |
 | `Spinner` | Loading di tombol. |
 | `Toaster` | Notifikasi sukses. |
+
+### 9.6 Kartu KPI
+
+- Kartu KPI memakai `.card.kpi` dengan tinggi minimum ringkas (72px) dan isi rata atas.
+- Label, nilai, dan delta disusun berdekatan tanpa `justify-content: space-between`.
+- Nilai utama memakai ukuran 1.25rem; delta kecil di bawahnya.
+- Pola ini berlaku di Dashboard, Daftar Rekening, Utang, HPP, Buku Besar, dan Selisih Bahan Baku.
 
 ---
 

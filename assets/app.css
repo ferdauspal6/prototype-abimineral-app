@@ -107,10 +107,10 @@ html.canvas-measuring *::after { transition: none !important; animation: none !i
 .card { background: #fff; border: 1px solid var(--border); border-radius: .9rem; box-shadow: 0 1px 2px rgba(15,23,42,.03); }
 .card-header { padding: 1rem 1.1rem .65rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .card-body { padding: 1rem 1.1rem; }
-.kpi { padding: 1rem; min-height: 118px; display: flex; flex-direction: column; justify-content: space-between; }
+.kpi { padding: .85rem 1rem; min-height: 72px; display: flex; flex-direction: column; justify-content: flex-start; }
 .kpi-label { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; color: var(--muted-text); font-weight: 500; }
-.kpi-value { font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; margin-top: .4rem; }
-.kpi-delta { font-size: .68rem; margin-top: .2rem; }
+.kpi-value { font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; margin-top: .2rem; }
+.kpi-delta { font-size: .68rem; margin-top: .1rem; }
 
 /* Tables */
 .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: .75rem; background: #fff; }
